@@ -1,0 +1,68 @@
+schema: spec-driven
+
+context: |
+  Project: CRM Frontend (residencia universitaria, Chiapas México, español neutro, TZ America/Mexico_City).
+  Tech stack: React 18 + Vite + TypeScript, React Router v7, Tailwind + shadcn/ui,
+    React Hook Form + Zod, TanStack Query + Zustand, MSW (mock backend), Vitest + RTL.
+  Architecture: SPA post-login. Hexagonal-ish: src/api ↔ src/features/<entidad> ↔ src/store ↔ src/mocks.
+  Testing: Vitest + React Testing Library (Strict TDD habilitado tras Change 1 bootstrap).
+  Style: ESLint + Prettier (config Vite + custom rules cuando aplique).
+  Backend: NO existe — desarrollado por otro equipo. MSW intercepta TODO según contrato API
+    (`Desktop/contratos_api_crm (1).pdf`) y modelo de datos (`Desktop/diagrama_crm (6).html`).
+
+strict_tdd: true
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/features under src/
+    - Reference relevant API endpoints from the contract
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Specs must reference exact API endpoints (method + path) when describing data flows
+  design:
+    - Include sequence diagrams for complex flows (auth, mutations, optimistic updates)
+    - Document architecture decisions with rationale
+    - Define MSW handler shape per endpoint touched
+    - Define TanStack Query keys and invalidation strategy per feature
+  tasks:
+    - Group tasks by phase (infrastructure, mocks, types, hooks, components, tests)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Each task must be completable in one session
+    - Tests come BEFORE implementation when strict_tdd is true
+  apply:
+    - Follow existing code patterns and conventions
+    - Component props must be typed with interfaces (no any)
+    - Forms must use react-hook-form + zod resolvers
+    - Server state via TanStack Query; UI state via Zustand
+    tdd: true
+    test_command: "pnpm test:run"
+  verify:
+    test_command: "pnpm test:run"
+    build_command: "pnpm build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas (large removals)
+    - Update src/ feature index in main specs after merge
+
+testing:
+  strict_tdd: true
+  detected: "2026-05-10"
+  runner:
+    framework: "Vitest (planned)"
+    command: "npm run test (planned)"
+  layers:
+    unit: { available: false, tool: "Vitest (planned)" }
+    integration: { available: false, tool: "@testing-library/react (planned)" }
+    e2e: { available: false, tool: "out of scope for MVP" }
+  coverage:
+    available: false
+    command: "vitest run --coverage (planned)"
+  quality:
+    linter: { available: false, command: "eslint . (planned)" }
+    type_checker: { available: false, command: "tsc --noEmit (planned)" }
+    formatter: { available: false, command: "prettier --write . (planned)" }
+  notes: |
+    Strict TDD becomes available after Change 1 bootstrap installs Vitest.
+    From Change 2 onwards, flip strict_tdd to true and update this section.
