@@ -19,14 +19,6 @@ function Placeholder({ feature, changeNumber, description }: PlaceholderProps) {
   );
 }
 
-export const EmpresasPlaceholder = () => (
-  <Placeholder
-    feature="Empresas"
-    changeNumber={2}
-    description="Listado, detalle, creación, edición y eliminación de empresas. Incluye prospectos y clientes vinculados."
-  />
-);
-
 export const UsuariosPlaceholder = () => (
   <Placeholder
     feature="Usuarios"

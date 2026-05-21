@@ -1,0 +1,67 @@
+import type { Empresa } from '@/api/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useDeleteEmpresa } from '../hooks/useDeleteEmpresa';
+
+interface EmpresaDeleteDialogProps {
+  empresa: Empresa | null;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+export function EmpresaDeleteDialog({
+  empresa,
+  onOpenChange,
+  onSuccess,
+}: EmpresaDeleteDialogProps) {
+  const mutation = useDeleteEmpresa();
+
+  function handleDelete() {
+    if (!empresa) return;
+    mutation.mutate(empresa.id, {
+      onSuccess: () => {
+        onOpenChange(false);
+        onSuccess?.();
+      },
+    });
+  }
+
+  return (
+    <AlertDialog open={!!empresa} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar empresa?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {empresa && (
+              <>
+                ¿Eliminar <strong>{empresa.nombre}</strong>? Esta acción no se
+                puede deshacer. Sus prospectos y clientes asociados quedarán sin
+                empresa.
+              </>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={mutation.isPending}>
+            Cancelar
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={mutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {mutation.isPending ? 'Eliminando...' : 'Eliminar'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
