@@ -22,7 +22,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { nullsToStrings, stringsToNulls } from '@/lib/form-utils';
 import {
   usuarioCreateSchema,
-  usuarioUpdateSchema,
   type UsuarioCreateInput,
 } from '../schemas/usuario.schema';
 
@@ -62,7 +61,7 @@ export function UsuarioForm({
       : EMPTY_DEFAULTS;
 
   const form = useForm<UsuarioCreateInput, unknown, UsuarioCreateInput>({
-    resolver: zodResolver(mode === 'create' ? usuarioCreateSchema : usuarioUpdateSchema),
+    resolver: zodResolver(usuarioCreateSchema),
     defaultValues: resolvedDefaults,
   });
 

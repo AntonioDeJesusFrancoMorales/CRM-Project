@@ -5,8 +5,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { EmpresasListPage } from '@/features/empresas/pages/EmpresasListPage';
 import { EmpresaDetailPage } from '@/features/empresas/pages/EmpresaDetailPage';
+import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
 import {
-  UsuariosPlaceholder,
   ProspectosPlaceholder,
   ClientesPlaceholder,
   TratosPlaceholder,
@@ -33,7 +33,7 @@ export const router = createBrowserRouter([
           { path: 'tableros', element: <TablerosPlaceholder /> },
           {
             element: <RoleGuard role="admin" />,
-            children: [{ path: 'usuarios', element: <UsuariosPlaceholder /> }],
+            children: [{ path: 'usuarios', element: <UsuariosListPage /> }],
           },
         ],
       },

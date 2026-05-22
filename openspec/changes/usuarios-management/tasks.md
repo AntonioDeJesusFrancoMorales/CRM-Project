@@ -58,9 +58,9 @@
 
 ## Fase 6: Wiring + cleanup
 
-- [ ] **T6.1** Modificar `src/routes/router.tsx`: importar `UsuariosListPage` desde `src/features/usuarios/pages/UsuariosListPage`; reemplazar `<UsuariosPlaceholder />` por `<UsuariosListPage />` en la ruta `/usuarios`. Ref: proposal (scope In).
-- [ ] **T6.2** Modificar `src/routes/placeholders.tsx`: eliminar el export `UsuariosPlaceholder` (función + type si aplica). Verificar que no haya otros consumidores antes de eliminar. Ref: proposal (scope In).
-- [ ] **T6.3** Verificar `pnpm test:run` (todos los tests en verde), `pnpm lint` (0 errores), `pnpm type-check` (exit 0). Los 3 comandos deben pasar antes de continuar a Fase 7. Ref: ADR-020.
+- [x] **T6.1** Modificar `src/routes/router.tsx`: importar `UsuariosListPage` desde `src/features/usuarios/pages/UsuariosListPage`; reemplazar `<UsuariosPlaceholder />` por `<UsuariosListPage />` en la ruta `/usuarios`. Ref: proposal (scope In).
+- [x] **T6.2** Modificar `src/routes/placeholders.tsx`: eliminar el export `UsuariosPlaceholder` (función + type si aplica). Verificar que no haya otros consumidores antes de eliminar. Ref: proposal (scope In).
+- [x] **T6.3** Verificar `pnpm test:run` (todos los tests en verde), `pnpm lint` (0 errores), `pnpm type-check` (exit 0). Los 3 comandos deben pasar antes de continuar a Fase 7. Ref: ADR-020.
 
 ---
 

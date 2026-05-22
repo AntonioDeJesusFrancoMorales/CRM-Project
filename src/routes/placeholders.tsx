@@ -19,14 +19,6 @@ function Placeholder({ feature, changeNumber, description }: PlaceholderProps) {
   );
 }
 
-export const UsuariosPlaceholder = () => (
-  <Placeholder
-    feature="Usuarios"
-    changeNumber={3}
-    description="Gestión de usuarios del sistema. Solo accesible para administradores."
-  />
-);
-
 export const ProspectosPlaceholder = () => (
   <Placeholder
     feature="Prospectos"
