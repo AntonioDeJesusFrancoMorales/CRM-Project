@@ -18,7 +18,7 @@ const items: NavItem[] = [
   { label: 'Clientes', to: '/clientes', icon: Users, disabled: true, badge: 'Próximamente' },
   { label: 'Tratos', to: '/tratos', icon: Handshake, disabled: true, badge: 'Próximamente' },
   { label: 'Tableros', to: '/tableros', icon: KanbanSquare, disabled: true, badge: 'Próximamente' },
-  { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, disabled: true, badge: 'Próximamente', adminOnly: true },
+  { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, adminOnly: true },
 ];
 
 export function Sidebar() {

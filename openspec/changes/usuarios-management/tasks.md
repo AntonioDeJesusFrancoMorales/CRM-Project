@@ -66,7 +66,7 @@
 
 ## Fase 7: Verificación manual (smoke test)
 
-- [ ] **T7.1** Smoke test manual — el desarrollador debe: (1) iniciar sesión como admin; (2) navegar a `/usuarios`; (3) verificar que la tabla muestra los usuarios del fixture; (4) probar búsqueda por nombre y por correo; (5) probar filtro por rol (admin, usuario, todos); (6) crear un usuario nuevo con todos los campos y confirmar el toast de éxito + aparece en tabla; (7) editar un usuario existente y confirmar actualización; (8) desactivar un usuario y confirmar que el badge cambia a "Inactivo"; (9) reactivar ese usuario y confirmar badge "Activo"; (10) eliminar un usuario con confirmación en AlertDialog; (11) abrir edición sobre la propia cuenta: verificar que `rol_sistema` está disabled con Tooltip + que las acciones Eliminar/Desactivar están bloqueadas en la fila propia. Ref: spec R1–R11.
+- [x] **T7.1** Smoke test manual — el desarrollador debe: (1) iniciar sesión como admin; (2) navegar a `/usuarios`; (3) verificar que la tabla muestra los usuarios del fixture; (4) probar búsqueda por nombre y por correo; (5) probar filtro por rol (admin, usuario, todos); (6) crear un usuario nuevo con todos los campos y confirmar el toast de éxito + aparece en tabla; (7) editar un usuario existente y confirmar actualización; (8) desactivar un usuario y confirmar que el badge cambia a "Inactivo"; (9) reactivar ese usuario y confirmar badge "Activo"; (10) eliminar un usuario con confirmación en AlertDialog; (11) abrir edición sobre la propia cuenta: verificar que `rol_sistema` está disabled con Tooltip + que las acciones Eliminar/Desactivar están bloqueadas en la fila propia. Ref: spec R1–R11.
 
 ---
 
