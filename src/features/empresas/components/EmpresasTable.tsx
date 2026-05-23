@@ -67,7 +67,15 @@ export function EmpresasTable({
         ) : (
           filtered.map((empresa) => (
             <TableRow key={empresa.id}>
-              <TableCell className="font-medium">{empresa.nombre}</TableCell>
+              <TableCell className="font-medium">
+                <button
+                  type="button"
+                  onClick={() => onView(empresa)}
+                  className="text-left text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                >
+                  {empresa.nombre}
+                </button>
+              </TableCell>
               <TableCell>{empresa.sector ?? '—'}</TableCell>
               <TableCell>{empresa.telefono ?? '—'}</TableCell>
               <TableCell>
