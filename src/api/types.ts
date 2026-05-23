@@ -3,7 +3,7 @@
 
 export type RolSistema = 'admin' | 'usuario';
 export type ComoNosConocio = 'referido' | 'redes_sociales' | 'busqueda' | 'evento' | 'otro';
-export type EstadoPosibleCliente = 'frio' | 'tibio' | 'caliente';
+export type EstadoPosibleCliente = 'frio' | 'tibio' | 'caliente' | 'convertido';
 export type TipoContrato = 'precio_fijo' | 'tiempo_materiales' | 'retainer';
 export type EstadoTrato = 'abierto' | 'ganado' | 'perdido';
 export type TipoTarea = 'llamada' | 'reunion' | 'email' | 'demo' | 'seguimiento';
@@ -60,6 +60,7 @@ export interface Cliente {
   cargo_contacto: string | null;
   como_nos_conocio: ComoNosConocio | null;
   notas: string | null;
+  prospecto_origen_id: string | null;
   creado_en: string;
   actualizado_en: string;
 }

@@ -47,6 +47,10 @@ export const prospectosHandlers = [
     await withDelay();
     const prospecto = prospectosFixture.find((p) => p.id === params['id']);
     if (!prospecto) return errors.notFound();
+    // Mutar el prospecto in-place: ADR-025
+    prospecto.estado_posible_cliente = 'convertido';
+    prospecto.actualizado_en = nowIso();
+    // Crear cliente con FK de trazabilidad: ADR-024
     const cliente: Cliente = {
       id: crypto.randomUUID(),
       empresa_id: prospecto.empresa_id,
@@ -58,6 +62,7 @@ export const prospectosHandlers = [
       cargo_contacto: prospecto.cargo_contacto,
       como_nos_conocio: prospecto.como_nos_conocio,
       notas: prospecto.notas,
+      prospecto_origen_id: prospecto.id,
       creado_en: nowIso(),
       actualizado_en: nowIso(),
     };

@@ -22,6 +22,7 @@ export const clientesHandlers = [
       cargo_contacto: (body['cargo_contacto'] as string | null) ?? null,
       como_nos_conocio: (body['como_nos_conocio'] as Cliente['como_nos_conocio']) ?? null,
       notas: (body['notas'] as string | null) ?? null,
+      prospecto_origen_id: null,
       creado_en: nowIso(),
       actualizado_en: nowIso(),
     }),

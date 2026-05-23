@@ -5,9 +5,10 @@ import { AppShell } from '@/components/layout/AppShell';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { EmpresasListPage } from '@/features/empresas/pages/EmpresasListPage';
 import { EmpresaDetailPage } from '@/features/empresas/pages/EmpresaDetailPage';
+import { ProspectosListPage } from '@/features/prospectos/pages/ProspectosListPage';
+import { ProspectoDetailPage } from '@/features/prospectos/pages/ProspectoDetailPage';
 import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
 import {
-  ProspectosPlaceholder,
   ClientesPlaceholder,
   TratosPlaceholder,
   TablerosPlaceholder,
@@ -27,7 +28,8 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/empresas" replace /> },
           { path: 'empresas', element: <EmpresasListPage /> },
           { path: 'empresas/:id', element: <EmpresaDetailPage /> },
-          { path: 'prospectos', element: <ProspectosPlaceholder /> },
+          { path: 'prospectos', element: <ProspectosListPage /> },
+          { path: 'prospectos/:id', element: <ProspectoDetailPage /> },
           { path: 'clientes', element: <ClientesPlaceholder /> },
           { path: 'tratos', element: <TratosPlaceholder /> },
           { path: 'tableros', element: <TablerosPlaceholder /> },

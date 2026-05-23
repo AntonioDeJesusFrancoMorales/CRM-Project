@@ -19,14 +19,6 @@ function Placeholder({ feature, changeNumber, description }: PlaceholderProps) {
   );
 }
 
-export const ProspectosPlaceholder = () => (
-  <Placeholder
-    feature="Prospectos"
-    changeNumber={4}
-    description="CRUD de prospectos con filtros por estado, empresa y responsable. Incluye conversión a cliente."
-  />
-);
-
 export const ClientesPlaceholder = () => (
   <Placeholder
     feature="Clientes"

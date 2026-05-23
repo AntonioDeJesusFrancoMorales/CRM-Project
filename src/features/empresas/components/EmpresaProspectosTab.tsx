@@ -18,12 +18,14 @@ const estadoBadgeClass: Record<EstadoPosibleCliente, string> = {
   frio: 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700',
   tibio: 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700',
   caliente: 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700',
+  convertido: 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700',
 };
 
 const estadoLabel: Record<EstadoPosibleCliente, string> = {
   frio: 'Frío',
   tibio: 'Tibio',
   caliente: 'Caliente',
+  convertido: 'Convertido',
 };
 
 export function EmpresaProspectosTab({ empresaId }: EmpresaProspectosTabProps) {

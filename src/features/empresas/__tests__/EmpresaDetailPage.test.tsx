@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router';
@@ -37,6 +38,27 @@ describe('EmpresaDetailPage', () => {
     expect(screen.getByRole('tab', { name: /información/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /prospectos/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /clientes/i })).toBeInTheDocument();
+  });
+
+  it('muestra badge "Convertido" en tab Prospectos para prospecto con estado convertido', async () => {
+    const user = userEvent.setup();
+    renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
+
+    // Esperar que cargue la empresa
+    await waitFor(() =>
+      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
+    );
+
+    // Activar el tab Prospectos
+    await user.click(screen.getByRole('tab', { name: /prospectos/i }));
+
+    // Valentina Cruz está en empresa a1111111 con estado 'convertido'
+    await waitFor(() =>
+      expect(screen.getByText('Valentina Cruz')).toBeInTheDocument(),
+    );
+
+    // El badge "Convertido" debe aparecer en la fila de Valentina Cruz
+    expect(screen.getByText('Convertido')).toBeInTheDocument();
   });
 
   it('redirige a /empresas cuando el id devuelve 404', async () => {
