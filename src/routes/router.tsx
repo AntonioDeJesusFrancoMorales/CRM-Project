@@ -8,8 +8,9 @@ import { EmpresaDetailPage } from '@/features/empresas/pages/EmpresaDetailPage';
 import { ProspectosListPage } from '@/features/prospectos/pages/ProspectosListPage';
 import { ProspectoDetailPage } from '@/features/prospectos/pages/ProspectoDetailPage';
 import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
+import { ClientesListPage } from '@/features/clientes/pages/ClientesListPage';
+import { ClienteDetailPage } from '@/features/clientes/pages/ClienteDetailPage';
 import {
-  ClientesPlaceholder,
   TratosPlaceholder,
   TablerosPlaceholder,
 } from './placeholders';
@@ -30,7 +31,8 @@ export const router = createBrowserRouter([
           { path: 'empresas/:id', element: <EmpresaDetailPage /> },
           { path: 'prospectos', element: <ProspectosListPage /> },
           { path: 'prospectos/:id', element: <ProspectoDetailPage /> },
-          { path: 'clientes', element: <ClientesPlaceholder /> },
+          { path: 'clientes', element: <ClientesListPage /> },
+          { path: 'clientes/:id', element: <ClienteDetailPage /> },
           { path: 'tratos', element: <TratosPlaceholder /> },
           { path: 'tableros', element: <TablerosPlaceholder /> },
           {

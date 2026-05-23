@@ -15,7 +15,7 @@ interface NavItem {
 const items: NavItem[] = [
   { label: 'Empresas', to: '/empresas', icon: Building2 },
   { label: 'Prospectos', to: '/prospectos', icon: UserSearch },
-  { label: 'Clientes', to: '/clientes', icon: Users, disabled: true, badge: 'Próximamente' },
+  { label: 'Clientes', to: '/clientes', icon: Users },
   { label: 'Tratos', to: '/tratos', icon: Handshake, disabled: true, badge: 'Próximamente' },
   { label: 'Tableros', to: '/tableros', icon: KanbanSquare, disabled: true, badge: 'Próximamente' },
   { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, adminOnly: true },

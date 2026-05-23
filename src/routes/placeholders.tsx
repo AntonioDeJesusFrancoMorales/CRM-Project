@@ -19,14 +19,6 @@ function Placeholder({ feature, changeNumber, description }: PlaceholderProps) {
   );
 }
 
-export const ClientesPlaceholder = () => (
-  <Placeholder
-    feature="Clientes"
-    changeNumber={5}
-    description="Gestión de clientes y sus tratos asociados."
-  />
-);
-
 export const TratosPlaceholder = () => (
   <Placeholder
     feature="Tratos"
