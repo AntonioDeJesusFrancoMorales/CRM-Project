@@ -19,7 +19,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useProspectos } from '../hooks/useProspectos';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
-import { useClientes } from '../hooks/useClientes';
+import { useClientes } from '@/features/clientes/hooks/useClientes';
 import { ProspectosKanban } from '../components/ProspectosKanban';
 import { ProspectoConvertidosList } from '../components/ProspectoConvertidosList';
 import { ProspectoFormDialog } from '../components/ProspectoFormDialog';
