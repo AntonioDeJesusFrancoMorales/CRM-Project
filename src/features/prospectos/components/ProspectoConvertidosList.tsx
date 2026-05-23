@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { Link } from 'react-router';
 import type { Cliente, Empresa, Prospecto, Usuario } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,13 +32,26 @@ function isMismoPeriodo(isoDate: string, now: Date): boolean {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
 
+// Lote G — Fix 3: filas clickeables hacia el detalle del prospecto.
+// Patrón Option B: el <Link> de fila envuelve toda la fila; el link de empresa
+// usa onClick con stopPropagation para evitar links anidados (viola a11y).
+// Se usa <a> explícito con role="link" para el link de empresa dentro del <Link>.
 function ConvertidoRow({ item }: { item: ConvertidoItem }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b last:border-0">
+    <Link
+      to={`/prospectos/${item.prospecto.id}`}
+      className="flex items-center justify-between py-3 border-b last:border-0 cursor-pointer hover:bg-muted/40 transition-colors rounded-sm"
+    >
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{item.prospecto.nombre_contacto}</p>
         {item.empresa && (
-          <p className="text-xs text-muted-foreground truncate">{item.empresa.nombre}</p>
+          <Link
+            to={`/empresas/${item.empresa.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs text-muted-foreground truncate hover:underline"
+          >
+            {item.empresa.nombre}
+          </Link>
         )}
       </div>
       <div className="text-right shrink-0 ml-4">
@@ -48,7 +62,7 @@ function ConvertidoRow({ item }: { item: ConvertidoItem }) {
           {formatDate(item.cliente.creado_en)}
         </p>
       </div>
-    </div>
+    </Link>
   );
 }
 
