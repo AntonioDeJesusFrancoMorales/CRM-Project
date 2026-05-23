@@ -50,8 +50,6 @@ export function ProspectoInfoTab({
   empresaNombre,
   responsableNombre,
 }: ProspectoInfoTabProps) {
-  const isConvertido = prospecto.estado_posible_cliente === 'convertido';
-
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Contacto */}
@@ -103,12 +101,6 @@ export function ProspectoInfoTab({
               <Badge className={estadoClasses[prospecto.estado_posible_cliente]}>
                 {estadoLabels[prospecto.estado_posible_cliente]}
               </Badge>
-              {/* Badge "Convertido" extra si ya fue convertido — REQ-PROS-DETALLE-003 */}
-              {isConvertido && (
-                <Badge className="bg-green-100 text-green-700 border-transparent">
-                  Convertido
-                </Badge>
-              )}
             </div>
           </div>
 
