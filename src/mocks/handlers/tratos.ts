@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { makeCrudHandlers, nowIso } from '@/mocks/utils/crud';
 import { withDelay } from '@/mocks/utils/withDelay';
-import { errors } from '@/mocks/utils/error';
+import { apiError, errors } from '@/mocks/utils/error';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 import { tareasFixture } from '@/mocks/fixtures/tareas';
 import type { Trato } from '@/api/types';
@@ -9,6 +9,27 @@ import type { Trato } from '@/api/types';
 const API = '/api/v1';
 
 export const tratosHandlers = [
+  // Override DELETE — ANTES del spread makeCrudHandlers (MSW resuelve en orden)
+  // ADR-046: bloquea eliminación con 409 si el trato tiene tareas asociadas
+  http.delete(`${API}/tratos/:id`, async ({ params }) => {
+    await withDelay();
+    const id = String(params['id']);
+    const idx = tratosFixture.findIndex((t) => t.id === id);
+    if (idx === -1) return errors.notFound();
+
+    const tareasVinculadas = tareasFixture.filter((t) => t.trato_id === id);
+    if (tareasVinculadas.length > 0) {
+      const n = tareasVinculadas.length;
+      return apiError(
+        409,
+        'CONFLICT',
+        `El trato tiene ${n} tarea${n === 1 ? '' : 's'} asociada${n === 1 ? '' : 's'}`,
+        [{ field: 'trato_id', message: 'tareas_vinculadas' }],
+      );
+    }
+    tratosFixture.splice(idx, 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.get(`${API}/tratos`, async ({ request }) => {
     await withDelay();
     const url = new URL(request.url);
