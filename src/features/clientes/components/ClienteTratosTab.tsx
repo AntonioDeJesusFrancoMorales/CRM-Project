@@ -10,11 +10,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
-import { useTratosByCliente } from '../hooks/useTratosByCliente';
+import { useTratos } from '@/features/tratos/hooks/useTratos';
 
-// ADR-036: lazy load por montaje. useTratosByCliente(id) solo dispara fetch cuando
-// el componente está montado (dentro de <TabsContent value="tratos">).
-// ADR-039 T_D.8: sin botón crear trato (Change 6), sin links a detalle de trato.
+// ADR-036: lazy load por montaje. useTratos solo dispara fetch cuando el componente está
+// montado (dentro de <TabsContent value="tratos">).
+// ADR-041 (Change 6a): migrado de useTratosByCliente a useTratos({ cliente_id }) — hook
+// paramétrico único en features/tratos/. El hook viejo fue eliminado en el mismo commit.
 
 // ── Labels ─────────────────────────────────────────────────────────────────
 
@@ -94,7 +95,7 @@ interface ClienteTratosTabProps {
  * REQ-07 — ADR-036
  */
 export function ClienteTratosTab({ clienteId }: ClienteTratosTabProps) {
-  const { data, isLoading, isError } = useTratosByCliente(clienteId);
+  const { data, isLoading, isError } = useTratos({ cliente_id: clienteId });
 
   if (isLoading) {
     return (

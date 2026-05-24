@@ -6,11 +6,12 @@ import type { Cliente } from '@/api/types';
 // refetchee cuando los filtros cambian. La invalidación de useConvertirProspecto
 // usa prefix-match: { queryKey: ['clientes'] } invalida todas las keys que empiecen
 // con ['clientes'], incluidas ['clientes', { filters }]. Compatibilidad preservada.
+// ADR-041 (Change 6a): se eliminó `tratos: (id) => [...]` — la lista de tratos por
+// cliente vive ahora bajo `tratosKeys.list({ cliente_id })` en features/tratos/.
 export const clientesKeys = {
   all: ['clientes'] as const,
   list: (filters?: UseClientesFilters) => ['clientes', filters ?? {}] as const,
   detail: (id: string) => ['clientes', id] as const,
-  tratos: (id: string) => ['clientes', id, 'tratos'] as const,
 };
 
 export interface UseClientesFilters {

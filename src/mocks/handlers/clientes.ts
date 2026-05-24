@@ -63,8 +63,4 @@ export const clientesHandlers = [
     }),
     (item, body) => ({ ...item, ...body, actualizado_en: nowIso() }) as Cliente,
   ),
-  http.get(`${API}/clientes/:id/tratos`, async ({ params }) => {
-    await withDelay();
-    return HttpResponse.json(tratosFixture.filter((t) => t.cliente_id === params['id']));
-  }),
 ];
