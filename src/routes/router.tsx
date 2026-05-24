@@ -10,10 +10,9 @@ import { ProspectoDetailPage } from '@/features/prospectos/pages/ProspectoDetail
 import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
 import { ClientesListPage } from '@/features/clientes/pages/ClientesListPage';
 import { ClienteDetailPage } from '@/features/clientes/pages/ClienteDetailPage';
-import {
-  TratosPlaceholder,
-  TablerosPlaceholder,
-} from './placeholders';
+import { TratosListPage } from '@/features/tratos/pages/TratosListPage';
+import { TratoDetailPage } from '@/features/tratos/pages/TratoDetailPage';
+import { TablerosPlaceholder } from './placeholders';
 
 export const router = createBrowserRouter([
   {
@@ -33,7 +32,8 @@ export const router = createBrowserRouter([
           { path: 'prospectos/:id', element: <ProspectoDetailPage /> },
           { path: 'clientes', element: <ClientesListPage /> },
           { path: 'clientes/:id', element: <ClienteDetailPage /> },
-          { path: 'tratos', element: <TratosPlaceholder /> },
+          { path: 'tratos', element: <TratosListPage /> },
+          { path: 'tratos/:id', element: <TratoDetailPage /> },
           { path: 'tableros', element: <TablerosPlaceholder /> },
           {
             element: <RoleGuard role="admin" />,

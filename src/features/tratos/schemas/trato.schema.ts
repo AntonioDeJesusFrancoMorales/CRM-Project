@@ -65,6 +65,9 @@ export const tratoCreateSchema = z
     }
   });
 
+// El schema de update incluye `estado` y `motivo_perdida` (que el form NO expone).
+// Esto permite que `useUpdateTrato` valide payloads usados por acciones
+// programáticas como "Reabrir" (TratoEstadoMenu → PATCH con estado='abierto').
 export const tratoUpdateSchema = z.object({
   asociacion: z.enum(['cliente', 'prospecto']).optional(),
   cliente_id: z.string().optional().or(z.literal('')),
@@ -78,6 +81,8 @@ export const tratoUpdateSchema = z.object({
     .enum(['precio_fijo', 'tiempo_materiales', 'retainer'])
     .nullable()
     .optional(),
+  estado: z.enum(['abierto', 'ganado', 'perdido']).optional(),
+  motivo_perdida: z.string().nullable().optional(),
 });
 
 export type TratoCreateInput = z.infer<typeof tratoCreateSchema>;

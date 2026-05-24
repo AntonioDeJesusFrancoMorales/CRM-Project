@@ -19,14 +19,6 @@ function Placeholder({ feature, changeNumber, description }: PlaceholderProps) {
   );
 }
 
-export const TratosPlaceholder = () => (
-  <Placeholder
-    feature="Tratos"
-    changeNumber={6}
-    description="Tratos y tareas asociadas. Acciones para ganar/perder tratos y completar tareas."
-  />
-);
-
 export const TablerosPlaceholder = () => (
   <Placeholder
     feature="Tableros Kanban"
