@@ -113,4 +113,49 @@ describe('ProspectoDetailPage', () => {
       { timeout: 3000 },
     );
   });
+
+  // ── Change 6a Lote E — cross-links convertido → cliente ──
+
+  it('prospecto convertido muestra link "Ver cliente convertido" en header', async () => {
+    // b4444444 = Valentina Cruz (convertida), cliente resultante: c3333333
+    renderWithRouter('/prospectos/b4444444-bbbb-4444-bbbb-444444444444');
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /valentina cruz/i })).toBeInTheDocument(),
+    );
+
+    const verClienteLink = await screen.findByRole('link', { name: /ver cliente convertido/i });
+    expect(verClienteLink.getAttribute('href')).toBe(
+      '/clientes/c3333333-cccc-3333-cccc-333333333333',
+    );
+  });
+
+  it('prospecto NO convertido no muestra link "Ver cliente convertido"', async () => {
+    // b1111111 = Carlos Méndez (caliente, no convertido)
+    renderWithRouter('/prospectos/b1111111-bbbb-1111-bbbb-111111111111');
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /carlos méndez/i })).toBeInTheDocument(),
+    );
+
+    expect(
+      screen.queryByRole('link', { name: /ver cliente convertido/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('tab Tratos de prospecto convertido muestra link "Ver tratos del cliente" con ?tab=tratos', async () => {
+    const user = userEvent.setup();
+    renderWithRouter('/prospectos/b4444444-bbbb-4444-bbbb-444444444444');
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /valentina cruz/i })).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /tratos/i }));
+
+    const verTratosLink = await screen.findByRole('link', { name: /ver tratos del cliente/i });
+    expect(verTratosLink.getAttribute('href')).toBe(
+      '/clientes/c3333333-cccc-3333-cccc-333333333333?tab=tratos',
+    );
+  });
 });

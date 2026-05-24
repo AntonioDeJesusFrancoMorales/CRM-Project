@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Empresa, Usuario } from '@/api/types';
 import { isHttpError } from '@/api/http-error';
+import { useTabSync } from '@/lib/useTabSync';
 import { useCliente } from '../hooks/useCliente';
 import { useDeleteCliente } from '../hooks/useDeleteCliente';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
@@ -36,6 +37,7 @@ export function ClienteDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [tab, setTab] = useTabSync(['info', 'tratos'], 'info');
 
   const is404 = isHttpError(error) && error.status === 404;
 
@@ -143,8 +145,9 @@ export function ClienteDetailPage() {
         </div>
       </header>
 
-      {/* Tabs: Información y Tratos (ADR-036 — lazy load de Tratos por montaje) */}
-      <Tabs defaultValue="info">
+      {/* Tabs: Información y Tratos (ADR-036 — lazy load de Tratos por montaje).
+          ADR-045 (Change 6a): el tab activo se sincroniza con ?tab= en la URL via useTabSync. */}
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="info">Información</TabsTrigger>
           <TabsTrigger value="tratos">Tratos</TabsTrigger>

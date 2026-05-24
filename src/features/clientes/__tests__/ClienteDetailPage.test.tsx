@@ -225,4 +225,60 @@ describe('ClienteDetailPage', () => {
       expect(screen.getByText(/no existe/i)).toBeInTheDocument(),
     );
   });
+
+  // ── Lote E del Change 6a (tratos-management) — useTabSync + CTAs del tab Tratos ──
+
+  it('URL ?tab=tratos pre-activa el tab Tratos al cargar (ADR-045)', async () => {
+    renderWithRouter(`/clientes/${ANA_ID}?tab=tratos`);
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /ana rodríguez/i })).toBeInTheDocument(),
+    );
+
+    // El tab Tratos debe estar activo sin user interaction
+    const tabTratos = screen.getByRole('tab', { name: /tratos/i });
+    expect(tabTratos.getAttribute('aria-selected')).toBe('true');
+
+    // El trato de Ana debe estar visible (renderizado lazy al activarse el tab)
+    await waitFor(() =>
+      expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument(),
+    );
+  });
+
+  it('tab Tratos muestra botón "Nuevo trato" y abre dialog con cliente preseleccionado', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(`/clientes/${ANA_ID}?tab=tratos`);
+
+    await waitFor(() =>
+      expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument(),
+    );
+
+    // Botón "Nuevo trato" debe estar visible en el header del tab
+    const btnNuevoTrato = screen.getByRole('button', { name: /nuevo trato/i });
+    expect(btnNuevoTrato).toBeInTheDocument();
+
+    await user.click(btnNuevoTrato);
+
+    // El TratoCreateDialog debe abrirse con título "Nuevo trato"
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: /nuevo trato/i })).toBeInTheDocument();
+
+    // El toggle "Cliente" debe estar activo (aria-checked=true) por prefill
+    const toggleCliente = within(dialog).getByRole('radio', { name: 'Cliente' });
+    expect(toggleCliente.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('nombre del trato en la tabla del tab navega a /tratos/:id', async () => {
+    renderWithRouter(`/clientes/${ANA_ID}?tab=tratos`);
+
+    await waitFor(() =>
+      expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument(),
+    );
+
+    // El nombre del trato debe estar dentro de un <a> con href /tratos/:id
+    const tratoNombre = screen.getByText('Renovación licencia anual Innovatech');
+    const link = tratoNombre.closest('a');
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute('href')).toBe('/tratos/d2222222-dddd-2222-dddd-222222222222');
+  });
 });

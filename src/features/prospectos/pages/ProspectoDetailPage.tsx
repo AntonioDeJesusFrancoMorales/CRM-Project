@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { ArrowLeft, Pencil, Trash2, UserCheck } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Trash2, UserCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Empresa, Prospecto, Usuario } from '@/api/types';
 import { isHttpError } from '@/api/http-error';
 import { useProspecto } from '../hooks/useProspecto';
+import { useClientes } from '@/features/clientes/hooks/useClientes';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { ProspectoInfoTab } from '../components/ProspectoInfoTab';
@@ -29,6 +30,7 @@ export function ProspectoDetailPage() {
   const { data: prospecto, isLoading, error } = useProspecto(id);
   const { data: empresas = [] } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
+  const { data: clientes = [] } = useClientes();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Prospecto | null>(null);
@@ -53,6 +55,12 @@ export function ProspectoDetailPage() {
   const usuariosById = Object.fromEntries(usuarios.map((u: Usuario) => [u.id, u]));
   const empresaNombre = prospecto ? empresasById[prospecto.empresa_id]?.nombre : undefined;
   const responsableNombre = prospecto ? usuariosById[prospecto.responsable_id]?.nombre : undefined;
+
+  // Change 6a Lote E: cross-link al cliente resultante si el prospecto está convertido.
+  const clienteConvertido =
+    isConvertido && prospecto
+      ? clientes.find((c) => c.prospecto_origen_id === prospecto.id) ?? null
+      : null;
 
   if (isLoading) {
     return (
@@ -111,6 +119,16 @@ export function ProspectoDetailPage() {
             <p className="text-sm text-muted-foreground">
               {prospecto.cargo_contacto ?? 'Sin cargo'}
             </p>
+            {/* Change 6a Lote E: cross-link al cliente resultante */}
+            {clienteConvertido && (
+              <Link
+                to={`/clientes/${clienteConvertido.id}`}
+                className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Ver cliente convertido
+              </Link>
+            )}
           </div>
         </div>
 
@@ -158,6 +176,19 @@ export function ProspectoDetailPage() {
         </TabsContent>
 
         <TabsContent value="tratos" className="mt-4">
+          {/* Change 6a Lote E: mensaje + link al cliente convertido (si aplica) */}
+          {clienteConvertido && (
+            <div className="mb-4 rounded-md border border-dashed bg-muted/40 p-3 text-sm">
+              Estos son los tratos históricos del prospecto.{' '}
+              <Link
+                to={`/clientes/${clienteConvertido.id}?tab=tratos`}
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                Ver tratos del cliente
+                <ExternalLink className="h-3 w-3" aria-hidden="true" />
+              </Link>
+            </div>
+          )}
           {/* ADR-027: solo habilitar el fetch cuando el tab está activo */}
           <ProspectoTratosTab
             prospectoId={id}

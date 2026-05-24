@@ -106,22 +106,35 @@ describe('ProspectoConvertidosList — navegación desde filas (Lote G)', () => 
     );
   });
 
-  it('el nombre de la empresa dentro de la fila es un link a /empresas/:id', async () => {
+  it('el nombre de la empresa es navigable a /empresas/:id sin propagar al wrapper (WARN-05 fix)', async () => {
+    const user = userEvent.setup();
     renderWithRouter();
 
     await waitFor(() =>
       expect(screen.getByText('Valentina Cruz')).toBeInTheDocument(),
     );
 
-    // El nombre de la empresa debe ser un link. Puede haber varios links con texto que
-    // incluye "Innovatech" (el link de fila también lo contiene), así que buscamos
-    // específicamente el que apunta a /empresas/:id.
-    const links = screen.getAllByRole('link');
-    const empresaLink = links.find((l) =>
-      l.getAttribute('href')?.startsWith('/empresas/'),
+    // Tras el fix Change 6a (D3): el "link" de empresa es un <button role="link">
+    // para evitar HTML inválido (<a> dentro de <a>). Buscamos por role=link
+    // pero distinguimos el button del link real por su texto: "Innovatech".
+    const empresaButton = screen.getByRole('link', { name: 'Innovatech' });
+    expect(empresaButton.tagName).toBe('BUTTON');
+
+    // Click en empresa debe navegar a /empresas/:id (sin propagar al wrapper de prospecto).
+    await user.click(empresaButton);
+    await waitFor(() =>
+      expect(screen.getByTestId('empresa-detail')).toBeInTheDocument(),
     );
-    expect(empresaLink).toBeDefined();
-    expect(empresaLink).toHaveAttribute('href', `/empresas/${empresa.id}`);
+  });
+
+  it('NO contiene <a> anidados — HTML válido (WARN-05 fix)', async () => {
+    const { container } = renderWithRouter();
+
+    await waitFor(() =>
+      expect(screen.getByText('Valentina Cruz')).toBeInTheDocument(),
+    );
+
+    expect(container.querySelectorAll('a a').length).toBe(0);
   });
 
   it('la fila tiene cursor pointer como indicador visual de que es clickeable', async () => {

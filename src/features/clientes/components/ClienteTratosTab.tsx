@@ -1,5 +1,9 @@
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { Link } from 'react-router';
 import type { EstadoTrato, TipoContrato, Trato } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -11,11 +15,12 @@ import {
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
+import { TratoCreateDialog } from '@/features/tratos/components/TratoCreateDialog';
 
 // ADR-036: lazy load por montaje. useTratos solo dispara fetch cuando el componente está
 // montado (dentro de <TabsContent value="tratos">).
-// ADR-041 (Change 6a): migrado de useTratosByCliente a useTratos({ cliente_id }) — hook
-// paramétrico único en features/tratos/. El hook viejo fue eliminado en el mismo commit.
+// ADR-041 (Change 6a): migrado de useTratosByCliente a useTratos({ cliente_id }).
+// Change 6a Lote E: agregado botón "Nuevo trato" (prefill cliente_id) + Link al detalle del trato.
 
 // ── Labels ─────────────────────────────────────────────────────────────────
 
@@ -63,7 +68,14 @@ function TratosTable({ tratos }: { tratos: Trato[] }) {
       <TableBody>
         {tratos.map((trato) => (
           <TableRow key={trato.id}>
-            <TableCell className="font-medium">{trato.nombre}</TableCell>
+            <TableCell className="font-medium">
+              <Link
+                to={`/tratos/${trato.id}`}
+                className="text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+              >
+                {trato.nombre}
+              </Link>
+            </TableCell>
             <TableCell>
               <Badge className={estadoTratoClasses[trato.estado]}>
                 {estadoTratoLabels[trato.estado]}
@@ -89,39 +101,45 @@ interface ClienteTratosTabProps {
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-/**
- * Tab de tratos vinculados a un Cliente.
- * Container — llama useTratosByCliente con lazy implícito por montaje en TabsContent.
- * REQ-07 — ADR-036
- */
 export function ClienteTratosTab({ clienteId }: ClienteTratosTabProps) {
   const { data, isLoading, isError } = useTratos({ cliente_id: clienteId });
+  const [createOpen, setCreateOpen] = useState(false);
 
-  if (isLoading) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Cargando tratos...
-      </p>
-    );
-  }
+  return (
+    <div className="space-y-4">
+      {/* Header con botón crear (siempre visible) */}
+      <div className="flex justify-end">
+        <Button onClick={() => setCreateOpen(true)} size="sm">
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          Nuevo trato
+        </Button>
+      </div>
 
-  if (isError) {
-    return (
-      <p className="py-8 text-center text-sm text-destructive">
-        Error al cargar los tratos. Intenta de nuevo.
-      </p>
-    );
-  }
+      {/* Contenido */}
+      {isLoading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Cargando tratos...
+        </p>
+      ) : isError ? (
+        <p className="py-8 text-center text-sm text-destructive">
+          Error al cargar los tratos. Intenta de nuevo.
+        </p>
+      ) : !data?.length ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-sm text-muted-foreground">Sin tratos vinculados</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <TratosTable tratos={data} />
+      )}
 
-  if (!data?.length) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-sm text-muted-foreground">Sin tratos vinculados</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return <TratosTable tratos={data} />;
+      {/* Dialog crear trato — prefill con cliente actual */}
+      <TratoCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultValues={{ asociacion: 'cliente', cliente_id: clienteId }}
+      />
+    </div>
+  );
 }

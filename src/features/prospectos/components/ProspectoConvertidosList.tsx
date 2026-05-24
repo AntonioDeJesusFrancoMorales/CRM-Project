@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import type { Cliente, Empresa, Prospecto, Usuario } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,11 +32,12 @@ function isMismoPeriodo(isoDate: string, now: Date): boolean {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
 
-// Lote G — Fix 3: filas clickeables hacia el detalle del prospecto.
-// Patrón Option B: el <Link> de fila envuelve toda la fila; el link de empresa
-// usa onClick con stopPropagation para evitar links anidados (viola a11y).
-// Se usa <a> explícito con role="link" para el link de empresa dentro del <Link>.
+// Filas clickeables hacia el detalle del prospecto. La empresa anidada usa
+// <button role="link"> con stopPropagation + navigate manual para EVITAR
+// HTML inválido (`<a>` dentro de `<a>`). Fix de WARN-05 (Change 6a, D3/ADR-045 nota).
 function ConvertidoRow({ item }: { item: ConvertidoItem }) {
+  const navigate = useNavigate();
+
   return (
     <Link
       to={`/prospectos/${item.prospecto.id}`}
@@ -45,13 +46,17 @@ function ConvertidoRow({ item }: { item: ConvertidoItem }) {
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{item.prospecto.nombre_contacto}</p>
         {item.empresa && (
-          <Link
-            to={`/empresas/${item.empresa.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-xs text-muted-foreground truncate hover:underline"
+          <button
+            type="button"
+            role="link"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/empresas/${item.empresa!.id}`);
+            }}
+            className="text-xs text-muted-foreground truncate hover:underline cursor-pointer bg-transparent border-0 p-0 text-left"
           >
             {item.empresa.nombre}
-          </Link>
+          </button>
         )}
       </div>
       <div className="text-right shrink-0 ml-4">
