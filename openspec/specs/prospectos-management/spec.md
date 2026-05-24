@@ -201,6 +201,8 @@ El sistema MUST mostrar la página `/prospectos/:id` (`ProspectoDetailPage`) con
 
 Si el endpoint `GET /api/v1/prospectos/:id` responde 404, el sistema MUST mostrar mensaje "Prospecto no encontrado", botón "Volver a Prospectos" y ejecutar un redirect automático a `/prospectos`.
 
+**Cross-links cuando el prospecto está convertido** (Change 6a): cuando `prospecto.estado_posible_cliente === 'convertido'`, el header del detalle MUST mostrar un link "Ver cliente convertido" que navega a `/clientes/:id` (resolviendo el cliente con `prospecto_origen_id === prospecto.id`). Adicionalmente, la tab "Tratos" del prospecto convertido MUST incluir un mensaje informativo con link "Ver tratos del cliente" que navega a `/clientes/:id` con la tab Tratos preseleccionada (vía query param `?tab=tratos`), reconociendo que post-conversión los nuevos tratos viven asociados al cliente, no al prospecto histórico.
+
 #### Scenario: Detalle con id válido muestra tab Información
 
 - GIVEN existe el prospecto con id `b1111111` (`Carlos Méndez`)
@@ -219,6 +221,28 @@ Si el endpoint `GET /api/v1/prospectos/:id` responde 404, el sistema MUST mostra
 - GIVEN el prospecto tiene `estado_posible_cliente === 'convertido'`
 - WHEN se renderiza el header del detalle
 - THEN se muestra un badge "Convertido" visible junto al nombre
+
+#### Scenario: Detalle de prospecto convertido muestra link al cliente [integration test]
+
+- GIVEN un prospecto `b1111111` tiene `estado_posible_cliente === 'convertido'`
+- AND existe un cliente `c2222222` con `prospecto_origen_id === 'b1111111'`
+- WHEN el usuario navega a `/prospectos/b1111111`
+- THEN el header del detalle muestra un link "Ver cliente convertido"
+- AND al hacer clic navega a `/clientes/c2222222`
+
+#### Scenario: Detalle de prospecto NO convertido no muestra el link [component test]
+
+- GIVEN el prospecto tiene `estado_posible_cliente` en `'frio' | 'tibio' | 'caliente'`
+- WHEN se renderiza el header
+- THEN NO existe ningún link "Ver cliente convertido"
+
+#### Scenario: Tab Tratos de prospecto convertido linkea a tratos del cliente [integration test]
+
+- GIVEN un prospecto convertido con cliente resultante `c2222222`
+- WHEN el usuario activa la tab "Tratos"
+- THEN se muestra la lista de tratos históricos del prospecto (consumida vía `GET /tratos?prospecto_id=:id`)
+- AND se muestra un mensaje informativo con link "Ver tratos del cliente"
+- AND al hacer clic navega a `/clientes/c2222222` con la tab Tratos activa
 
 ---
 
