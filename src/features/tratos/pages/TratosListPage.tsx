@@ -32,9 +32,27 @@ export function TratosListPage() {
   if (responsableId) filters.responsable_id = responsableId;
 
   const { data: tratos, isLoading, isError, refetch } = useTratos(filters);
-  const { data: clientes = [] } = useClientes();
-  const { data: prospectos = [] } = useProspectos();
+  const { data: allClientes = [] } = useClientes();
+  const { data: allProspectos = [] } = useProspectos();
   const { data: usuarios = [] } = useUsuarios();
+
+  // Lote F (post-smoke fix #2): los Selects de cliente/prospecto solo muestran
+  // entidades que tienen al menos 1 trato (evita opciones que devuelven resultado vacío).
+  // Si el filtro actual está activo, lo preservamos en el Select aunque no aparezca
+  // en la lista filtrada (para que el chip de filtro siga viendo su label).
+  const tratosUnfiltered = tratos ?? [];
+  const clienteIdsConTratos = new Set(
+    tratosUnfiltered.map((t) => t.cliente_id).filter((id): id is string => id !== null),
+  );
+  const prospectoIdsConTratos = new Set(
+    tratosUnfiltered.map((t) => t.prospecto_id).filter((id): id is string => id !== null),
+  );
+  const clientes = allClientes.filter(
+    (c) => clienteIdsConTratos.has(c.id) || c.id === clienteId,
+  );
+  const prospectos = allProspectos.filter(
+    (p) => prospectoIdsConTratos.has(p.id) || p.id === prospectoId,
+  );
 
   function handleEstadoChange(value: string) {
     if (value === 'todos') setEstado(undefined);

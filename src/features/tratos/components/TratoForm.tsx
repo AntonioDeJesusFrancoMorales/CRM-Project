@@ -55,8 +55,12 @@ export function TratoForm({
   serverErrors,
 }: TratoFormProps) {
   const { data: clientes, isLoading: clientesLoading } = useClientes();
-  const { data: prospectos, isLoading: prospectosLoading } = useProspectos();
+  const { data: prospectosAll, isLoading: prospectosLoading } = useProspectos();
   const { data: usuarios, isLoading: usuariosLoading } = useUsuarios();
+
+  // Lote F (post-smoke fix #1): solo prospectos NO convertidos pueden recibir tratos
+  // nuevos. Los convertidos ya pasaron a cliente; sus tratos nuevos van al cliente derivado.
+  const prospectos = prospectosAll?.filter((p) => p.estado_posible_cliente !== 'convertido');
 
   const resolvedDefaults: TratoCreateInput = {
     ...TRATO_EMPTY_DEFAULTS,

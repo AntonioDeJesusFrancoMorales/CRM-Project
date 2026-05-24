@@ -50,6 +50,10 @@ function ConvertidoRow({ item }: { item: ConvertidoItem }) {
             type="button"
             role="link"
             onClick={(e) => {
+              // Lote F (post-smoke fix #3): preventDefault + stopPropagation para
+              // bloquear que el <Link> wrapper de la fila intercepte la navegación.
+              // stopPropagation solo NO es suficiente en browser real (react-router v7).
+              e.preventDefault();
               e.stopPropagation();
               navigate(`/empresas/${item.empresa!.id}`);
             }}
