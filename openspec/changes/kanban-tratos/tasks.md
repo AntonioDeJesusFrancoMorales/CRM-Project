@@ -52,19 +52,19 @@
 
 ### 3.1 Fixtures — RED
 
-- [ ] 3.1 Agregar test en `src/features/tratos/__tests__/KanbanBoard.test.tsx` (archivo nuevo, solo la sección de fixtures por ahora): importar `tratosFixture` y assert que hay al menos 1 `estado:'ganado'` y 1 `estado:'perdido'`. Verificar que falla.
+- [x] 3.1 Agregar test en `src/features/tratos/__tests__/KanbanBoard.test.tsx` (archivo nuevo, solo la sección de fixtures por ahora): importar `tratosFixture` y assert que hay al menos 1 `estado:'ganado'` y 1 `estado:'perdido'`. Verificar que falla.
 
 ### 3.2 Fixtures — GREEN
 
-- [ ] 3.2 Modificar `src/mocks/fixtures/tratos.ts`: agregar fixture `id:'d4444444-...'` con `estado:'ganado'` y fixture `id:'d5555555-...'` con `estado:'perdido'`. Test pasa.
+- [x] 3.2 Modificar `src/mocks/fixtures/tratos.ts`: agregar fixture `id:'d4444444-...'` con `estado:'ganado'` y fixture `id:'d5555555-...'` con `estado:'perdido'`. Test pasa.
 
-### 3.3 KanbanCard — GREEN (sin RED separado — la cobertura llega desde KanbanBoard.test)
+### 3.3 KanbanCard — RED + GREEN (cobertura directa — override del orquestador)
 
-- [ ] 3.3 Crear `src/features/tratos/components/KanbanCard.tsx`: `useDraggable`, nombre como link a `/tratos/:id`, `TratoEstadoBadge`. No necesita test propio — será cubierto por los tests de integración del Lote 4.
+- [x] 3.3 Crear `src/features/tratos/__tests__/KanbanCard.test.tsx` con 3 tests RED (nombre visible, button type=button, triangulación con fixture diferente). Crear `src/features/tratos/components/KanbanCard.tsx`: `useDraggable`, nombre como button + navigate (homologado con TratosTable), `TratoEstadoBadge`. Tests GREEN.
 
-### 3.4 KanbanColumna — GREEN
+### 3.4 KanbanColumna — RED + GREEN (cobertura directa — override del orquestador)
 
-- [ ] 3.4 Crear `src/features/tratos/components/KanbanColumna.tsx`: `useDroppable`, header con título + WIP counter (`{columna.label} ({tarjetas.length})`), lista de `KanbanCard`. Suite sigue verde (233 + 14).
+- [x] 3.4 Crear `src/features/tratos/__tests__/KanbanColumna.test.tsx` con 5 tests RED (título, WIP 0, WIP correcto, tarjetas visibles, triangulación WIP 1). Crear `src/features/tratos/components/KanbanColumna.tsx`: `useDroppable`, header con título + WIP counter (`{columna.label} ({tarjetas.length})`), lista de `KanbanCard`. Suite verde (261 tests).
 
 ---
 
