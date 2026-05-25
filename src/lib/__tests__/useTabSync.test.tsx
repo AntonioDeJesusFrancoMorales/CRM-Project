@@ -1,5 +1,6 @@
 // Tests del hook useTabSync — sincroniza un tab activo con el query param ?tab=.
 // ADR-045 — Helper reutilizable. Usado por ClienteDetailPage en Lote E.
+// ADR-057 — Extensión backward-compatible con paramKey opcional.
 
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
@@ -22,6 +23,17 @@ function makeWrapper(initialEntry: string) {
 // Hook compuesto que combina useTabSync y useLocation para inspeccionar la URL en assertions.
 function useTabSyncWithLocation(allowed: readonly string[], fallback: string) {
   const [tab, setTab] = useTabSync(allowed, fallback);
+  const location = useLocation();
+  return { tab, setTab, search: location.search };
+}
+
+// Hook compuesto que incluye paramKey para tests de ADR-057.
+function useTabSyncWithLocationParam(
+  allowed: readonly string[],
+  fallback: string,
+  paramKey: string,
+) {
+  const [tab, setTab] = useTabSync(allowed, fallback, paramKey);
   const location = useLocation();
   return { tab, setTab, search: location.search };
 }
@@ -84,5 +96,62 @@ describe('useTabSync', () => {
 
     expect(result.current.search).toBe('');
     expect(result.current.tab).toBe('info');
+  });
+
+  describe('paramKey (ADR-057)', () => {
+    it('lee ?vista=tabla cuando paramKey="vista" y el valor está en allowed', () => {
+      const { result } = renderHook(
+        () => useTabSync(['kanban', 'tabla'], 'kanban', 'vista'),
+        { wrapper: makeWrapper('/tratos?vista=tabla') },
+      );
+
+      expect(result.current[0]).toBe('tabla');
+    });
+
+    it('setTab("tabla") agrega ?vista=tabla a la URL cuando paramKey="vista"', () => {
+      const { result } = renderHook(
+        () => useTabSyncWithLocationParam(['kanban', 'tabla'], 'kanban', 'vista'),
+        { wrapper: makeWrapper('/tratos') },
+      );
+
+      expect(result.current.search).toBe('');
+
+      act(() => {
+        result.current.setTab('tabla');
+      });
+
+      expect(result.current.search).toBe('?vista=tabla');
+      expect(result.current.tab).toBe('tabla');
+    });
+
+    it('setTab(fallback) limpia ?vista cuando paramKey="vista"', () => {
+      const { result } = renderHook(
+        () => useTabSyncWithLocationParam(['kanban', 'tabla'], 'kanban', 'vista'),
+        { wrapper: makeWrapper('/tratos?vista=tabla') },
+      );
+
+      expect(result.current.search).toBe('?vista=tabla');
+
+      act(() => {
+        result.current.setTab('kanban');
+      });
+
+      expect(result.current.search).toBe('');
+      expect(result.current.tab).toBe('kanban');
+    });
+
+    it('sin paramKey sigue usando ?tab= (backward compat — ADR-045 no se rompe)', () => {
+      const { result } = renderHook(
+        () => useTabSyncWithLocation(['info', 'tratos'], 'info'),
+        { wrapper: makeWrapper('/clientes/c1') },
+      );
+
+      act(() => {
+        result.current.setTab('tratos');
+      });
+
+      expect(result.current.search).toBe('?tab=tratos');
+      expect(result.current.tab).toBe('tratos');
+    });
   });
 });
