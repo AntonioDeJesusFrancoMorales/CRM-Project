@@ -77,18 +77,18 @@
 
 ### D.1 TareasTable
 
-- [ ] **T_D.1** [IMPL] Crear `src/features/tareas/components/TareasTable.tsx`: columnas: título (Link a `/tareas/:id`), estado (badge), prioridad (badge), responsable, trato vinculado, fecha límite. Cada fila incluye `TareaEstadoMenu` + acciones Editar/Eliminar. Sin test directo (cubierto en T_D.4).
+- [x] **T_D.1** [IMPL] Crear `src/features/tareas/components/TareasTable.tsx`: columnas: título (Link a `/tareas/:id`), estado (badge), prioridad (badge), responsable, trato vinculado, fecha límite. Cada fila incluye `TareaEstadoMenu` + acciones Editar/Eliminar. Sin test directo (cubierto en T_D.4).
 
 ### D.2 Tests de páginas (RED primero)
 
-- [ ] **T_D.2** [TEST] Crear `src/features/tareas/__tests__/TareasListPage.test.tsx`. Scenarios del spec: (a) tabla poblada con fixture renderiza filas; (b) título clickeable navega a `/tareas/t1111111`; (c) filtro `estado` pasa query param; (d) filtro `prioridad` pasa query param; (e) filtro `responsable_id` pasa query param; (f) búsqueda "demo" filtra client-side solo filas con esa palabra; (g) error 500 muestra mensaje + botón "Reintentar"; (h) botón "Nueva tarea" abre `TareaCreateDialog` con Select de trato editable.
-- [ ] **T_D.3** [TEST] Crear `src/features/tareas/__tests__/TareaDetailPage.test.tsx`. Scenarios: (a) detalle válido `t1111111` renderiza campos + link al trato `/tratos/d1111111`; (b) `fecha_completada` visible solo si `estado === 'completada'`; (c) 404 → toast "Esta tarea no existe" + redirect a `/tareas`; (d) clic "Editar" abre `TareaEditDialog` prefilled; (e) clic "Eliminar" confirma → `DELETE /tareas/:id` + redirect a `/tareas`.
+- [x] **T_D.2** [TEST] Crear `src/features/tareas/__tests__/TareasListPage.test.tsx`. Scenarios del spec: (a) tabla poblada con fixture renderiza filas; (b) título clickeable navega a `/tareas/t1111111`; (c) filtro `estado` pasa query param; (d) filtro `prioridad` pasa query param; (e) filtro `responsable_id` pasa query param; (f) búsqueda "demo" filtra client-side solo filas con esa palabra; (g) error 500 muestra mensaje + botón "Reintentar"; (h) botón "Nueva tarea" abre `TareaCreateDialog` con Select de trato editable; (i) DEUDA LOTE C: submit completo invoca POST con payload correcto.
+- [x] **T_D.3** [TEST] Crear `src/features/tareas/__tests__/TareaDetailPage.test.tsx`. Scenarios: (a) detalle válido `e1111111` renderiza campos + link al trato `/tratos/d1111111`; (b) `fecha_completada` visible solo si `estado === 'completada'`; (c) 404 → toast "Esta tarea no existe" + redirect a `/tareas`; (d) clic "Editar" abre `TareaEditDialog` prefilled; (e) clic "Eliminar" confirma → `DELETE /tareas/:id` + redirect a `/tareas`.
 
 ### D.3 Implementación de páginas
 
-- [ ] **T_D.4** [IMPL] Crear `src/features/tareas/pages/TareasListPage.tsx`: header con botón "Nueva tarea", filtros top-bar (Select estado, Select prioridad, Select responsable_id, Select vencimiento, Select trato_id, Input búsqueda), `<TareasTable>`. Búsqueda = estado local, NO en queryKey. **GREEN** T_D.2.
-- [ ] **T_D.5** [IMPL] Crear `src/features/tareas/pages/TareaDetailPage.tsx`: header (título, badge estado, badge prioridad, `TareaEstadoMenu`, Editar, Eliminar), grilla de campos (con "—" para nulls), `fecha_completada` condicional a `estado === 'completada'`. Toast + redirect en 404. **GREEN** T_D.3.
-- [ ] **T_D.6** **Gate**: `pnpm test:run` verde + `pnpm tsc --noEmit`. Commit.
+- [x] **T_D.4** [IMPL] Crear `src/features/tareas/pages/TareasListPage.tsx`: header con botón "Nueva tarea", filtros top-bar (Select estado, Select prioridad, Select responsable_id, Select vencimiento, Select trato_id, Input búsqueda), `<TareasTable>`. Búsqueda = estado local, NO en queryKey. **GREEN** T_D.2.
+- [x] **T_D.5** [IMPL] Crear `src/features/tareas/pages/TareaDetailPage.tsx`: header (título, badge estado, badge prioridad, `TareaEstadoMenu`, Editar, Eliminar), grilla de campos (con "—" para nulls), `fecha_completada` condicional a `estado === 'completada'`. Toast + redirect en 404. **GREEN** T_D.3.
+- [x] **T_D.6** **Gate**: `pnpm test:run` 219/219 verde + `pnpm tsc --noEmit` exit 0. Commit.
 
 ---
 
