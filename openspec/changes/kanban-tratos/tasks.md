@@ -38,11 +38,11 @@
 
 ### 2.1 useTabSync paramKey — RED
 
-- [ ] 2.1 Agregar 4 tests nuevos a `src/lib/__tests__/useTabSync.test.tsx`: `paramKey='vista'` lee `?vista=`, escribe `?vista=tabla`, fallback limpia URL, y test sin paramKey sigue usando `?tab=`. Verificar que los 4 nuevos fallan, los 5 existentes siguen verdes.
+- [x] 2.1 Agregar 4 tests nuevos a `src/lib/__tests__/useTabSync.test.tsx`: `paramKey='vista'` lee `?vista=`, escribe `?vista=tabla`, fallback limpia URL, y test sin paramKey sigue usando `?tab=`. Verificar que los 4 nuevos fallan, los 5 existentes siguen verdes.
 
 ### 2.2 useTabSync paramKey — GREEN
 
-- [ ] 2.2 Modificar `src/lib/useTabSync.ts`: agregar `paramKey = 'tab'` como tercer argumento; reemplazar las 3 ocurrencias hardcodeadas de `'tab'` por la variable. Suite pasa (233 + 10 + 4 nuevos).
+- [x] 2.2 Modificar `src/lib/useTabSync.ts`: agregar `paramKey = 'tab'` como tercer argumento; reemplazar las 3 ocurrencias hardcodeadas de `'tab'` por la variable. Suite pasa (233 + 10 + 4 nuevos).
 
 ---
 
