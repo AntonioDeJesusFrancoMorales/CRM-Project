@@ -30,21 +30,21 @@
 
 ### B.1 Schema Zod
 
-- [ ] **T_B.1** [TEST] Crear `src/features/tareas/__tests__/tarea.schema.test.ts`. Scenarios: (a) `trato_id: ''` → `success === false` con error `trato_id`; (b) input completo válido → `success === true`; (c) `titulo` con 201 chars → error `titulo`; (d) `tareaUpdateSchema.partial()` acepta parcial sin `trato_id`.
-- [ ] **T_B.2** [IMPL] Crear `src/features/tareas/schemas/tarea.schema.ts`: `tareaCreateSchema` (trato_id min1, responsable_id min1, titulo min1 max200, descripcion nullable, tipo enum, prioridad union(1|2|3), fecha_limite nullable), `tareaUpdateSchema = .partial().extend({ estado?, fecha_completada? })`, types `TareaCreateInput`/`TareaUpdateInput`, `TAREA_EMPTY_DEFAULTS`. **GREEN** T_B.1.
+- [x] **T_B.1** [TEST] Crear `src/features/tareas/__tests__/tarea.schema.test.ts`. Scenarios: (a) `trato_id: ''` → `success === false` con error `trato_id`; (b) input completo válido → `success === true`; (c) `titulo` con 201 chars → error `titulo`; (d) `tareaUpdateSchema.partial()` acepta parcial sin `trato_id`.
+- [x] **T_B.2** [IMPL] Crear `src/features/tareas/schemas/tarea.schema.ts`: `tareaCreateSchema` (trato_id min1, responsable_id min1, titulo min1 max200, descripcion nullable, tipo enum, prioridad union(1|2|3), fecha_limite nullable), `tareaUpdateSchema = .partial().extend({ estado?, fecha_completada? })`, types `TareaCreateInput`/`TareaUpdateInput`, `TAREA_EMPTY_DEFAULTS`. **GREEN** T_B.1.
 
 ### B.2 tareasKeys + useTareas + useTarea
 
-- [ ] **T_B.3** [TEST] Crear `src/features/tareas/__tests__/useTareas.test.tsx`. Scenarios: (a) sin filtros → `GET /tareas` + queryKey `['tareas', {}]`; (b) con `{ responsable_id: '11111111', prioridad: 1 }` → `GET /tareas?responsable_id=11111111&prioridad=1`; (c) `tareasKeys.byTrato('d1111111')` === `tareasKeys.list({ trato_id: 'd1111111' })`.
-- [ ] **T_B.4** [IMPL] Crear `src/features/tareas/hooks/useTareas.ts` con `tareasKeys` (ADR-048: `all`, `list(filters)`, `detail(id)`, `byTrato(tratoId)`). Hook `useTareas(filters?: UseTareasFilters)` embebe queryString en fetch. Crear `src/features/tareas/hooks/useTarea.ts` (2 tests: happy + 404 propagado, patrón `useCliente`). **GREEN** T_B.3.
+- [x] **T_B.3** [TEST] Crear `src/features/tareas/__tests__/useTareas.test.tsx`. Scenarios: (a) sin filtros → `GET /tareas` + queryKey `['tareas', {}]`; (b) con `{ responsable_id: '11111111', prioridad: 1 }` → `GET /tareas?responsable_id=11111111&prioridad=1`; (c) `tareasKeys.byTrato('d1111111')` === `tareasKeys.list({ trato_id: 'd1111111' })`.
+- [x] **T_B.4** [IMPL] Crear `src/features/tareas/hooks/useTareas.ts` con `tareasKeys` (ADR-048: `all`, `list(filters)`, `detail(id)`, `byTrato(tratoId)`). Hook `useTareas(filters?: UseTareasFilters)` embebe queryString en fetch. Crear `src/features/tareas/hooks/useTarea.ts` (2 tests: happy + 404 propagado, patrón `useCliente`). **GREEN** T_B.3.
 
 ### B.3 Mutations (TDD por mutation)
 
-- [ ] **T_B.5** [TEST + IMPL] `useCreateTarea.ts` — 1 test: spy `invalidateQueries({ queryKey: ['tareas'] })` tras `POST /tratos/d1111111/tareas` exitoso. `trato_id` va en el PATH, no en el body. Patrón `useCreateTrato`.
-- [ ] **T_B.6** [TEST + IMPL] `useUpdateTarea.ts` — 1 test: spy invalida `tareasKeys.all` + `tareasKeys.detail(id)`.
-- [ ] **T_B.7** [TEST + IMPL] `useDeleteTarea.ts` — 2 tests: (a) 204 → `removeQueries(detail(id))` + `invalidateQueries(all)`; (b) error 404 propagado. Patrón `useDeleteCliente`.
-- [ ] **T_B.8** [TEST + IMPL] `useCompletarTarea.ts` — 1 test: spy invalida `tareasKeys.all` + `tareasKeys.detail(id)`. Verifica que `PATCH /tareas/:id/completar` se llama (ADR-049). Espeja `useGanarTrato`.
-- [ ] **T_B.9** **Gate**: `pnpm test:run` verde global + `pnpm tsc --noEmit`. Commit.
+- [x] **T_B.5** [TEST + IMPL] `useCreateTarea.ts` — 1 test: spy `invalidateQueries({ queryKey: ['tareas'] })` tras `POST /tratos/d1111111/tareas` exitoso. `trato_id` va en el PATH, no en el body. Patrón `useCreateTrato`.
+- [x] **T_B.6** [TEST + IMPL] `useUpdateTarea.ts` — 1 test: spy invalida `tareasKeys.all` + `tareasKeys.detail(id)`.
+- [x] **T_B.7** [TEST + IMPL] `useDeleteTarea.ts` — 2 tests: (a) 204 → `removeQueries(detail(id))` + `invalidateQueries(all)`; (b) error 404 propagado. Patrón `useDeleteCliente`.
+- [x] **T_B.8** [TEST + IMPL] `useCompletarTarea.ts` — 1 test: spy invalida `tareasKeys.all` + `tareasKeys.detail(id)`. Verifica que `PATCH /tareas/:id/completar` se llama (ADR-049). Espeja `useGanarTrato`.
+- [x] **T_B.9** **Gate**: `pnpm test:run` verde global + `pnpm tsc --noEmit`. Commit.
 
 ---
 
