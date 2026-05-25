@@ -7,7 +7,62 @@ import type { Tarea } from '@/api/types';
 
 const API = '/api/v1';
 
+/**
+ * Suma N días a una fecha ISO en formato 'YYYY-MM-DD' y devuelve 'YYYY-MM-DD'.
+ * Operación puramente de strings para evitar problemas de zona horaria.
+ */
+function addDaysIso(dateIso: string, days: number): string {
+  const d = new Date(`${dateIso}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export const tareasHandlers = [
+  // Override GET /tareas con filtros server-side — ANTES de los handlers específicos
+  // ADR-053: filtros: trato_id, responsable_id, estado, prioridad (Number()), vencimiento
+  // Semántica de vencimiento:
+  //   vencidas  = fecha_limite < hoy && estado != 'completada'
+  //   proximas  = fecha_limite in [hoy, hoy+7d] && estado != 'completada'
+  //   todas     = sin filtro de fecha
+  http.get(`${API}/tareas`, async ({ request }) => {
+    await withDelay();
+    const url = new URL(request.url);
+    const tratoId = url.searchParams.get('trato_id');
+    const responsableId = url.searchParams.get('responsable_id');
+    const estado = url.searchParams.get('estado');
+    const prioridadRaw = url.searchParams.get('prioridad');
+    const vencimiento = url.searchParams.get('vencimiento');
+
+    let result: Tarea[] = tareasFixture;
+
+    if (tratoId) result = result.filter((t) => t.trato_id === tratoId);
+    if (responsableId) result = result.filter((t) => t.responsable_id === responsableId);
+    if (estado) result = result.filter((t) => t.estado === estado);
+    if (prioridadRaw) {
+      const prioridad = Number(prioridadRaw) as Tarea['prioridad'];
+      result = result.filter((t) => t.prioridad === prioridad);
+    }
+
+    if (vencimiento && vencimiento !== 'todas') {
+      const hoy = nowIso().slice(0, 10);
+      if (vencimiento === 'vencidas') {
+        result = result.filter(
+          (t) => t.fecha_limite !== null && t.fecha_limite < hoy && t.estado !== 'completada',
+        );
+      } else if (vencimiento === 'proximas') {
+        const limite = addDaysIso(hoy, 7);
+        result = result.filter(
+          (t) =>
+            t.fecha_limite !== null &&
+            t.fecha_limite >= hoy &&
+            t.fecha_limite <= limite &&
+            t.estado !== 'completada',
+        );
+      }
+    }
+
+    return HttpResponse.json(result);
+  }),
   http.post(`${API}/tratos/:id/tareas`, async ({ params, request }) => {
     await withDelay();
     const body = (await request.json()) as Record<string, unknown>;
