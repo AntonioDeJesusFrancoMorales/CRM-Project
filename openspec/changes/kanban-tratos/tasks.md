@@ -12,23 +12,23 @@
 
 ### 1.1 Instalar @dnd-kit/core
 
-- [ ] 1.1 Agregar `@dnd-kit/core@^6.3.1` a `package.json` y ejecutar `pnpm install`.
+- [x] 1.1 Agregar `@dnd-kit/core@^6.3.1` a `package.json` y ejecutar `pnpm install`.
 
 ### 1.2 useColumnasKanban — RED
 
-- [ ] 1.2 Crear `src/features/tratos/__tests__/useColumnasKanban.test.ts` con 1 test: retorna 3 columnas, `perdido.requiereModal===true`, `ganado.esTerminal===true`, `abierto.esTerminal===false`. Verificar que falla (archivo fuente no existe).
+- [x] 1.2 Crear `src/features/tratos/__tests__/useColumnasKanban.test.ts` con 1 test: retorna 3 columnas, `perdido.requiereModal===true`, `ganado.esTerminal===true`, `abierto.esTerminal===false`. Verificar que falla (archivo fuente no existe).
 
 ### 1.3 useColumnasKanban — GREEN
 
-- [ ] 1.3 Crear `src/features/tratos/hooks/useColumnasKanban.ts`: exportar `ColumnaKanban` interface + `useColumnasKanban()` con 3 columnas hardcodeadas. Suite pasa.
+- [x] 1.3 Crear `src/features/tratos/hooks/useColumnasKanban.ts`: exportar `ColumnaKanban` interface + `useColumnasKanban()` con 3 columnas hardcodeadas. Suite pasa.
 
 ### 1.4 resolverDragEnd — RED
 
-- [ ] 1.4 Crear `src/features/tratos/__tests__/resolverDragEnd.test.ts` con los 9 casos del diseño: `null→ignorar`, `mismo estado ×3→ignorar`, `abierto→ganado→ganar`, `ganado→abierto→reabrir`, `perdido→abierto→reabrir`, `perdido→ganado→ignorar` (terminal→terminal), `cualquiera→perdido→abrir-modal-perder`. Verificar que todos fallan.
+- [x] 1.4 Crear `src/features/tratos/__tests__/resolverDragEnd.test.ts` con los 9 casos del diseño: `null→ignorar`, `mismo estado ×3→ignorar`, `abierto→ganado→ganar`, `ganado→abierto→reabrir`, `perdido→abierto→reabrir`, `perdido→ganado→ignorar` (terminal→terminal), `cualquiera→perdido→abrir-modal-perder`. Verificar que todos fallan.
 
 ### 1.5 resolverDragEnd — GREEN
 
-- [ ] 1.5 Crear `src/features/tratos/hooks/resolverDragEnd.ts`: exportar `AccionDrag` + `resolverDragEnd()` con lógica de los 9 casos usando `columna.requiereModal`. Suite pasa (233 + 10 nuevos).
+- [x] 1.5 Crear `src/features/tratos/hooks/resolverDragEnd.ts`: exportar `AccionDrag` + `resolverDragEnd()` con lógica de los 9 casos usando `columna.requiereModal`. Suite pasa (233 + 14 nuevos).
 
 ---
 
