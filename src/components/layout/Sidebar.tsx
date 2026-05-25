@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { Building2, UserSearch, Users, Handshake, KanbanSquare, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Building2, UserSearch, Users, Handshake, KanbanSquare, ShieldCheck, ClipboardList, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -76,6 +76,23 @@ export function Sidebar() {
               </NavLink>
             );
           })}
+
+        {/* "Mis tareas" — ítem dinámico: filtra por responsable_id del usuario logueado (ADR-054) */}
+        {usuario && (
+          <NavLink
+            to={`/tareas?responsable_id=${usuario.id}`}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                'text-foreground hover:bg-muted',
+                isActive && 'bg-muted font-medium',
+              )
+            }
+          >
+            <ClipboardList className="h-4 w-4" />
+            <span>Mis tareas</span>
+          </NavLink>
+        )}
       </nav>
       <div className="p-3 border-t text-[11px] text-muted-foreground">
         <p>Pipely</p>

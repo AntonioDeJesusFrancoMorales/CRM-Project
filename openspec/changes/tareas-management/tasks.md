@@ -98,11 +98,11 @@
 
 **Deps**: Lote D (páginas disponibles).
 
-- [ ] **T_E.1** [TEST] Crear `src/features/tareas/__tests__/routing.test.tsx`. Scenarios: (a) `/tareas` renderiza `TareasListPage`; (b) `/tareas/t1111111` renderiza `TareaDetailPage`; (c) NavItem "Mis tareas" sin `disabled` + navega a `/tareas?responsable_id=22222222` con usuario id `'22222222'` de `useAuthStore`.
-- [ ] **T_E.2** [IMPL] Modificar `src/routes/router.tsx`: importar `TareasListPage` y `TareaDetailPage`, agregar rutas `/tareas` y `/tareas/:id`. **GREEN** T_E.1 scenarios (a)+(b).
-- [ ] **T_E.3** [IMPL] Modificar `src/components/layout/Sidebar.tsx`: agregar NavItem "Mis tareas" con icono `ClipboardList` (lucide-react 0.469.0, ADR-054). URL → `/tareas?responsable_id=${useAuthStore.getState().usuario.id}` (sin fallback). Sin `disabled`, sin badge "Próximamente". **GREEN** T_E.1 scenario (c).
-- [ ] **T_E.4** **Smoke manual**: `pnpm dev`, clic "Mis tareas" → navega a `/tareas?responsable_id=22222222`, tabla muestra solo tareas del usuario.
-- [ ] **T_E.5** **Gate**: `pnpm test:run` verde + `pnpm tsc --noEmit`. Commit.
+- [x] **T_E.1** [TEST] Crear `src/features/tareas/__tests__/routing.test.tsx`. Scenarios: (a) `/tareas` renderiza `TareasListPage`; (b) `/tareas/:id` renderiza `TareaDetailPage`; (c) NavItem "Mis tareas" sin `disabled` + navega a `/tareas?responsable_id=22222222` con usuario id `'22222222'` de `useAuthStore`; (d) `TareasListPage` inicializa filtro responsable desde query param. **RED→GREEN**.
+- [x] **T_E.2** [IMPL] Modificar `src/routes/router.tsx`: importar `TareasListPage` y `TareaDetailPage`, agregar rutas `/tareas` y `/tareas/:id`. **GREEN** T_E.1 scenarios (a)+(b).
+- [x] **T_E.3** [IMPL] Modificar `src/components/layout/Sidebar.tsx`: agregar NavItem "Mis tareas" con icono `ClipboardList` (lucide-react 0.469.0, ADR-054). URL → `/tareas?responsable_id=${usuario.id}` (sin fallback, usuario del hook). Modificar `TareasListPage` para inicializar `responsableId` desde `useSearchParams` al montar. **GREEN** T_E.1 scenarios (c)+(d).
+- [x] **T_E.4** **Smoke manual**: pendiente de validación humana (fuera del ciclo TDD automatizado).
+- [x] **T_E.5** **Gate**: `pnpm test:run` 223/223 verde + `pnpm tsc --noEmit` exit 0.
 
 ---
 

@@ -12,6 +12,8 @@ import { ClientesListPage } from '@/features/clientes/pages/ClientesListPage';
 import { ClienteDetailPage } from '@/features/clientes/pages/ClienteDetailPage';
 import { TratosListPage } from '@/features/tratos/pages/TratosListPage';
 import { TratoDetailPage } from '@/features/tratos/pages/TratoDetailPage';
+import { TareasListPage } from '@/features/tareas/pages/TareasListPage';
+import { TareaDetailPage } from '@/features/tareas/pages/TareaDetailPage';
 import { TablerosPlaceholder } from './placeholders';
 
 export const router = createBrowserRouter([
@@ -34,6 +36,8 @@ export const router = createBrowserRouter([
           { path: 'clientes/:id', element: <ClienteDetailPage /> },
           { path: 'tratos', element: <TratosListPage /> },
           { path: 'tratos/:id', element: <TratoDetailPage /> },
+          { path: 'tareas', element: <TareasListPage /> },
+          { path: 'tareas/:id', element: <TareaDetailPage /> },
           { path: 'tableros', element: <TablerosPlaceholder /> },
           {
             element: <RoleGuard role="admin" />,
