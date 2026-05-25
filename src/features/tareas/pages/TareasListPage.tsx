@@ -3,6 +3,7 @@
 // Botón "Nueva tarea" → TareaCreateDialog sin tratoIdFijo (Select de trato editable y requerido).
 
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,10 +22,13 @@ import { TareaCreateDialog } from '../components/TareaCreateDialog';
 import type { EstadoTarea } from '@/api/types';
 
 export function TareasListPage() {
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [estado, setEstado] = useState<EstadoTarea | undefined>(undefined);
   const [prioridad, setPrioridad] = useState<1 | 2 | 3 | undefined>(undefined);
-  const [responsableId, setResponsableId] = useState<string | undefined>(undefined);
+  const [responsableId, setResponsableId] = useState<string | undefined>(
+    searchParams.get('responsable_id') ?? undefined,
+  );
   const [vencimiento, setVencimiento] = useState<'todas' | 'vencidas' | 'proximas' | undefined>(undefined);
   const [tratoId, setTratoId] = useState<string | undefined>(undefined);
   const [createOpen, setCreateOpen] = useState(false);
