@@ -56,16 +56,16 @@
 
 ### C.1 TareaEstadoMenu (ADR-050)
 
-- [ ] **T_C.1** [TEST] Crear `src/features/tareas/__tests__/TareaEstadoMenu.test.tsx`. Scenarios: (a) `estado: 'pendiente'` → Iniciar habilitado, Completar habilitado, Reabrir deshabilitado; (b) `estado: 'en_progreso'` → Iniciar deshabilitado, Completar habilitado, Reabrir deshabilitado; (c) `estado: 'completada'` → Iniciar deshabilitado, Completar deshabilitado, Reabrir habilitado; (d) clic "Iniciar" invoca `PATCH /tareas/t1111111` con `{ estado: 'en_progreso' }`; (e) clic "Completar" invoca `PATCH /tareas/t1111111/completar`; (f) clic "Reabrir" invoca `PATCH /tareas/t1111111` con `{ estado: 'pendiente', fecha_completada: null }`. **RED**.
-- [ ] **T_C.2** [IMPL] Crear `src/features/tareas/components/TareaEstadoMenu.tsx`: DropdownMenu shadcn, 3 ítems siempre visibles, disabled-by-state. Props `{ tarea }`. Internamente usa `useUpdateTarea` y `useCompletarTarea`. Sin modal. Homologa `TratoEstadoMenu`. **GREEN** T_C.1.
+- [x] **T_C.1** [TEST] Crear `src/features/tareas/__tests__/TareaEstadoMenu.test.tsx`. Scenarios: (a) `estado: 'pendiente'` → Iniciar habilitado, Completar habilitado, Reabrir deshabilitado; (b) `estado: 'en_progreso'` → Iniciar deshabilitado, Completar habilitado, Reabrir deshabilitado; (c) `estado: 'completada'` → Iniciar deshabilitado, Completar deshabilitado, Reabrir habilitado; (d) clic "Iniciar" invoca `PATCH /tareas/t1111111` con `{ estado: 'en_progreso' }`; (e) clic "Completar" invoca `PATCH /tareas/t1111111/completar`; (f) clic "Reabrir" invoca `PATCH /tareas/t1111111` con `{ estado: 'pendiente', fecha_completada: null }`. **RED**.
+- [x] **T_C.2** [IMPL] Crear `src/features/tareas/components/TareaEstadoMenu.tsx`: DropdownMenu shadcn, 3 ítems siempre visibles, disabled-by-state. Props `{ tarea }`. Internamente usa `useUpdateTarea` y `useCompletarTarea`. Sin modal. Homologa `TratoEstadoMenu`. **GREEN** T_C.1.
 
 ### C.2 TareaForm + Dialogs
 
-- [ ] **T_C.3** [TEST] Crear `src/features/tareas/__tests__/TareaForm.test.tsx`. Scenarios: (a) con `tratoIdFijo: 'd1111111'` → Select trato muestra nombre + `disabled`; (b) sin `tratoIdFijo` + submit sin trato → error inline "El trato es requerido"; (c) form de edición no expone campo `estado`; (d) input completo válido → `onSubmit` llamado con datos correctos.
-- [ ] **T_C.4** [IMPL] Crear `src/features/tareas/components/TareaForm.tsx`: props `{ mode:'create'|'edit', defaultValues, onSubmit, onCancel, isSubmitting, serverErrors, tratoIdFijo? }`. Cuando `tratoIdFijo` → `<Select disabled>` con valor prefijado. Cuando global → `<Select>` editable con opciones de `useTratos()`, Zod min1. Campo `estado` ausente. Patrón `TratoForm`.
-- [ ] **T_C.5** [IMPL] Crear `src/features/tareas/components/TareaCreateDialog.tsx` y `TareaEditDialog.tsx`: wrappers sobre `TareaForm` + `useCreateTarea`/`useUpdateTarea`. Edit prefilled con `defaultValues`. Mapeo de errores 422 → `serverErrors`. Sin test directo (cubiertos en page tests T_D.6 y T_D.7).
-- [ ] **T_C.6** [IMPL] Crear `src/features/tareas/components/TareaDeleteDialog.tsx`: AlertDialog shadcn. Props `{ tarea, onConfirm, onCancel }`. Sin lógica de mutación directa (la invoca el padre). Sin test directo (cubierto en T_D.7).
-- [ ] **T_C.7** **Gate**: `pnpm test:run` verde + `pnpm tsc --noEmit`. Commit.
+- [x] **T_C.3** [TEST] Crear `src/features/tareas/__tests__/TareaForm.test.tsx`. Scenarios: (a) con `tratoIdFijo: 'd1111111'` → Select trato muestra nombre + `disabled`; (b) sin `tratoIdFijo` + submit sin trato → error inline "El trato es requerido"; (c) form de edición no expone campo `estado`; (d) input completo válido → `onSubmit` llamado con datos correctos.
+- [x] **T_C.4** [IMPL] Crear `src/features/tareas/components/TareaForm.tsx`: props `{ mode:'create'|'edit', defaultValues, onSubmit, onCancel, isSubmitting, serverErrors, tratoIdFijo? }`. Cuando `tratoIdFijo` → `<Select disabled>` con valor prefijado. Cuando global → `<Select>` editable con opciones de `useTratos()`, Zod min1. Campo `estado` ausente. Patrón `TratoForm`.
+- [x] **T_C.5** [IMPL] Crear `src/features/tareas/components/TareaCreateDialog.tsx` y `TareaEditDialog.tsx`: wrappers sobre `TareaForm` + `useCreateTarea`/`useUpdateTarea`. Edit prefilled con `defaultValues`. Mapeo de errores 422 → `serverErrors`. Sin test directo (cubiertos en page tests T_D.6 y T_D.7).
+- [x] **T_C.6** [IMPL] Crear `src/features/tareas/components/TareaDeleteDialog.tsx`: AlertDialog shadcn. Props `{ tarea, onConfirm, onCancel }`. Sin lógica de mutación directa (la invoca el padre). Sin test directo (cubierto en T_D.7).
+- [x] **T_C.7** **Gate**: `pnpm test:run` verde + `pnpm tsc --noEmit`. Commit.
 
 ---
 
