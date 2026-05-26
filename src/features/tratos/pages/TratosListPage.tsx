@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, LayoutGrid, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,10 +14,14 @@ import { useClientes } from '@/features/clientes/hooks/useClientes';
 import { useProspectos } from '@/features/prospectos/hooks/useProspectos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TratosTable } from '../components/TratosTable';
+import { KanbanBoard } from '../components/KanbanBoard';
 import { TratoCreateDialog } from '../components/TratoCreateDialog';
+import { useTabSync } from '@/lib/useTabSync';
 import type { EstadoTrato } from '@/api/types';
 
 export function TratosListPage() {
+  const [vista, setVista] = useTabSync(['kanban', 'tabla'], 'kanban', 'vista');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [estado, setEstado] = useState<EstadoTrato | undefined>(undefined);
   const [clienteId, setClienteId] = useState<string | undefined>(undefined);
@@ -73,10 +77,35 @@ export function TratosListPage() {
             Gestiona los tratos comerciales del CRM.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Nuevo trato
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Toggle kanban / tabla */}
+          <div className="flex rounded-md border">
+            <Button
+              variant={vista === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-r-none border-r"
+              onClick={() => setVista('kanban')}
+              aria-pressed={vista === 'kanban'}
+            >
+              <LayoutGrid className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              Kanban
+            </Button>
+            <Button
+              variant={vista === 'tabla' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-l-none"
+              onClick={() => setVista('tabla')}
+              aria-pressed={vista === 'tabla'}
+            >
+              <Table className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              Tabla
+            </Button>
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nuevo trato
+          </Button>
+        </div>
       </header>
 
       {/* Top-bar de filtros */}
@@ -152,35 +181,45 @@ export function TratosListPage() {
         </Select>
       </div>
 
-      {/* Loading */}
-      {isLoading && (
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          Cargando tratos...
-        </p>
+      {/* Vista kanban (default) */}
+      {vista === 'kanban' && (
+        <KanbanBoard filters={filters} />
       )}
 
-      {/* Error */}
-      {isError && (
-        <div className="py-12 text-center space-y-3">
-          <p className="text-sm text-destructive">
-            No fue posible cargar los tratos. Intenta de nuevo.
-          </p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
-          </Button>
-        </div>
-      )}
+      {/* Vista tabla (secundaria: ?vista=tabla) */}
+      {vista === 'tabla' && (
+        <>
+          {/* Loading */}
+          {isLoading && (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Cargando tratos...
+            </p>
+          )}
 
-      {/* Tabla */}
-      {!isLoading && !isError && tratos && (
-        <div className="rounded-md border">
-          <TratosTable
-            tratos={tratos}
-            clientes={clientes}
-            prospectos={prospectos}
-            searchTerm={searchTerm}
-          />
-        </div>
+          {/* Error */}
+          {isError && (
+            <div className="py-12 text-center space-y-3">
+              <p className="text-sm text-destructive">
+                No fue posible cargar los tratos. Intenta de nuevo.
+              </p>
+              <Button variant="outline" onClick={() => void refetch()}>
+                Reintentar
+              </Button>
+            </div>
+          )}
+
+          {/* Tabla */}
+          {!isLoading && !isError && tratos && (
+            <div className="rounded-md border">
+              <TratosTable
+                tratos={tratos}
+                clientes={clientes}
+                prospectos={prospectos}
+                searchTerm={searchTerm}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Dialog crear trato */}

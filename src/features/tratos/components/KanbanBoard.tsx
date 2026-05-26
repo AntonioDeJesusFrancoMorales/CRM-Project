@@ -16,7 +16,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import type { EstadoTrato, Trato } from '@/api/types';
-import { useTratos } from '../hooks/useTratos';
+import { useTratos, type UseTratosFilters } from '../hooks/useTratos';
 import { useColumnasKanban } from '../hooks/useColumnasKanban';
 import { resolverDragEnd } from '../hooks/resolverDragEnd';
 import { useGanarTrato } from '../hooks/useGanarTrato';
@@ -32,6 +32,12 @@ interface PendingDrag {
 
 interface KanbanBoardProps {
   /**
+   * Filtros a aplicar a la query de tratos. Cuando se pasan filtros desde
+   * TratosListPage, el kanban muestra solo los tratos que los satisfacen
+   * (homologación con TratosTable — ambas vistas consumen los mismos filtros).
+   */
+  filters?: UseTratosFilters;
+  /**
    * Test seam: el componente llama a esta función con el handleDragEnd
    * una vez que la data y los sensores están listos. Esto permite a los tests
    * de integración invocar el handler directamente con un DragEndEvent sintético
@@ -40,9 +46,9 @@ interface KanbanBoardProps {
   onHandleDragEndReady?: (fn: (event: DragEndEvent) => void) => void;
 }
 
-export function KanbanBoard({ onHandleDragEndReady }: KanbanBoardProps) {
+export function KanbanBoard({ filters, onHandleDragEndReady }: KanbanBoardProps) {
   const columnas = useColumnasKanban();
-  const { data: tratos = [], isLoading, isError, refetch } = useTratos();
+  const { data: tratos = [], isLoading, isError, refetch } = useTratos(filters);
   const ganarMutation = useGanarTrato();
   const updateMutation = useUpdateTrato();
 

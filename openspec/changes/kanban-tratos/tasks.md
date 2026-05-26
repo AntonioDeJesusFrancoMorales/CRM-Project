@@ -104,15 +104,15 @@
 
 ### 5.1 TratosListPage toggle — RED
 
-- [ ] 5.1 Ampliar `src/features/tratos/__tests__/TratosListPage.test.tsx` (archivo existente): +4 tests: sin params→muestra KanbanBoard, `?vista=tabla`→muestra tabla, click "Tabla"→URL agrega `?vista=tabla`, click "Kanban"→URL limpia. Verificar que los 4 nuevos fallan.
+- [x] 5.1 Ampliar `src/features/tratos/__tests__/TratosListPage.test.tsx` (archivo existente): +5 tests (5.1a–5.1e): sin params→muestra KanbanBoard, `?vista=tabla`→muestra tabla, click "Tabla"→URL agrega `?vista=tabla`, click "Kanban"→URL limpia, filtro estado=ganado estrecha kanban. Verificar que los 4 nuevos fallan (5.1b ya pasaba).
 
 ### 5.2 TratosListPage toggle — GREEN
 
-- [ ] 5.2 Modificar `src/features/tratos/pages/TratosListPage.tsx`: agregar `useTabSync(['kanban','tabla'], 'kanban', 'vista')`, botones de toggle, renderizado condicional `KanbanBoard | TratosTable`. Suite pasa.
+- [x] 5.2 Modificar `src/features/tratos/pages/TratosListPage.tsx`: agregar `useTabSync(['kanban','tabla'], 'kanban', 'vista')`, botones de toggle (LayoutGrid/Table icons), renderizado condicional `KanbanBoard | TratosTable`. Agregar `filters?: UseTratosFilters` prop a `KanbanBoard` para homologación. Suite pasa (274 tests).
 
 ### 5.3 Regresión general
 
-- [ ] 5.3 Ejecutar `pnpm test:run` completo: verificar que todos los tests previos siguen verdes y el total es 233 + todos los nuevos. Corregir cualquier regresión antes de continuar.
+- [x] 5.3 Ejecutar `pnpm test:run` completo: 274/274 verde. Tests previos ajustados (renderiza tabla, nombre clickeable, búsqueda, nuevo trato) actualizados para usar `?vista=tabla`. Regresión: 0.
 
 ---
 
