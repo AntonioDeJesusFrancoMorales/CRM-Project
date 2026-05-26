@@ -1,12 +1,10 @@
-// KanbanBoard — tablero kanban con DnD de tratos (ADR-058, ADR-060, ADR-061).
-// DndContext con PointerSensor (activation distance 8px: click ≠ drag) + KeyboardSensor (a11y).
-// Sin optimistic update: la tarjeta se mueve solo cuando el servidor responde onSuccess.
-// modal-interrupt: drag a 'perdido' abre TratoPerderDialog con pendingDrag state.
-//
-// Test seam: onHandleDragEndReady recibe handleDragEnd para tests que invocan
-// el handler directamente con DragEndEvent sintético (jsdom no soporta gestos pointer).
+// KanbanBoard — tablero kanban con DnD de tratos.
+// ADR-055: @dnd-kit/core — PointerSensor (activation distance 8px) + KeyboardSensor (a11y).
+// ADR-058: drag a 'perdido' interrumpe con modal-interrupt (pendingDrag); sin optimistic update.
+// ADR-060: reglas terminales — ganado→perdido abre modal aunque ambos sean terminales.
+// ADR-061: lógica de decisión drag-end delegada a crearManejadorDragEnd (fábrica pura).
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -18,7 +16,7 @@ import {
 import type { EstadoTrato, Trato } from '@/api/types';
 import { useTratos, type UseTratosFilters } from '../hooks/useTratos';
 import { useColumnasKanban } from '../hooks/useColumnasKanban';
-import { resolverDragEnd } from '../hooks/resolverDragEnd';
+import { crearManejadorDragEnd } from '../hooks/crearManejadorDragEnd';
 import { useGanarTrato } from '../hooks/useGanarTrato';
 import { useUpdateTrato } from '../hooks/useUpdateTrato';
 import { KanbanColumna } from './KanbanColumna';
@@ -37,16 +35,9 @@ interface KanbanBoardProps {
    * (homologación con TratosTable — ambas vistas consumen los mismos filtros).
    */
   filters?: UseTratosFilters;
-  /**
-   * Test seam: el componente llama a esta función con el handleDragEnd
-   * una vez que la data y los sensores están listos. Esto permite a los tests
-   * de integración invocar el handler directamente con un DragEndEvent sintético
-   * sin necesidad de simular gestos pointer (que jsdom no soporta).
-   */
-  onHandleDragEndReady?: (fn: (event: DragEndEvent) => void) => void;
 }
 
-export function KanbanBoard({ filters, onHandleDragEndReady }: KanbanBoardProps) {
+export function KanbanBoard({ filters }: KanbanBoardProps) {
   const columnas = useColumnasKanban();
   const { data: tratos = [], isLoading, isError, refetch } = useTratos(filters);
   const ganarMutation = useGanarTrato();
@@ -54,7 +45,7 @@ export function KanbanBoard({ filters, onHandleDragEndReady }: KanbanBoardProps)
 
   const [pendingDrag, setPendingDrag] = useState<PendingDrag | null>(null);
 
-  // Sensores: PointerSensor con constraint de distancia para que click ≠ drag (ADR-058).
+  // ADR-055: PointerSensor con constraint de distancia para que click ≠ drag.
   // KeyboardSensor para accesibilidad (a11y). No se usa sortableKeyboardCoordinates
   // porque @dnd-kit/sortable no está instalado; el KeyboardSensor de core es suficiente.
   const sensors = useSensors(
@@ -64,51 +55,34 @@ export function KanbanBoard({ filters, onHandleDragEndReady }: KanbanBoardProps)
     useSensor(KeyboardSensor),
   );
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const activeId = String(event.active.id);
-      const overId = event.over ? (String(event.over.id) as EstadoTrato) : null;
-
-      // Derivar estadoOrigen del trato arrastrado
-      const trato = tratos.find((t: Trato) => t.id === activeId);
-      if (!trato) return;
-
-      const estadoOrigen = trato.estado as EstadoTrato;
-      const accion = resolverDragEnd(activeId, estadoOrigen, overId, columnas, trato.nombre);
-
-      switch (accion.accion) {
-        case 'ignorar':
-          return;
-
-        case 'ganar':
-          ganarMutation.mutate(accion.tratoId);
-          return;
-
-        case 'reabrir':
+  // ADR-061: la lógica de decisión está en crearManejadorDragEnd (fábrica testeable sin React).
+  // El lookup deriva estadoOrigen y nombre desde el array de tratos actual.
+  // Las callbacks conectan la fábrica con las mutations y el estado local.
+  const handleDragEnd = useMemo(
+    () =>
+      crearManejadorDragEnd({
+        columnas,
+        lookup: (tratoId: string) => {
+          const trato = tratos.find((t: Trato) => t.id === tratoId);
+          if (!trato) return undefined;
+          return { estadoOrigen: trato.estado as EstadoTrato, nombre: trato.nombre };
+        },
+        onGanar: (tratoId) => ganarMutation.mutate(tratoId),
+        onReabrir: (tratoId) =>
           updateMutation.mutate({
-            id: accion.tratoId,
+            id: tratoId,
             data: { estado: 'abierto', motivo_perdida: null },
-          });
-          return;
-
-        case 'abrir-modal-perder':
-          setPendingDrag({ tratoId: accion.tratoId, nombre: accion.nombre });
-          return;
-      }
-    },
+          }),
+        // ADR-058: drag a 'perdido' establece pendingDrag → abre TratoPerderDialog.
+        onPedirMotivoPerder: (tratoId, nombre) => setPendingDrag({ tratoId, nombre }),
+      }),
     [tratos, columnas, ganarMutation, updateMutation],
   );
 
-  // Test seam: notificar al test cuando handleDragEnd está listo
-  useEffect(() => {
-    onHandleDragEndReady?.(handleDragEnd);
-  }, [handleDragEnd, onHandleDragEndReady]);
-
   // Distribución de tarjetas por estado
-  const tarjetasPorColumna = useCallback(
-    (estadoColumna: EstadoTrato) => tratos.filter((t: Trato) => t.estado === estadoColumna),
-    [tratos],
-  );
+  function tarjetasPorColumna(estadoColumna: EstadoTrato) {
+    return tratos.filter((t: Trato) => t.estado === estadoColumna);
+  }
 
   if (isLoading) {
     return (
@@ -135,7 +109,7 @@ export function KanbanBoard({ filters, onHandleDragEndReady }: KanbanBoardProps)
 
   return (
     <>
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd as (event: DragEndEvent) => void}>
         <div className="grid grid-cols-3 gap-4">
           {columnas.map((columna) => (
             <KanbanColumna
@@ -147,7 +121,7 @@ export function KanbanBoard({ filters, onHandleDragEndReady }: KanbanBoardProps)
         </div>
       </DndContext>
 
-      {/* modal-interrupt: se abre solo cuando hay un pendingDrag */}
+      {/* modal-interrupt (ADR-058): se abre solo cuando hay un pendingDrag */}
       <TratoPerderDialog
         open={!!pendingDrag}
         onOpenChange={(open) => {
