@@ -74,27 +74,27 @@
 
 ### 4.1 KanbanBoard columnas — RED
 
-- [ ] 4.1 Ampliar `src/features/tratos/__tests__/KanbanBoard.test.tsx` con tests de integración: 3 columnas visibles, WIP counters correctos con fixtures (2 abierto, 1 ganado, 1 perdido), tarjetas en columna correcta. Verificar que fallan.
+- [x] 4.1 Ampliar `src/features/tratos/__tests__/KanbanBoard.test.tsx` con tests de integración: 3 columnas visibles, WIP counters correctos con fixtures (2 abierto, 1 ganado, 1 perdido), tarjetas en columna correcta. Verificar que fallan.
 
 ### 4.2 KanbanBoard — GREEN (estructura base)
 
-- [ ] 4.2 Crear `src/features/tratos/components/KanbanBoard.tsx`: `DndContext` + sensores (pointer + keyboard), `useColumnasKanban`, `useTratos(filters)`, distribución de tarjetas, `KanbanColumna × 3`. Tests de columnas/WIP pasan.
+- [x] 4.2 Crear `src/features/tratos/components/KanbanBoard.tsx`: `DndContext` + sensores (pointer + keyboard), `useColumnasKanban`, `useTratos(filters)`, distribución de tarjetas, `KanbanColumna × 3`. Tests de columnas/WIP pasan.
 
 ### 4.3 KanbanBoard modal-interrupt — RED
 
-- [ ] 4.3 Agregar tests en `KanbanBoard.test.tsx`: drag→perdido abre `TratoPerderDialog` (verifica `open` prop), cancelar mantiene tarjeta en origen, confirmar invoca PATCH `/perder` y limpia `pendingDrag`. Invocar `handleDragEnd` directamente con `DragEndEvent` sintético (no simular gestos pointer — limitación jsdom).
+- [x] 4.3 Agregar tests en `KanbanBoard.test.tsx`: drag→perdido abre `TratoPerderDialog` (verifica `open` prop), cancelar mantiene tarjeta en origen, confirmar invoca PATCH `/perder` y limpia `pendingDrag`. Invocar `handleDragEnd` directamente con `DragEndEvent` sintético (no simular gestos pointer — limitación jsdom).
 
 ### 4.4 KanbanBoard modal-interrupt — GREEN
 
-- [ ] 4.4 Agregar a `KanbanBoard.tsx`: estado `pendingDrag: PendingDrag | null`, handler que llama a `resolverDragEnd` y despacha acción correcta, `TratoPerderDialog` controlado por `pendingDrag`. Tests de modal pasan.
+- [x] 4.4 Agregar a `KanbanBoard.tsx`: estado `pendingDrag: PendingDrag | null`, handler que llama a `resolverDragEnd` y despacha acción correcta, `TratoPerderDialog` controlado por `pendingDrag`. Tests de modal pasan.
 
 ### 4.5 KanbanBoard drag sin modal — RED
 
-- [ ] 4.5 Agregar tests en `KanbanBoard.test.tsx`: ganar→PATCH `/ganar`+invalidación, reabrir→PATCH `/:id` con `{estado:'abierto', motivo_perdida:null}`, perdido→ganado (noop, ningún endpoint llamado).
+- [x] 4.5 Agregar tests en `KanbanBoard.test.tsx`: ganar→PATCH `/ganar`+invalidación, reabrir→PATCH `/:id` con `{estado:'abierto', motivo_perdida:null}`, perdido→ganado (noop, ningún endpoint llamado).
 
 ### 4.6 KanbanBoard drag sin modal — GREEN
 
-- [ ] 4.6 Agregar a `KanbanBoard.tsx`: `useGanarTrato` y `useUpdateTrato`; en `handleDragEnd` despachar `ganarMutation.mutate` o `updateMutation.mutate` según `AccionDrag`. Suite pasa (233 + 14 + N tests de integración).
+- [x] 4.6 Agregar a `KanbanBoard.tsx`: `useGanarTrato` y `useUpdateTrato`; en `handleDragEnd` despachar `ganarMutation.mutate` o `updateMutation.mutate` según `AccionDrag`. Suite pasa (261 + 8 nuevos = 269 tests).
 
 ---
 
