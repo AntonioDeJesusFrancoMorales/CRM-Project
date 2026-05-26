@@ -58,54 +58,57 @@ El sistema MUST colocar cada trato en la columna cuyo `id` coincide con su campo
 
 ### Requirement: Función pura resolverDragEnd (ADR-061)
 
-El sistema MUST exponer `resolverDragEnd(activeId, overId, columnas)` como función pura que retorna una de: `'noop' | 'ganar' | 'reabrir' | 'modal-perder'`. La función MUST encapsular todas las reglas de drag sin efectos secundarios. Recibe `activeId` (id del trato), `overId` (id de la columna destino o `null`), y `columnas` (array `ColumnaKanban[]`).
+El sistema MUST exponer `resolverDragEnd(tratoId, estadoOrigen, estadoDestino, columnas, nombre)` como función pura, sin efectos secundarios. Recibe `tratoId` (id del trato), `estadoOrigen` (estado actual del trato), `estadoDestino` (estado de la columna destino o `null` si se soltó fuera de columna), `columnas` (`ColumnaKanban[]`, fuente de `requiereModal`/`esTerminal`) y `nombre` (del trato, para el payload del modal). Retorna una discriminated union `AccionDrag`:
 
-#### Scenario: Drop en misma columna retorna noop [unit test]
+```ts
+type AccionDrag =
+  | { accion: 'ignorar' }
+  | { accion: 'ganar'; tratoId: string }
+  | { accion: 'reabrir'; tratoId: string }
+  | { accion: 'abrir-modal-perder'; tratoId: string; nombre: string };
+```
 
-- GIVEN un trato está en `'abierto'`
-- WHEN `resolverDragEnd(tratoId, 'abierto', columnas)` se invoca
-- THEN retorna `'noop'`
+La detección del caso modal MUST leerse de `columnaDestino.requiereModal` (NO hardcodear `'perdido'`) y MUST tener precedencia sobre la regla terminal→terminal.
 
-#### Scenario: Drop fuera de columna (over=null) retorna noop [unit test]
+#### Scenario: Drop en misma columna retorna ignorar [unit test]
 
-- WHEN `resolverDragEnd(tratoId, null, columnas)` se invoca
-- THEN retorna `'noop'`
+- WHEN `resolverDragEnd(tratoId, 'abierto', 'abierto', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'ignorar' }`
 
-#### Scenario: Drop en 'ganado' desde 'abierto' retorna 'ganar' [unit test]
+#### Scenario: Drop fuera de columna (estadoDestino=null) retorna ignorar [unit test]
 
-- GIVEN un trato está en `'abierto'`
-- WHEN `resolverDragEnd(tratoId, 'ganado', columnas)` se invoca
-- THEN retorna `'ganar'`
+- WHEN `resolverDragEnd(tratoId, 'abierto', null, columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'ignorar' }`
 
-#### Scenario: Drop en 'abierto' desde 'ganado' retorna 'reabrir' [unit test]
+#### Scenario: Drop en 'ganado' desde 'abierto' retorna ganar [unit test]
 
-- GIVEN un trato está en `'ganado'`
-- WHEN `resolverDragEnd(tratoId, 'abierto', columnas)` se invoca
-- THEN retorna `'reabrir'`
+- WHEN `resolverDragEnd(tratoId, 'abierto', 'ganado', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'ganar', tratoId }`
 
-#### Scenario: Drop en 'abierto' desde 'perdido' retorna 'reabrir' [unit test]
+#### Scenario: Drop en 'abierto' desde 'ganado' retorna reabrir [unit test]
 
-- GIVEN un trato está en `'perdido'`
-- WHEN `resolverDragEnd(tratoId, 'abierto', columnas)` se invoca
-- THEN retorna `'reabrir'`
+- WHEN `resolverDragEnd(tratoId, 'ganado', 'abierto', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'reabrir', tratoId }`
 
-#### Scenario: Drop en 'perdido' desde cualquier estado retorna 'modal-perder' [unit test]
+#### Scenario: Drop en 'abierto' desde 'perdido' retorna reabrir [unit test]
 
-- GIVEN un trato está en `'abierto'`
-- WHEN `resolverDragEnd(tratoId, 'perdido', columnas)` se invoca
-- THEN retorna `'modal-perder'`
+- WHEN `resolverDragEnd(tratoId, 'perdido', 'abierto', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'reabrir', tratoId }`
 
-#### Scenario: Drop de 'perdido' a 'ganado' retorna noop (terminal→terminal prohibido) [unit test]
+#### Scenario: Drop en 'perdido' desde 'abierto' retorna abrir-modal-perder [unit test]
 
-- GIVEN un trato está en `'perdido'`
-- WHEN `resolverDragEnd(tratoId, 'ganado', columnas)` se invoca
-- THEN retorna `'noop'` (ADR-060: drop entre terminales deshabilitado)
+- WHEN `resolverDragEnd(tratoId, 'abierto', 'perdido', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'abrir-modal-perder', tratoId, nombre }`
 
-#### Scenario: Drop de 'ganado' a 'perdido' retorna 'modal-perder' (ADR-060 excepción) [unit test]
+#### Scenario: Drop de 'perdido' a 'ganado' retorna ignorar (terminal→terminal prohibido) [unit test]
 
-- GIVEN un trato está en `'ganado'`
-- WHEN `resolverDragEnd(tratoId, 'perdido', columnas)` se invoca
-- THEN retorna `'modal-perder'` (destino perdido siempre requiere modal)
+- WHEN `resolverDragEnd(tratoId, 'perdido', 'ganado', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'ignorar' }` (ADR-060: drop entre terminales deshabilitado)
+
+#### Scenario: Drop de 'ganado' a 'perdido' retorna abrir-modal-perder (ADR-060 excepción) [unit test]
+
+- WHEN `resolverDragEnd(tratoId, 'ganado', 'perdido', columnas, nombre)` se invoca
+- THEN retorna `{ accion: 'abrir-modal-perder', tratoId, nombre }` (destino perdido siempre requiere modal, con precedencia sobre terminal→terminal)
 
 ---
 

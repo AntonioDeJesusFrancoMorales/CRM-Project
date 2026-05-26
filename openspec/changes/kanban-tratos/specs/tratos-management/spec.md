@@ -9,13 +9,13 @@
 
 ### Requirement: Toggle vista Kanban / Tabla en /tratos (ADR-056)
 
-`TratosListPage` MUST renderizar la vista kanban (`TratosKanban`) como vista por defecto cuando no hay query params en la URL. Cuando el parámetro `?vista=tabla` está presente, MUST renderizar `TratosTable`. El toggle MUST ser bidireccional y gestionado por `useTabSync(['kanban', 'tabla'], 'kanban', 'vista')` (ADR-057). Al seleccionar la vista kanban (fallback), la URL MUST quedar limpia (sin `?vista`). Al seleccionar la vista tabla, la URL MUST mostrar `?vista=tabla`.
+`TratosListPage` MUST renderizar la vista kanban (`KanbanBoard`) como vista por defecto cuando no hay query params en la URL. Cuando el parámetro `?vista=tabla` está presente, MUST renderizar `TratosTable`. El toggle MUST ser bidireccional y gestionado por `useTabSync(['kanban', 'tabla'], 'kanban', 'vista')` (ADR-057). Al seleccionar la vista kanban (fallback), la URL MUST quedar limpia (sin `?vista`). Al seleccionar la vista tabla, la URL MUST mostrar `?vista=tabla`.
 
 #### Scenario: /tratos sin query param muestra kanban [integration test]
 
 - GIVEN el usuario navega a `/tratos` (sin query params)
 - WHEN se renderiza `TratosListPage`
-- THEN se muestra `TratosKanban`
+- THEN se muestra `KanbanBoard`
 - AND no se muestra `TratosTable`
 
 #### Scenario: /tratos?vista=tabla muestra la tabla [integration test]
@@ -23,7 +23,7 @@
 - GIVEN el usuario navega a `/tratos?vista=tabla`
 - WHEN se renderiza `TratosListPage`
 - THEN se muestra `TratosTable`
-- AND no se muestra `TratosKanban`
+- AND no se muestra `KanbanBoard`
 
 #### Scenario: Toggle a tabla agrega ?vista=tabla a la URL [integration test]
 
@@ -37,7 +37,7 @@
 - GIVEN el usuario está en `/tratos?vista=tabla`
 - WHEN selecciona la vista "Kanban"
 - THEN la URL cambia a `/tratos` (sin query param `?vista`)
-- AND se renderiza `TratosKanban`
+- AND se renderiza `KanbanBoard`
 
 ---
 
