@@ -233,4 +233,48 @@ describe('TratosListPage', () => {
       expect(screen.queryByText('Automatización logística Maya')).not.toBeInTheDocument();
     });
   });
+
+  // ─── Bugfix: las opciones del filtro de cliente se derivan del dataset COMPLETO ───
+  // Regresión reportada en smoke manual: al elegir el cliente 1, el cliente 2
+  // desaparecía del dropdown (había que pasar por "Todos" para volver a verlo),
+  // porque las opciones se derivaban de la lista YA filtrada.
+  it('conserva todos los clientes con tratos en el filtro tras elegir uno', async () => {
+    const user = userEvent.setup();
+
+    // El backend filtra por cliente_id (como en producción). Sin este override,
+    // el handler default devuelve todos y el bug no se reproduce.
+    server.use(
+      http.get('/api/v1/tratos', ({ request }) => {
+        const clienteId = new URL(request.url).searchParams.get('cliente_id');
+        const data = clienteId
+          ? tratosFixture.filter((t) => t.cliente_id === clienteId)
+          : tratosFixture;
+        return HttpResponse.json(data);
+      }),
+    );
+
+    renderPage('/tratos');
+
+    await waitFor(() =>
+      expect(screen.getByText(/^Abierto \(\d+\)$/)).toBeInTheDocument(),
+    );
+
+    // Ambos clientes con tratos aparecen inicialmente (Ana=c1111111, Diego=c2222222).
+    const selectCliente = screen.getByRole('combobox', { name: /cliente/i });
+    await user.click(selectCliente);
+    expect(await screen.findByRole('option', { name: 'Ana Rodríguez' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Diego Vargas' })).toBeInTheDocument();
+
+    // Filtrar por Ana Rodríguez.
+    await user.click(screen.getByRole('option', { name: 'Ana Rodríguez' }));
+
+    // El refetch filtrado deja solo el trato de Ana; el de Diego desaparece del board.
+    await waitFor(() =>
+      expect(screen.queryByText('Consultoría procesos Maya')).not.toBeInTheDocument(),
+    );
+
+    // Reabrir el select: Diego Vargas DEBE seguir disponible (el bug lo eliminaba).
+    await user.click(screen.getByRole('combobox', { name: /cliente/i }));
+    expect(await screen.findByRole('option', { name: 'Diego Vargas' })).toBeInTheDocument();
+  });
 });
