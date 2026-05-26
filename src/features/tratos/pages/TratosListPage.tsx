@@ -1,3 +1,5 @@
+// ADR-056 — Vista kanban como default en /tratos; toggle tabla via ?vista=tabla.
+// ADR-057 (via useTabSync paramKey='vista') — usa ?vista= en lugar del ?tab= default.
 import { useState } from 'react';
 import { Plus, Search, LayoutGrid, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
