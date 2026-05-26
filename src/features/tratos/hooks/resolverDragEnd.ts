@@ -1,4 +1,6 @@
 // resolverDragEnd — función pura de lógica drag-and-drop para el tablero kanban (ADR-061).
+// ADR-060 — reglas terminales: ganado/perdido son terminales; perdido→ganado se ignora
+// (terminal→terminal), pero cualquiera→perdido abre modal (requiereModal tiene precedencia).
 // Recibe el estado explícito del caller (no lo deriva internamente) para mantenerse pura y testeable.
 // Usa columna.requiereModal para detectar el caso modal; no hardcodea el valor 'perdido'.
 

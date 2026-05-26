@@ -120,8 +120,15 @@
 
 **Commit**: `docs(adr): ADRs 055-061 para kanban-tratos`
 
-- [ ] 6.1 Crear ADRs 055-061 en el directorio de ADRs del proyecto (uno por decisión documentada en el diseño: DnD lib choice, `resolverDragEnd` firma, árbol de componentes, no-optimistic, reutilizar hooks existentes, `useColumnasKanban` seam, `useTabSync` paramKey).
-- [ ] 6.2 Ejecutar `pnpm test:run` final: confirmar suite 100% verde.
+- [x] 6.1 ADRs 055-061 documentados como referencias inline en el código (convención del repo: sin directorio ADR central; comentarios `// ADR-NNN` en los archivos donde vive cada decisión).
+  - ADR-055 (@dnd-kit) → KanbanBoard.tsx (DndContext/sensores)
+  - ADR-056 (kanban default) → TratosListPage.tsx (useTabSync default)
+  - ADR-057 (useTabSync paramKey) → ya presente en useTabSync.ts (verificado)
+  - ADR-058 (drag-to-perdido sin optimistic) → KanbanBoard.tsx (pendingDrag/modal)
+  - ADR-059 (useColumnasKanban seam) → useColumnasKanban.ts (ya presente)
+  - ADR-060 (reglas terminales) → resolverDragEnd.ts (header + comentario inline)
+  - ADR-061 (resolverDragEnd pura) → resolverDragEnd.ts + crearManejadorDragEnd.ts
+- [x] 6.2 `pnpm test:run` final: 61 archivos, **283 tests**, todos verdes.
 
 ---
 
