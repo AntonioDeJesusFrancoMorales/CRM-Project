@@ -1,9 +1,9 @@
 // TratoTareasTab — tab de tareas en el detalle de un Trato.
-// Lista las tareas del trato mediante useTareas({ trato_id }).
+// Lista las tareas del trato mediante useTareas() (get-all) + filtro client-side por tratoId.
 // Botón "Crear tarea" abre TareaCreateDialog con tratoIdFijo para bloquear el Select de trato.
 // ADR-051: montado como TabsContent — lazy load por montaje.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,10 +18,16 @@ interface TratoTareasTabProps {
 }
 
 export function TratoTareasTab({ tratoId }: TratoTareasTabProps) {
-  const { data: tareas = [], isLoading, isError } = useTareas({ trato_id: tratoId });
+  const { data: todasLasTareas = [], isLoading, isError } = useTareas();
   const { data: tratos = [] } = useTratos();
   const { data: usuarios = [] } = useUsuarios();
   const [createOpen, setCreateOpen] = useState(false);
+
+  // Filtro client-side por tratoId
+  const tareas = useMemo(
+    () => todasLasTareas.filter((t) => t.tratoId === tratoId),
+    [todasLasTareas, tratoId],
+  );
 
   const tratosById = Object.fromEntries(tratos.map((t) => [t.id, t.nombre]));
   const usuariosById = Object.fromEntries(usuarios.map((u) => [u.id, u.nombre]));

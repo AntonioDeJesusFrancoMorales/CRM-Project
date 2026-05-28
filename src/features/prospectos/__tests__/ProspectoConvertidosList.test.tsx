@@ -13,12 +13,16 @@ const empresa: Empresa = {
   nombre: 'Innovatech',
   sector: 'tecnologia',
   telefono: null,
-  pagina_web: null,
+  paginaWeb: null,
   facebook: null,
   instagram: null,
   twitter: null,
-  creado_en: '2026-01-01T00:00:00.000Z',
-  actualizado_en: '2026-01-01T00:00:00.000Z',
+  estadoRelacion: 'ACTIVO',
+  responsableId: null,
+  creadoPor: null,
+  notas: null,
+  creadoEn: '2026-01-01T00:00:00.000Z',
+  actualizadoEn: '2026-01-01T00:00:00.000Z',
 };
 
 const prospectoConvertido: Prospecto = {

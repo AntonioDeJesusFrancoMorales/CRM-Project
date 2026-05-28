@@ -5,7 +5,7 @@ import { errors } from '@/mocks/utils/error';
 import { usuariosFixture, toUsuarioDto } from '@/mocks/fixtures/usuarios';
 import type { Usuario } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 // Los handlers operan directamente sobre `usuariosFixture` (UsuarioMock[]),
 // que incluye `password`. Las respuestas pasan por `toUsuarioDto` para excluirlo.

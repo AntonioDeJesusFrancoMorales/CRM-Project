@@ -23,6 +23,7 @@ import { useClientes } from '@/features/clientes/hooks/useClientes';
 import { useProspectos } from '@/features/prospectos/hooks/useProspectos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
+import { getTareaEstado } from '@/features/tareas/hooks/useTareaEstado';
 import { TratoEstadoBadge } from '../components/TratoEstadoBadge';
 import { TratoInfoTab } from '../components/TratoInfoTab';
 import { TratoTareasTab } from '../components/TratoTareasTab';
@@ -42,10 +43,12 @@ export function TratoDetailPage() {
   const { data: usuarios = [] } = useUsuarios();
 
   // ADR-052: query de pendientes levantado a nivel página.
-  // Se dedupea con el query del tab porque tienen el mismo queryKey.
-  const { data: tareasPendientes = [] } = useTareas(
-    id ? { trato_id: id, estado: 'pendiente' } : undefined,
-  );
+  // Estado es client-only (localStorage), así que traemos todas las tareas
+  // y filtramos client-side por tratoId + estado 'pendiente'.
+  const { data: todasLasTareas = [] } = useTareas();
+  const tareasTrato = todasLasTareas.filter((t) => t.tratoId === id);
+  const tareasPendientes = tareasTrato
+    .filter((t) => getTareaEstado(t.id) === 'pendiente');
 
   const deleteMutation = useDeleteTrato();
   const ganarMutation = useGanarTrato();

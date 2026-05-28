@@ -29,7 +29,7 @@ describe('useCreateUsuario', () => {
 
   it('propaga errores de validación 422 con details', async () => {
     server.use(
-      http.post('/api/v1/usuarios', () =>
+      http.post('/api/usuarios', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -62,3 +62,4 @@ describe('useCreateUsuario', () => {
     expect(error.details?.[0]?.field).toBe('correo');
   });
 });
+

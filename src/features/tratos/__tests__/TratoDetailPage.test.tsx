@@ -91,7 +91,7 @@ describe('TratoDetailPage', () => {
 
   it('(c) motivo_perdida SÍ visible cuando estado es perdido', async () => {
     server.use(
-      http.get(`/api/v1/tratos/${TRATO_CON_CLIENTE}`, () =>
+      http.get(`/api/tratos/${TRATO_CON_CLIENTE}`, () =>
         HttpResponse.json({
           id: TRATO_CON_CLIENTE,
           cliente_id: 'c1111111-cccc-1111-cccc-111111111111',
@@ -219,25 +219,27 @@ describe('TratoDetailPage', () => {
   });
 
   // ── (i) POST desde el tab usa el trato fijo ───────────────────────────────
-  it('(i) al crear tarea desde el tab, POST va a /tratos/d1111111/tareas', async () => {
+  it('(i) al crear tarea desde el tab, POST va a /tareas/create con tratoId en body', async () => {
     let postCalled = false;
     server.use(
-      http.post(`/api/v1/tratos/${TRATO_CON_PROSPECTO}/tareas`, () => {
-        postCalled = true;
+      http.post('/api/tareas/create', async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        if (body['tratoId'] === TRATO_CON_PROSPECTO) {
+          postCalled = true;
+        }
         return HttpResponse.json(
           {
             id: 'e9999999-eeee-9999-eeee-999999999999',
-            trato_id: TRATO_CON_PROSPECTO,
-            responsable_id: '22222222-2222-2222-2222-222222222222',
+            tratoId: TRATO_CON_PROSPECTO,
+            responsableId: '22222222-2222-2222-2222-222222222222',
             titulo: 'Tarea desde tab',
             descripcion: null,
-            tipo: 'llamada',
-            estado: 'pendiente',
-            prioridad: 2,
-            fecha_limite: null,
-            fecha_completada: null,
-            creado_en: '2026-05-25T00:00:00.000Z',
-            actualizado_en: '2026-05-25T00:00:00.000Z',
+            tipo: 'GENERAL',
+            prioridad: 'MEDIA',
+            fechaLimite: '2026-06-01T00:00:00.000Z',
+            fechaCompletada: null,
+            creadoEn: '2026-05-25T00:00:00.000Z',
+            actualizadoEn: '2026-05-25T00:00:00.000Z',
           },
           { status: 201 },
         );
@@ -269,17 +271,21 @@ describe('TratoDetailPage', () => {
     const opcionMaria = await screen.findByRole('option', { name: /maría/i });
     await user.click(opcionMaria);
 
-    // Tipo de tarea: seleccionar Llamada
+    // Tipo de tarea: opciones en español neutro (enums del back)
     const tipoSelect = within(dialog).getByRole('combobox', { name: /tipo/i });
     await user.click(tipoSelect);
-    const opcionLlamada = await screen.findByRole('option', { name: /llamada/i });
-    await user.click(opcionLlamada);
+    const opcionGeneral = await screen.findByRole('option', { name: /general/i });
+    await user.click(opcionGeneral);
 
     // Prioridad: seleccionar Media
     const prioridadSelect = within(dialog).getByRole('combobox', { name: /prioridad/i });
     await user.click(prioridadSelect);
     const opcionMedia = await screen.findByRole('option', { name: /media/i });
     await user.click(opcionMedia);
+
+    // Fecha límite (requerida)
+    const fechaInput = within(dialog).getByLabelText(/fecha límite/i);
+    await user.type(fechaInput, '2026-06-01');
 
     // Submit — en modo create el botón dice "Crear tarea"
     await user.click(within(dialog).getByRole('button', { name: /crear tarea/i }));
@@ -333,7 +339,7 @@ describe('TratoDetailPage', () => {
   // ── (l) 404 → toast + redirect ────────────────────────────────────────────
   it('(l) 404 muestra mensaje "no existe" y prepara redirección', async () => {
     server.use(
-      http.get('/api/v1/tratos/id-inexistente', () =>
+      http.get('/api/tratos/id-inexistente', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Trato no encontrado' },
           { status: 404 },
@@ -366,3 +372,4 @@ describe('TratoDetailPage', () => {
     expect(within(dialog).getByText(/motivo de pérdida/i)).toBeInTheDocument();
   });
 });
+

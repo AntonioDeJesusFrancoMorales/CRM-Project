@@ -46,7 +46,7 @@ describe('useConvertirProspecto', () => {
 
   it('maneja error 500 sin romper el estado del cache', async () => {
     server.use(
-      http.post('/api/v1/prospectos/:id/convertir', () =>
+      http.post('/api/prospectos/:id/convertir', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error al convertir' },
           { status: 500 },
@@ -65,3 +65,4 @@ describe('useConvertirProspecto', () => {
     expect(error.status).toBe(500);
   });
 });
+

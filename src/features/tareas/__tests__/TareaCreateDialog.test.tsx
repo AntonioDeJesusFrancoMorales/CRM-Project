@@ -1,6 +1,5 @@
 // Test e2e del mapeo de error 422 en la creación de tarea.
-// Cierra el WARNING de sdd-verify sobre REQ-6: el código de mapeo en TareaCreateDialog
-// (status 422 -> serverErrors -> form.setError) no tenía prueba automatizada.
+// Usa enums del back (GENERAL/SEGUIMIENTO/… y BAJA/MEDIA/ALTA/URGENTE).
 
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
@@ -34,7 +33,7 @@ function renderDialog() {
 describe('TareaCreateDialog — mapeo de error 422', () => {
   it('mapea los field errors 422 del backend al campo correspondiente del formulario', async () => {
     server.use(
-      http.post(`/api/v1/tratos/${TRATO_FIJO}/tareas`, () =>
+      http.post('/api/tareas/create', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -60,13 +59,19 @@ describe('TareaCreateDialog — mapeo de error 422', () => {
     await user.click(responsableSelect);
     await user.click(await screen.findByRole('option', { name: /maría/i }));
 
+    // Tipo — opciones en español: General, Seguimiento, Negociación, Cierre
     const tipoSelect = within(dialog).getByRole('combobox', { name: /tipo/i });
     await user.click(tipoSelect);
-    await user.click(await screen.findByRole('option', { name: /llamada/i }));
+    await user.click(await screen.findByRole('option', { name: /general/i }));
 
+    // Prioridad — opciones en español: Baja, Media, Alta, Urgente
     const prioridadSelect = within(dialog).getByRole('combobox', { name: /prioridad/i });
     await user.click(prioridadSelect);
     await user.click(await screen.findByRole('option', { name: /media/i }));
+
+    // Fecha límite (requerida)
+    const fechaInput = within(dialog).getByLabelText(/fecha límite/i);
+    await user.type(fechaInput, '2026-06-01');
 
     await user.click(within(dialog).getByRole('button', { name: /crear tarea/i }));
 

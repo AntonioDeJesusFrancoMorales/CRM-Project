@@ -198,7 +198,7 @@ describe('ClienteDetailPage', () => {
 
   it('muestra estado de carga mientras el cliente se obtiene', async () => {
     server.use(
-      http.get(`/api/v1/clientes/${ANA_ID}`, async () => {
+      http.get(`/api/clientes/${ANA_ID}`, async () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         return HttpResponse.json({});
       }),
@@ -211,7 +211,7 @@ describe('ClienteDetailPage', () => {
 
   it('404 muestra mensaje "no existe" y prepara redirección', async () => {
     server.use(
-      http.get('/api/v1/clientes/id-inexistente', () =>
+      http.get('/api/clientes/id-inexistente', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Cliente no encontrado' },
           { status: 404 },
@@ -282,3 +282,4 @@ describe('ClienteDetailPage', () => {
     expect(link?.getAttribute('href')).toBe('/tratos/d2222222-dddd-2222-dddd-222222222222');
   });
 });
+

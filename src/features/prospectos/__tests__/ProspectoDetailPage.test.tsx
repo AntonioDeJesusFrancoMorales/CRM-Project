@@ -98,7 +98,7 @@ describe('ProspectoDetailPage', () => {
 
   it('redirige a /prospectos cuando el id devuelve 404', async () => {
     server.use(
-      http.get('/api/v1/prospectos/:id', () =>
+      http.get('/api/prospectos/:id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Prospecto no encontrado' },
           { status: 404 },
@@ -159,3 +159,4 @@ describe('ProspectoDetailPage', () => {
     );
   });
 });
+

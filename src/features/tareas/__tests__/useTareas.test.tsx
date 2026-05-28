@@ -8,47 +8,55 @@ import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
 describe('useTareas', () => {
-  it('(a) sin filtros devuelve lista desde GET /tareas', async () => {
-    const { Wrapper } = setupTestWrapper();
-    const { result } = renderHook(() => useTareas(), { wrapper: Wrapper });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(Array.isArray(result.current.data)).toBe(true);
-    expect(result.current.data!.length).toBeGreaterThan(0);
-    expect(result.current.data![0]).toHaveProperty('titulo');
-    expect(result.current.data![0]).toHaveProperty('estado');
-  });
-
-  it('(b) con filtros responsable_id y prioridad pasa los query params correctos', async () => {
+  it('(a) devuelve lista desde GET /tareas/get-all SIN query params', async () => {
     let capturedUrl: string | null = null;
+
     server.use(
-      http.get('/api/v1/tareas', ({ request }) => {
+      http.get('/api/tareas/get-all', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
     );
 
     const { Wrapper } = setupTestWrapper();
-    const { result } = renderHook(
-      () => useTareas({ responsable_id: '11111111-1111-1111-1111-111111111111', prioridad: 1 }),
-      { wrapper: Wrapper },
-    );
+    const { result } = renderHook(() => useTareas(), { wrapper: Wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(capturedUrl).toContain('responsable_id=11111111-1111-1111-1111-111111111111');
-    expect(capturedUrl).toContain('prioridad=1');
+    // La URL debe ser exactamente /api/tareas/get-all sin query params
+    expect(capturedUrl).toBeDefined();
+    const url = new URL(capturedUrl!);
+    expect(url.search).toBe('');
+    expect(Array.isArray(result.current.data)).toBe(true);
   });
 
-  it('(c) tareasKeys.byTrato produce la misma key que tareasKeys.list({ trato_id })', () => {
-    const tratoId = 'd1111111-dddd-1111-dddd-111111111111';
-    expect(tareasKeys.byTrato(tratoId)).toEqual(tareasKeys.list({ trato_id: tratoId }));
+  it('(b) la queryKey es exactamente ["tareas"] (plano, sin filtros embebidos)', () => {
+    expect(tareasKeys.all).toEqual(['tareas']);
+    expect(tareasKeys.list()).toEqual(['tareas']);
+    // byTrato también retorna ['tareas'] — sin embeber el tratoId
+    expect(tareasKeys.byTrato('d1111111-dddd-1111-dddd-111111111111')).toEqual(['tareas']);
+  });
+
+  it('(c) el fixture de tareas devuelve datos con camelCase del back', async () => {
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useTareas(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const data = result.current.data ?? [];
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    const primera = data[0];
+    expect(primera).toHaveProperty('titulo');
+    expect(primera).toHaveProperty('tratoId');
+    expect(primera).toHaveProperty('prioridad');
+    // prioridad debe ser string enum del back, NO número
+    expect(typeof primera?.prioridad).toBe('string');
   });
 });
 
 describe('useTarea (individual)', () => {
-  it('devuelve la tarea por id desde GET /tareas/:id', async () => {
+  it('devuelve la tarea por id desde GET /tareas/get-by-id?id=', async () => {
     const TAREA_ID = 'e1111111-eeee-1111-eeee-111111111111';
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useTarea(TAREA_ID), { wrapper: Wrapper });
@@ -61,7 +69,7 @@ describe('useTarea (individual)', () => {
 
   it('reporta error 404 cuando la tarea no existe', async () => {
     server.use(
-      http.get('/api/v1/tareas/:id', () =>
+      http.get('/api/tareas/get-by-id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Tarea no encontrada' },
           { status: 404 },

@@ -30,7 +30,7 @@ describe('useUpdateCliente', () => {
 
   it('propaga error 422 cuando hay datos inválidos', async () => {
     server.use(
-      http.patch('/api/v1/clientes/:id', () =>
+      http.patch('/api/clientes/:id', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -61,3 +61,4 @@ describe('useUpdateCliente', () => {
     expect(error.details?.[0]?.field).toBe('correo_contacto');
   });
 });
+

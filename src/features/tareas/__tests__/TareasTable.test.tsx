@@ -12,32 +12,30 @@ import type { Tarea } from '@/api/types';
 
 const TAREA_PENDIENTE: Tarea = {
   id: 'e1111111-eeee-1111-eeee-111111111111',
-  trato_id: 'd1111111-dddd-1111-dddd-111111111111',
-  responsable_id: '22222222-2222-2222-2222-222222222222',
+  tratoId: 'd1111111-dddd-1111-dddd-111111111111',
+  responsableId: '22222222-2222-2222-2222-222222222222',
   titulo: 'Demo presencial con CTO',
   descripcion: null,
-  tipo: 'demo',
-  estado: 'pendiente',
-  prioridad: 3,
-  fecha_limite: '2026-05-28',
-  fecha_completada: null,
-  creado_en: '2026-05-01T10:00:00.000Z',
-  actualizado_en: '2026-05-01T10:00:00.000Z',
+  tipo: 'CIERRE',
+  prioridad: 'URGENTE',
+  fechaLimite: '2026-05-28T00:00:00.000Z',
+  fechaCompletada: null,
+  creadoEn: '2026-05-01T10:00:00.000Z',
+  actualizadoEn: '2026-05-01T10:00:00.000Z',
 };
 
 const TAREA_COMPLETADA: Tarea = {
   id: 'e3333333-eeee-3333-eeee-333333333333',
-  trato_id: 'd2222222-dddd-2222-dddd-222222222222',
-  responsable_id: '11111111-1111-1111-1111-111111111111',
+  tratoId: 'd2222222-dddd-2222-dddd-222222222222',
+  responsableId: '11111111-1111-1111-1111-111111111111',
   titulo: 'Análisis de requerimientos inicial',
   descripcion: null,
-  tipo: 'reunion',
-  estado: 'completada',
-  prioridad: 1,
-  fecha_limite: '2026-05-10',
-  fecha_completada: '2026-05-09T14:00:00.000Z',
-  creado_en: '2026-04-25T09:00:00.000Z',
-  actualizado_en: '2026-05-09T14:00:00.000Z',
+  tipo: 'GENERAL',
+  prioridad: 'BAJA',
+  fechaLimite: '2026-05-10T00:00:00.000Z',
+  fechaCompletada: '2026-05-09T14:00:00.000Z',
+  creadoEn: '2026-04-25T09:00:00.000Z',
+  actualizadoEn: '2026-05-09T14:00:00.000Z',
 };
 
 function renderTable(tareas: Tarea[], searchTerm?: string) {

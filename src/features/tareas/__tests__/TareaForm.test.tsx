@@ -1,4 +1,4 @@
-// Tests de TareaForm — Strict TDD fase RED.
+// Tests de TareaForm — enums del back (W2 fix).
 // Cubre: modo tratoIdFijo (disabled) vs. global (editable + requerido), validación, onSubmit.
 
 import { describe, it, expect, vi } from 'vitest';
@@ -71,7 +71,7 @@ describe('TareaForm — tratoIdFijo', () => {
   it('(c) form de edición no expone campo estado directamente en el form', async () => {
     const defaultValues: Partial<TareaCreateInput> = {
       ...TAREA_EMPTY_DEFAULTS,
-      trato_id: 'd1111111-dddd-1111-dddd-111111111111',
+      tratoId: 'd1111111-dddd-1111-dddd-111111111111',
       titulo: 'Tarea existente',
     };
 

@@ -33,14 +33,14 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
             <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div>
               <p className="text-sm font-medium text-muted-foreground">Sitio web</p>
-              {empresa.pagina_web ? (
+              {empresa.paginaWeb ? (
                 <a
-                  href={empresa.pagina_web}
+                  href={empresa.paginaWeb}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-0.5 block text-sm text-primary underline underline-offset-4 hover:text-primary/80"
                 >
-                  {empresa.pagina_web}
+                  {empresa.paginaWeb}
                 </a>
               ) : (
                 <p className="mt-0.5 text-sm">—</p>
@@ -90,11 +90,11 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Fecha de registro</p>
-            <p className="mt-1 text-sm">{formatDate(empresa.creado_en)}</p>
+            <p className="mt-1 text-sm">{formatDate(empresa.creadoEn)}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Última actualización</p>
-            <p className="mt-1 text-sm">{formatRelativeDate(empresa.actualizado_en)}</p>
+            <p className="mt-1 text-sm">{formatRelativeDate(empresa.actualizadoEn)}</p>
           </div>
         </CardContent>
       </Card>

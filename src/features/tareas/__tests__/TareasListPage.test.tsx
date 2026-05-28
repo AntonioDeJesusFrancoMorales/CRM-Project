@@ -1,6 +1,5 @@
-// Tests de TareasListPage — Strict TDD Lote D (T_D.2).
-// Cubre: render, filtros, búsqueda client-side, error, creación.
-// DEUDA LOTE C: incluye test de submit COMPLETO (creación con payload correcto).
+// Tests de TareasListPage — filtros client-side (W1 fix) + enums del back (W2 fix).
+// Los filtros se aplican sobre el array completo en useMemo — NO hay query params al back.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -60,13 +59,13 @@ describe('TareasListPage — render y tabla', () => {
   });
 });
 
-describe('TareasListPage — filtros server-side', () => {
-  it('(c) filtro estado pasa query param ?estado=completada', async () => {
+describe('TareasListPage — filtros client-side (NO query params al back)', () => {
+  it('(c) filtro prioridad aplica client-side — NO envía query param ?prioridad= al back', async () => {
     const user = userEvent.setup();
     let capturedUrl = '';
 
     server.use(
-      http.get('/api/v1/tareas', ({ request }) => {
+      http.get('/api/tareas/get-all', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -74,69 +73,87 @@ describe('TareasListPage — filtros server-side', () => {
 
     renderPage();
 
-    // Esperar que cargue
-    await waitFor(() => expect(capturedUrl).toContain('/api/v1/tareas'));
+    // Esperar la carga inicial
+    await waitFor(() => expect(capturedUrl).toContain('/api/tareas/get-all'));
 
-    // Cambiar filtro estado
-    const selectEstado = screen.getByRole('combobox', { name: /estado/i });
-    await user.click(selectEstado);
-    const opcionCompletada = await screen.findByRole('option', { name: /completada/i });
-    await user.click(opcionCompletada);
+    // Guardar la URL inicial (sin params)
+    const urlInicial = capturedUrl;
 
-    await waitFor(() => {
-      expect(capturedUrl).toContain('estado=completada');
-    });
-  });
-
-  it('(d) filtro prioridad pasa query param ?prioridad=1', async () => {
-    const user = userEvent.setup();
-    let capturedUrl = '';
-
-    server.use(
-      http.get('/api/v1/tareas', ({ request }) => {
-        capturedUrl = request.url;
-        return HttpResponse.json([]);
-      }),
-    );
-
-    renderPage();
-
-    await waitFor(() => expect(capturedUrl).toContain('/api/v1/tareas'));
-
+    // Cambiar filtro prioridad
     const selectPrioridad = screen.getByRole('combobox', { name: /prioridad/i });
     await user.click(selectPrioridad);
     const opcionAlta = await screen.findByRole('option', { name: /alta/i });
     await user.click(opcionAlta);
 
-    await waitFor(() => {
-      expect(capturedUrl).toContain('prioridad=1');
-    });
+    // La URL NO debe haber cambiado — el filtrado es client-side
+    expect(capturedUrl).toBe(urlInicial);
+    // La URL NO debe tener query params
+    const url = new URL(capturedUrl);
+    expect(url.search).toBe('');
   });
 
-  it('(e) filtro responsable pasa query param ?responsable_id=...', async () => {
+  it('(d) filtro responsable aplica client-side — NO envía query param ?responsable_id= al back', async () => {
     const user = userEvent.setup();
-    let capturedUrl = '';
+    let requestCount = 0;
+    let lastUrl = '';
 
     server.use(
-      http.get('/api/v1/tareas', ({ request }) => {
-        capturedUrl = request.url;
+      http.get('/api/tareas/get-all', ({ request }) => {
+        requestCount++;
+        lastUrl = request.url;
         return HttpResponse.json([]);
       }),
     );
 
     renderPage();
 
-    await waitFor(() => expect(capturedUrl).toContain('/api/v1/tareas'));
+    // Esperar la carga inicial (1 request)
+    await waitFor(() => expect(requestCount).toBeGreaterThan(0));
+    const initialCount = requestCount;
 
+    // Cambiar filtro responsable
     const selectResponsable = screen.getByRole('combobox', { name: /responsable/i });
     await user.click(selectResponsable);
-    // Esperamos a que carguen los usuarios (fixture) — el primer usuario del fixture es "Antonio Franco"
     const opcionAdmin = await screen.findByRole('option', { name: /antonio franco/i });
     await user.click(opcionAdmin);
 
-    await waitFor(() => {
-      expect(capturedUrl).toContain('responsable_id=');
-    });
+    // Dar tiempo para refetches potenciales
+    await new Promise((r) => setTimeout(r, 100));
+
+    // El número de requests NO debe aumentar (no hace nueva llamada al back)
+    expect(requestCount).toBe(initialCount);
+    // La URL no debe tener query params
+    const url = new URL(lastUrl);
+    expect(url.search).toBe('');
+  });
+
+  it('(e) filtro estado aplica client-side — NO envía query param ?estado= al back', async () => {
+    const user = userEvent.setup();
+    let capturedUrls: string[] = [];
+
+    server.use(
+      http.get('/api/tareas/get-all', ({ request }) => {
+        capturedUrls.push(request.url);
+        return HttpResponse.json([]);
+      }),
+    );
+
+    renderPage();
+
+    await waitFor(() => expect(capturedUrls.length).toBeGreaterThan(0));
+
+    const selectEstado = screen.getByRole('combobox', { name: /estado/i });
+    await user.click(selectEstado);
+    const opcionCompletada = await screen.findByRole('option', { name: /completada/i });
+    await user.click(opcionCompletada);
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Todas las URLs capturadas deben ser sin query params
+    for (const capturedUrl of capturedUrls) {
+      const url = new URL(capturedUrl);
+      expect(url.search).toBe('');
+    }
   });
 });
 
@@ -162,7 +179,7 @@ describe('TareasListPage — búsqueda client-side', () => {
 describe('TareasListPage — error y estados de carga', () => {
   it('(g) error 500 muestra mensaje y botón "Reintentar"', async () => {
     server.use(
-      http.get('/api/v1/tareas', () =>
+      http.get('/api/tareas/get-all', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
           { status: 500 },
@@ -178,7 +195,7 @@ describe('TareasListPage — error y estados de carga', () => {
   });
 });
 
-describe('TareasListPage — creación (DEUDA LOTE C)', () => {
+describe('TareasListPage — creación (enums del back)', () => {
   it('(h) botón "Nueva tarea" abre TareaCreateDialog con Select de trato editable', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -201,25 +218,27 @@ describe('TareasListPage — creación (DEUDA LOTE C)', () => {
     });
   });
 
-  it('(i) DEUDA LOTE C: submit completo de creación invoca POST con payload correcto', async () => {
-    // Este test CIERRA la deuda pendiente del Lote C:
-    // verifica que el submit llega al endpoint con los datos correctos.
+  it('(i) submit de creación envía enums del back (camelCase, GENERAL/MEDIA)', async () => {
     const user = userEvent.setup();
     const postSpy = vi.fn();
 
     server.use(
-      http.post('/api/v1/tratos/:trato_id/tareas', async ({ request, params }) => {
-        const body = await request.json();
-        postSpy({ tratoId: params['trato_id'], body });
+      http.post('/api/tareas/create', async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        postSpy({ tratoId: body['tratoId'], body });
         return HttpResponse.json(
           {
             id: 'new-tarea-id',
-            trato_id: params['trato_id'],
-            ...(body as object),
-            estado: 'pendiente',
-            fecha_completada: null,
-            creado_en: '2026-05-24T00:00:00.000Z',
-            actualizado_en: '2026-05-24T00:00:00.000Z',
+            tratoId: body['tratoId'],
+            responsableId: body['responsableId'],
+            titulo: body['titulo'],
+            descripcion: null,
+            tipo: 'GENERAL',
+            prioridad: 'MEDIA',
+            fechaLimite: '2026-06-01T00:00:00.000Z',
+            fechaCompletada: null,
+            creadoEn: '2026-05-24T00:00:00.000Z',
+            actualizadoEn: '2026-05-24T00:00:00.000Z',
           },
           { status: 201 },
         );
@@ -242,7 +261,7 @@ describe('TareasListPage — creación (DEUDA LOTE C)', () => {
       expect(selectTrato).not.toBeDisabled();
     });
 
-    // Seleccionar trato via fireEvent en el trigger (patrón MSW+Radix en JSDOM)
+    // Seleccionar trato
     const selectTrato = screen.getByRole('combobox', { name: /trato/i });
     await user.click(selectTrato);
     const tratoOption = await screen.findByRole('option', { name: /implementación crm innovatech/i });
@@ -251,19 +270,19 @@ describe('TareasListPage — creación (DEUDA LOTE C)', () => {
     // Completar título
     await user.type(screen.getByLabelText(/título/i), 'Demo con cliente');
 
-    // Seleccionar tipo
+    // Seleccionar tipo — opciones en español, value = enum del back
     const selectTipo = screen.getByRole('combobox', { name: /tipo/i });
     await user.click(selectTipo);
-    const tipoOption = await screen.findByRole('option', { name: /demo/i });
+    const tipoOption = await screen.findByRole('option', { name: /general/i });
     await user.click(tipoOption);
 
-    // Seleccionar prioridad
+    // Seleccionar prioridad — opciones en español, value = enum del back
     const selectPrioridad = screen.getByRole('combobox', { name: /prioridad/i });
     await user.click(selectPrioridad);
-    const prioridadOption = await screen.findByRole('option', { name: /alta/i });
+    const prioridadOption = await screen.findByRole('option', { name: /media/i });
     await user.click(prioridadOption);
 
-    // Seleccionar responsable — el fixture tiene "Antonio Franco" como primer usuario
+    // Seleccionar responsable
     await waitFor(() => {
       expect(screen.getByRole('combobox', { name: /responsable/i })).not.toBeDisabled();
     });
@@ -271,6 +290,10 @@ describe('TareasListPage — creación (DEUDA LOTE C)', () => {
     await user.click(selectResponsable);
     const responsableOption = await screen.findByRole('option', { name: /antonio franco/i });
     await user.click(responsableOption);
+
+    // Fecha límite (requerida)
+    const fechaInput = screen.getByLabelText(/fecha límite/i);
+    await user.type(fechaInput, '2026-06-01');
 
     // Submit
     await user.click(screen.getByRole('button', { name: /crear tarea/i }));
@@ -280,8 +303,8 @@ describe('TareasListPage — creación (DEUDA LOTE C)', () => {
         expect.objectContaining({
           body: expect.objectContaining({
             titulo: 'Demo con cliente',
-            tipo: 'demo',
-            prioridad: 1,
+            tipo: 'GENERAL',     // enum del back, NO 'demo'
+            prioridad: 'MEDIA',  // enum del back, NO 1
           }),
         }),
       );

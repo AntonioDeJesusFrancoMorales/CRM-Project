@@ -21,14 +21,14 @@ const EMPRESA_B = 'a2222222-aaaa-2222-aaaa-222222222222';
 
 describe('clientes MSW handler — DELETE /clientes/:id', () => {
   it('responde 204 cuando el cliente no tiene tratos asociados', async () => {
-    const res = await fetch(`/api/v1/clientes/${CLIENT_WITHOUT_TRATO}`, {
+    const res = await fetch(`/api/clientes/${CLIENT_WITHOUT_TRATO}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(204);
   });
 
   it('responde 409 cuando el cliente tiene tratos asociados, con mensaje que incluye conteo', async () => {
-    const res = await fetch(`/api/v1/clientes/${CLIENT_WITH_TRATO}`, {
+    const res = await fetch(`/api/clientes/${CLIENT_WITH_TRATO}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(409);
@@ -46,7 +46,7 @@ describe('clientes MSW handler — DELETE /clientes/:id', () => {
   });
 
   it('responde 404 cuando el cliente no existe', async () => {
-    const res = await fetch(`/api/v1/clientes/${CLIENT_NONEXISTENT}`, {
+    const res = await fetch(`/api/clientes/${CLIENT_NONEXISTENT}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(404);
@@ -55,7 +55,7 @@ describe('clientes MSW handler — DELETE /clientes/:id', () => {
 
 describe('clientes MSW handler — GET /clientes con filtros', () => {
   it('sin filtros devuelve todos los clientes del fixture', async () => {
-    const res = await fetch('/api/v1/clientes');
+    const res = await fetch('/api/clientes');
     expect(res.status).toBe(200);
     const data = (await res.json()) as unknown[];
     expect(Array.isArray(data)).toBe(true);
@@ -63,7 +63,7 @@ describe('clientes MSW handler — GET /clientes con filtros', () => {
   });
 
   it('filtra por empresa_id devuelve solo clientes de esa empresa', async () => {
-    const res = await fetch(`/api/v1/clientes?empresa_id=${EMPRESA_A}`);
+    const res = await fetch(`/api/clientes?empresa_id=${EMPRESA_A}`);
     expect(res.status).toBe(200);
     const data = (await res.json()) as { empresa_id: string }[];
     expect(data.length).toBeGreaterThan(0);
@@ -75,7 +75,7 @@ describe('clientes MSW handler — GET /clientes con filtros', () => {
   });
 
   it('origen=prospecto devuelve solo clientes con prospecto_origen_id !== null', async () => {
-    const res = await fetch('/api/v1/clientes?origen=prospecto');
+    const res = await fetch('/api/clientes?origen=prospecto');
     expect(res.status).toBe(200);
     const data = (await res.json()) as { prospecto_origen_id: string | null }[];
     expect(data.length).toBeGreaterThan(0);
@@ -83,7 +83,7 @@ describe('clientes MSW handler — GET /clientes con filtros', () => {
   });
 
   it('origen=manual devuelve solo clientes con prospecto_origen_id === null', async () => {
-    const res = await fetch('/api/v1/clientes?origen=manual');
+    const res = await fetch('/api/clientes?origen=manual');
     expect(res.status).toBe(200);
     const data = (await res.json()) as { prospecto_origen_id: string | null }[];
     expect(data.length).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe('clientes MSW handler — GET /clientes con filtros', () => {
 // Verificación de que GET /tratos?cliente_id=X ya funciona (T_A.5)
 describe('tratos MSW handler — GET /tratos?cliente_id=X', () => {
   it('filtra tratos por cliente_id', async () => {
-    const res = await fetch(`/api/v1/tratos?cliente_id=${CLIENT_WITH_TRATO}`);
+    const res = await fetch(`/api/tratos?cliente_id=${CLIENT_WITH_TRATO}`);
     expect(res.status).toBe(200);
     const data = (await res.json()) as { cliente_id: string | null }[];
     expect(data.length).toBeGreaterThan(0);
@@ -102,7 +102,7 @@ describe('tratos MSW handler — GET /tratos?cliente_id=X', () => {
   });
 
   it('devuelve array vacío para cliente sin tratos', async () => {
-    const res = await fetch(`/api/v1/tratos?cliente_id=${CLIENT_WITHOUT_TRATO}`);
+    const res = await fetch(`/api/tratos?cliente_id=${CLIENT_WITHOUT_TRATO}`);
     expect(res.status).toBe(200);
     const data = (await res.json()) as unknown[];
     expect(data).toHaveLength(0);

@@ -12,7 +12,7 @@ const TRATO_ID = 'd2222222-dddd-2222-dddd-222222222222';
 describe('useUpdateTrato', () => {
   it('actualiza el trato e invalida la lista y el detalle', async () => {
     server.use(
-      http.patch(`/api/v1/tratos/${TRATO_ID}`, async ({ request }) => {
+      http.patch(`/api/tratos/${TRATO_ID}`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({
           id: TRATO_ID,
@@ -35,3 +35,4 @@ describe('useUpdateTrato', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tratosKeys.detail(TRATO_ID) });
   });
 });
+

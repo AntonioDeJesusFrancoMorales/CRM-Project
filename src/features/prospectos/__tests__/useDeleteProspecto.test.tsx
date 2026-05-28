@@ -28,7 +28,7 @@ describe('useDeleteProspecto', () => {
 
   it('maneja 404 cuando el prospecto ya fue eliminado', async () => {
     server.use(
-      http.delete('/api/v1/prospectos/:id', () =>
+      http.delete('/api/prospectos/:id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'No existe' },
           { status: 404 },
@@ -47,3 +47,4 @@ describe('useDeleteProspecto', () => {
     expect(error.status).toBe(404);
   });
 });
+

@@ -6,7 +6,7 @@ import { clientesFixture } from '@/mocks/fixtures/clientes';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 import type { Cliente } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 export const clientesHandlers = [
   // Override DELETE — va ANTES del spread makeCrudHandlers (MSW resuelve en orden)

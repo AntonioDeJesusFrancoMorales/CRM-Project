@@ -23,7 +23,7 @@ describe('useUsuarios', () => {
 
   it('reporta error cuando el endpoint responde 500', async () => {
     server.use(
-      http.get('/api/v1/usuarios', () =>
+      http.get('/api/usuarios', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
           { status: 500 },
@@ -38,3 +38,4 @@ describe('useUsuarios', () => {
     expect(result.current.error).toBeDefined();
   });
 });
+

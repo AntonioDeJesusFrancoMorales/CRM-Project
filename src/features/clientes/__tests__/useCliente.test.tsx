@@ -31,7 +31,7 @@ describe('useCliente', () => {
 
   it('expone error 404 cuando el cliente no existe', async () => {
     server.use(
-      http.get('/api/v1/clientes/:id', () =>
+      http.get('/api/clientes/:id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Cliente no encontrado' },
           { status: 404 },
@@ -48,3 +48,4 @@ describe('useCliente', () => {
     expect(error.status).toBe(404);
   });
 });
+

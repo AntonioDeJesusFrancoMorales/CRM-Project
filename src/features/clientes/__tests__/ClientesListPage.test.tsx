@@ -44,7 +44,7 @@ describe('ClientesListPage', () => {
     const capturedUrls: string[] = [];
 
     server.use(
-      http.get('/api/v1/clientes', ({ request }) => {
+      http.get('/api/clientes', ({ request }) => {
         capturedUrls.push(request.url);
         const url = new URL(request.url);
         const empresaId = url.searchParams.get('empresa_id');
@@ -95,7 +95,7 @@ describe('ClientesListPage', () => {
     const capturedUrls: string[] = [];
 
     server.use(
-      http.get('/api/v1/clientes', ({ request }) => {
+      http.get('/api/clientes', ({ request }) => {
         capturedUrls.push(request.url);
         return HttpResponse.json([]);
       }),
@@ -175,7 +175,7 @@ describe('ClientesListPage', () => {
     let callCount = 0;
 
     server.use(
-      http.get('/api/v1/clientes', () => {
+      http.get('/api/clientes', () => {
         callCount += 1;
         if (callCount === 1) {
           return HttpResponse.json(
@@ -208,7 +208,7 @@ describe('ClientesListPage', () => {
 
   it('muestra skeleton/texto de carga mientras se obtienen los datos', async () => {
     server.use(
-      http.get('/api/v1/clientes', async () => {
+      http.get('/api/clientes', async () => {
         // delay infinito simulado — retorna cargando inmediatamente
         await new Promise((resolve) => setTimeout(resolve, 100));
         return HttpResponse.json([]);
@@ -221,3 +221,4 @@ describe('ClientesListPage', () => {
     expect(screen.getByText(/cargando/i)).toBeInTheDocument();
   });
 });
+

@@ -38,7 +38,7 @@ describe('useCreateProspecto', () => {
 
   it('propaga errores 422 con details para field errors', async () => {
     server.use(
-      http.post('/api/v1/prospectos', () =>
+      http.post('/api/prospectos', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -66,3 +66,4 @@ describe('useCreateProspecto', () => {
     expect(error.details?.[0]?.field).toBe('nombre_contacto');
   });
 });
+

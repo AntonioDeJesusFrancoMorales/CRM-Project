@@ -21,7 +21,7 @@ describe('useTrato', () => {
 
   it('reporta error 404 cuando el trato no existe', async () => {
     server.use(
-      http.get('/api/v1/tratos/:id', () =>
+      http.get('/api/tratos/:id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Trato no encontrado' },
           { status: 404 },
@@ -41,3 +41,4 @@ describe('useTrato', () => {
     expect(error.status).toBe(404);
   });
 });
+

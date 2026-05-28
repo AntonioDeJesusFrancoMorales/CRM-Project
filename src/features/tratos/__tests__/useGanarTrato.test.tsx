@@ -13,7 +13,7 @@ describe('useGanarTrato', () => {
   it('invoca PATCH /tratos/:id/ganar e invalida lista + detalle', async () => {
     let endpointCalled: string | null = null;
     server.use(
-      http.patch(`/api/v1/tratos/${TRATO_ID}/ganar`, ({ request }) => {
+      http.patch(`/api/tratos/${TRATO_ID}/ganar`, ({ request }) => {
         endpointCalled = request.url;
         return HttpResponse.json({ id: TRATO_ID, estado: 'ganado', nombre: 'X' });
       }),
@@ -33,3 +33,4 @@ describe('useGanarTrato', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tratosKeys.detail(TRATO_ID) });
   });
 });
+

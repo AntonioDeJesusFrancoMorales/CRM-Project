@@ -61,7 +61,7 @@ describe('LoginPage', () => {
 
   it('mapea errores 422 del backend a setError por campo', async () => {
     server.use(
-      http.post('/api/v1/auth/login', () =>
+      http.post('/api/auth/login', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -86,3 +86,4 @@ describe('LoginPage', () => {
     expect(useAuthStore.getState().token).toBeNull();
   });
 });
+

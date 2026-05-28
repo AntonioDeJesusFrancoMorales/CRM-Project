@@ -14,7 +14,7 @@ describe('useDeleteTrato', () => {
   it('elimina (204) y limpia el cache del detalle + invalida la lista', async () => {
     const ID_SIN_TAREAS = 'aaaa1111-aaaa-1111-aaaa-111111111111';
     server.use(
-      http.delete(`/api/v1/tratos/${ID_SIN_TAREAS}`, () =>
+      http.delete(`/api/tratos/${ID_SIN_TAREAS}`, () =>
         new HttpResponse(null, { status: 204 }),
       ),
     );
@@ -44,3 +44,4 @@ describe('useDeleteTrato', () => {
     expect(error.message).toContain('tarea');
   });
 });
+

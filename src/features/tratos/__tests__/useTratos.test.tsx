@@ -23,7 +23,7 @@ describe('useTratos', () => {
   it('pasa cliente_id como query param al endpoint', async () => {
     let capturedUrl: string | null = null;
     server.use(
-      http.get('/api/v1/tratos', ({ request }) => {
+      http.get('/api/tratos', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -43,7 +43,7 @@ describe('useTratos', () => {
   it('combina filtros estado + cliente_id en la query string', async () => {
     let capturedUrl: string | null = null;
     server.use(
-      http.get('/api/v1/tratos', ({ request }) => {
+      http.get('/api/tratos', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -65,3 +65,4 @@ describe('useTratos', () => {
     expect(capturedUrl).toContain('cliente_id=c1111111-cccc-1111-cccc-111111111111');
   });
 });
+

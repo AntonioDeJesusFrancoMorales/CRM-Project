@@ -6,9 +6,9 @@ import { toast } from 'sonner';
 import { HttpError } from './http-error';
 import type { ApiError } from './types';
 
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   const token = useAuthStore.getState().token;
@@ -46,5 +46,6 @@ export const apiClient = {
   get: <T>(path: string): Promise<T> => request<T>('GET', path),
   post: <T>(path: string, body?: unknown): Promise<T> => request<T>('POST', path, body),
   patch: <T>(path: string, body?: unknown): Promise<T> => request<T>('PATCH', path, body),
+  put: <T>(path: string, body?: unknown): Promise<T> => request<T>('PUT', path, body),
   delete: <T>(path: string): Promise<T> => request<T>('DELETE', path),
 };

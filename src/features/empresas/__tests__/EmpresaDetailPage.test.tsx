@@ -62,13 +62,10 @@ describe('EmpresaDetailPage', () => {
   });
 
   it('redirige a /empresas cuando el id devuelve 404', async () => {
+    // Con useEmpresa resuelto desde cache del get-all, un id inexistente
+    // devuelve undefined → el componente redirige a /empresas.
     server.use(
-      http.get('/api/v1/empresas/:id', () =>
-        HttpResponse.json(
-          { status: 404, error: 'NOT_FOUND', message: 'Empresa no encontrada' },
-          { status: 404 },
-        ),
-      ),
+      http.get('/api/empresas/get-all', () => HttpResponse.json([])),
     );
 
     renderWithRouter('/empresas/inexistente');

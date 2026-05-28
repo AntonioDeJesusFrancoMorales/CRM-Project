@@ -11,7 +11,7 @@ describe('useCreateTrato', () => {
   it('crea un trato con cliente: body limpio (sin asociacion, prospecto_id null) e invalida ["tratos"]', async () => {
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
-      http.post('/api/v1/tratos', async ({ request }) => {
+      http.post('/api/tratos', async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(
           {
@@ -63,7 +63,7 @@ describe('useCreateTrato', () => {
   it('crea un trato con prospecto: cliente_id null en el body', async () => {
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
-      http.post('/api/v1/tratos', async ({ request }) => {
+      http.post('/api/tratos', async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(
           { id: 'new', estado: 'abierto', motivo_perdida: null },
@@ -90,3 +90,4 @@ describe('useCreateTrato', () => {
     expect(capturedBody).not.toHaveProperty('asociacion');
   });
 });
+

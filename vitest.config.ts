@@ -10,6 +10,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    // Inyectar variables de entorno para los tests (Vitest no carga .env.development).
+    // Todos los handlers MSW usan /api como prefijo base.
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('/api'),
+    'import.meta.env.VITE_ENABLE_MSW': JSON.stringify('false'),
+  },
   test: {
     environment: 'jsdom',
     globals: true,

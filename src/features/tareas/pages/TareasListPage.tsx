@@ -1,8 +1,8 @@
 // TareasListPage — homologa TratosListPage.
-// 6 filtros: estado, prioridad, responsable, vencimiento, trato, búsqueda (client-side).
+// 6 filtros aplicados client-side sobre el array completo (W1 fix, ADR-048).
 // Botón "Nueva tarea" → TareaCreateDialog sin tratoIdFijo (Select de trato editable y requerido).
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,38 +14,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useTareas, type UseTareasFilters } from '../hooks/useTareas';
+import { useTareas } from '../hooks/useTareas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
+import { getTareaEstado } from '../hooks/useTareaEstado';
 import { TareasTable } from '../components/TareasTable';
 import { TareaCreateDialog } from '../components/TareaCreateDialog';
-import type { EstadoTarea } from '@/api/types';
+import { PRIORIDAD_OPTIONS, TIPO_TAREA_OPTIONS } from '../schemas/tarea.schema';
+import type { EstadoTareaLocal, PrioridadTarea, TipoTarea } from '@/api/types';
 
 export function TareasListPage() {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [estado, setEstado] = useState<EstadoTarea | undefined>(undefined);
-  const [prioridad, setPrioridad] = useState<1 | 2 | 3 | undefined>(undefined);
+  const [estado, setEstado] = useState<EstadoTareaLocal | undefined>(undefined);
+  const [prioridad, setPrioridad] = useState<PrioridadTarea | undefined>(undefined);
   const [responsableId, setResponsableId] = useState<string | undefined>(
     searchParams.get('responsable_id') ?? undefined,
   );
   const [vencimiento, setVencimiento] = useState<'todas' | 'vencidas' | 'proximas' | undefined>(undefined);
   const [tratoId, setTratoId] = useState<string | undefined>(undefined);
+  const [tipo, setTipo] = useState<TipoTarea | undefined>(undefined);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const filters: UseTareasFilters = {};
-  if (estado) filters.estado = estado;
-  if (prioridad) filters.prioridad = prioridad;
-  if (responsableId) filters.responsable_id = responsableId;
-  if (vencimiento && vencimiento !== 'todas') filters.vencimiento = vencimiento;
-  if (tratoId) filters.trato_id = tratoId;
-
-  const { data: tareas, isLoading, isError, refetch } = useTareas(filters);
+  const { data: todasLasTareas, isLoading, isError, refetch } = useTareas();
   const { data: usuarios = [] } = useUsuarios();
   const { data: tratos = [] } = useTratos();
 
   const usuariosById = Object.fromEntries(usuarios.map((u) => [u.id, u.nombre]));
   const tratosById = Object.fromEntries(tratos.map((t) => [t.id, t.nombre]));
+
+  // Filtros client-side sobre el array completo
+  const tareas = useMemo(() => {
+    let result = todasLasTareas ?? [];
+
+    if (estado) {
+      result = result.filter((t) => getTareaEstado(t.id) === estado);
+    }
+    if (prioridad) {
+      result = result.filter((t) => t.prioridad === prioridad);
+    }
+    if (responsableId) {
+      result = result.filter((t) => t.responsableId === responsableId);
+    }
+    if (tratoId) {
+      result = result.filter((t) => t.tratoId === tratoId);
+    }
+    if (tipo) {
+      result = result.filter((t) => t.tipo === tipo);
+    }
+    if (vencimiento && vencimiento !== 'todas') {
+      const ahora = new Date();
+      const en7Dias = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000);
+      if (vencimiento === 'vencidas') {
+        result = result.filter((t) => t.fechaLimite && new Date(t.fechaLimite) < ahora);
+      } else if (vencimiento === 'proximas') {
+        result = result.filter((t) => {
+          if (!t.fechaLimite) return false;
+          const fecha = new Date(t.fechaLimite);
+          return fecha >= ahora && fecha <= en7Dias;
+        });
+      }
+    }
+
+    return result;
+  }, [todasLasTareas, estado, prioridad, responsableId, tratoId, tipo, vencimiento]);
 
   function setOrUnset<T>(setter: (v: T | undefined) => void, sentinel: string) {
     return (value: string) =>
@@ -57,11 +89,6 @@ export function TareasListPage() {
     else if (value === 'pendiente' || value === 'en_progreso' || value === 'completada') {
       setEstado(value);
     }
-  }
-
-  function handlePrioridadChange(value: string) {
-    if (value === 'todas') setPrioridad(undefined);
-    else setPrioridad(Number(value) as 1 | 2 | 3);
   }
 
   function handleVencimientoChange(value: string) {
@@ -115,16 +142,39 @@ export function TareasListPage() {
           </SelectContent>
         </Select>
 
-        {/* Filtro prioridad */}
-        <Select value={prioridad !== undefined ? String(prioridad) : 'todas'} onValueChange={handlePrioridadChange}>
+        {/* Filtro prioridad — usa enums del back */}
+        <Select
+          value={prioridad ?? 'todas'}
+          onValueChange={setOrUnset<PrioridadTarea>(setPrioridad, 'todas')}
+        >
           <SelectTrigger className="w-40" aria-label="Prioridad">
             <SelectValue placeholder="Prioridad" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas las prioridades</SelectItem>
-            <SelectItem value="1">Alta</SelectItem>
-            <SelectItem value="2">Media</SelectItem>
-            <SelectItem value="3">Baja</SelectItem>
+            {PRIORIDAD_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Filtro tipo — usa enums del back */}
+        <Select
+          value={tipo ?? 'todos'}
+          onValueChange={setOrUnset<TipoTarea>(setTipo, 'todos')}
+        >
+          <SelectTrigger className="w-40" aria-label="Tipo">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos los tipos</SelectItem>
+            {TIPO_TAREA_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

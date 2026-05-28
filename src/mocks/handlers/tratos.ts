@@ -6,7 +6,7 @@ import { tratosFixture } from '@/mocks/fixtures/tratos';
 import { tareasFixture } from '@/mocks/fixtures/tareas';
 import type { Trato } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 export const tratosHandlers = [
   // Override DELETE — ANTES del spread makeCrudHandlers (MSW resuelve en orden)
@@ -17,7 +17,7 @@ export const tratosHandlers = [
     const idx = tratosFixture.findIndex((t) => t.id === id);
     if (idx === -1) return errors.notFound();
 
-    const tareasVinculadas = tareasFixture.filter((t) => t.trato_id === id);
+    const tareasVinculadas = tareasFixture.filter((t) => t.tratoId === id);
     if (tareasVinculadas.length > 0) {
       const n = tareasVinculadas.length;
       return apiError(
@@ -87,6 +87,6 @@ export const tratosHandlers = [
   }),
   http.get(`${API}/tratos/:id/tareas`, async ({ params }) => {
     await withDelay();
-    return HttpResponse.json(tareasFixture.filter((t) => t.trato_id === params['id']));
+    return HttpResponse.json(tareasFixture.filter((t) => t.tratoId === params['id']));
   }),
 ];

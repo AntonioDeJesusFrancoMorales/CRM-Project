@@ -44,7 +44,7 @@ describe('useDeleteCliente', () => {
 
   it('DELETE 404 — expone error cuando el cliente no existe', async () => {
     server.use(
-      http.delete('/api/v1/clientes/:id', () =>
+      http.delete('/api/clientes/:id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Cliente no encontrado' },
           { status: 404 },
@@ -63,3 +63,4 @@ describe('useDeleteCliente', () => {
     expect(error.status).toBe(404);
   });
 });
+

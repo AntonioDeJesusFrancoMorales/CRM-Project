@@ -4,10 +4,12 @@
 export type RolSistema = 'admin' | 'usuario';
 export type ComoNosConocio = 'referido' | 'redes_sociales' | 'busqueda' | 'evento' | 'otro';
 export type EstadoPosibleCliente = 'frio' | 'tibio' | 'caliente' | 'convertido';
+export type EstadoRelacion = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO';
 export type TipoContrato = 'precio_fijo' | 'tiempo_materiales' | 'retainer';
 export type EstadoTrato = 'abierto' | 'ganado' | 'perdido';
-export type TipoTarea = 'llamada' | 'reunion' | 'email' | 'demo' | 'seguimiento';
-export type EstadoTarea = 'pendiente' | 'en_progreso' | 'completada';
+export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
+export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
+export type EstadoTareaLocal = 'pendiente' | 'en_progreso' | 'completada';
 export type TipoFicha = 'trato' | 'tarea';
 
 export interface Usuario {
@@ -25,12 +27,16 @@ export interface Empresa {
   nombre: string;
   sector: string | null;
   telefono: string | null;
-  pagina_web: string | null;
+  paginaWeb: string | null;
   facebook: string | null;
   instagram: string | null;
   twitter: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  estadoRelacion: EstadoRelacion;
+  responsableId: string | null;
+  creadoPor: string | null;
+  notas: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
 export interface Prospecto {
@@ -83,17 +89,16 @@ export interface Trato {
 
 export interface Tarea {
   id: string;
-  trato_id: string;
-  responsable_id: string;
+  tratoId: string;
+  responsableId: string;
   titulo: string;
   descripcion: string | null;
   tipo: TipoTarea;
-  estado: EstadoTarea;
-  prioridad: 1 | 2 | 3;
-  fecha_limite: string | null;
-  fecha_completada: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  prioridad: PrioridadTarea;
+  fechaLimite: string;
+  fechaCompletada: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
 export interface Tablero {

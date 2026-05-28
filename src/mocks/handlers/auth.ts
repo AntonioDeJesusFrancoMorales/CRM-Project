@@ -5,7 +5,7 @@ import { withDelay } from '@/mocks/utils/withDelay';
 import { errors } from '@/mocks/utils/error';
 import type { LoginResponse } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 interface LoginBody {
   email?: string;

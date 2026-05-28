@@ -60,7 +60,7 @@ describe('TratoPerderDialog', () => {
     let endpointCalled = false;
 
     server.use(
-      http.patch(`/api/v1/tratos/${TRATO_ID}/perder`, () => {
+      http.patch(`/api/tratos/${TRATO_ID}/perder`, () => {
         endpointCalled = true;
         return HttpResponse.json({ id: TRATO_ID, estado: 'perdido' });
       }),
@@ -79,7 +79,7 @@ describe('TratoPerderDialog', () => {
     let sentBody: unknown = null;
 
     server.use(
-      http.patch(`/api/v1/tratos/${TRATO_ID}/perder`, async ({ request }) => {
+      http.patch(`/api/tratos/${TRATO_ID}/perder`, async ({ request }) => {
         sentBody = await request.json();
         return HttpResponse.json({ id: TRATO_ID, estado: 'perdido' });
       }),
@@ -103,3 +103,4 @@ describe('TratoPerderDialog', () => {
     });
   });
 });
+

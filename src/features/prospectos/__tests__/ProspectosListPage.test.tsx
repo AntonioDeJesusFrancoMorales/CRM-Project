@@ -117,7 +117,7 @@ describe('ProspectosListPage', () => {
     let capturedUrl = '';
 
     server.use(
-      http.get('/api/v1/prospectos', ({ request }) => {
+      http.get('/api/prospectos', ({ request }) => {
         capturedUrl = request.url;
         // Devolver solo Roberto Sánchez que tiene responsable_id = ADMIN_ID
         const url = new URL(request.url);
@@ -168,7 +168,7 @@ describe('ProspectosListPage', () => {
     let capturedUrl = '';
 
     server.use(
-      http.get('/api/v1/prospectos', ({ request }) => {
+      http.get('/api/prospectos', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -201,7 +201,7 @@ describe('ProspectosListPage', () => {
     let callCount = 0;
 
     server.use(
-      http.get('/api/v1/prospectos', () => {
+      http.get('/api/prospectos', () => {
         callCount += 1;
         if (callCount === 1) {
           // Primera llamada: 500
@@ -254,3 +254,4 @@ describe('ProspectosListPage', () => {
     );
   });
 });
+

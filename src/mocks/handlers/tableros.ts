@@ -9,7 +9,7 @@ import {
 } from '@/mocks/fixtures/tableros';
 import type { Tablero, Columna, Ficha } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 export const tablerosHandlers = [
   // Tableros: CRUD

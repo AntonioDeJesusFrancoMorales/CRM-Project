@@ -7,7 +7,7 @@ import { clientesFixture } from '@/mocks/fixtures/clientes';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 import type { Prospecto, Cliente } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 export const prospectosHandlers = [
   http.get(`${API}/prospectos`, async ({ request }) => {

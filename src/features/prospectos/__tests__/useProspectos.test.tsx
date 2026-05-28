@@ -24,7 +24,7 @@ describe('useProspectos', () => {
     let capturedUrl = '';
 
     server.use(
-      http.get('/api/v1/prospectos', ({ request }) => {
+      http.get('/api/prospectos', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -45,7 +45,7 @@ describe('useProspectos', () => {
 
   it('reporta error cuando el endpoint responde 500', async () => {
     server.use(
-      http.get('/api/v1/prospectos', () =>
+      http.get('/api/prospectos', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Boom' },
           { status: 500 },
@@ -60,3 +60,4 @@ describe('useProspectos', () => {
     expect(result.current.error).toBeDefined();
   });
 });
+

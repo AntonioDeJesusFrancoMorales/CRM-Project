@@ -35,7 +35,7 @@ describe('useCreateCliente', () => {
 
   it('propaga error 422 con details cuando hay validación fallida', async () => {
     server.use(
-      http.post('/api/v1/clientes', () =>
+      http.post('/api/clientes', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -67,3 +67,4 @@ describe('useCreateCliente', () => {
     expect(error.details?.[0]?.field).toBe('nombre_contacto');
   });
 });
+

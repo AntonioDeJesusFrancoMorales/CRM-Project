@@ -23,7 +23,7 @@ describe('useClientes', () => {
     let capturedUrl: string | null = null;
 
     server.use(
-      http.get('/api/v1/clientes', ({ request }) => {
+      http.get('/api/clientes', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -44,7 +44,7 @@ describe('useClientes', () => {
     let capturedUrl: string | null = null;
 
     server.use(
-      http.get('/api/v1/clientes', ({ request }) => {
+      http.get('/api/clientes', ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json([]);
       }),
@@ -63,7 +63,7 @@ describe('useClientes', () => {
 
   it('reporta error cuando el endpoint responde 500', async () => {
     server.use(
-      http.get('/api/v1/clientes', () =>
+      http.get('/api/clientes', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
           { status: 500 },
@@ -78,3 +78,4 @@ describe('useClientes', () => {
     expect(result.current.error).toBeDefined();
   });
 });
+

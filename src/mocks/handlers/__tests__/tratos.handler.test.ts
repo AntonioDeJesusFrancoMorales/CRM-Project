@@ -21,12 +21,12 @@ const TRATO_NONEXISTENT = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 // Va PRIMERO porque DELETE 204 splice-a TRATO_WITHOUT_TAREAS del fixture (importado por referencia).
 describe('fixture verification (D4 invariante)', () => {
   it('d1111111 tiene exactamente 2 tareas en tareasFixture', () => {
-    const tareas = tareasFixture.filter((t) => t.trato_id === TRATO_WITH_TAREAS);
+    const tareas = tareasFixture.filter((t) => t.tratoId === TRATO_WITH_TAREAS);
     expect(tareas).toHaveLength(2);
   });
 
   it('d3333333 no tiene tareas en tareasFixture', () => {
-    const tareas = tareasFixture.filter((t) => t.trato_id === TRATO_WITHOUT_TAREAS);
+    const tareas = tareasFixture.filter((t) => t.tratoId === TRATO_WITHOUT_TAREAS);
     expect(tareas).toHaveLength(0);
   });
 
@@ -38,14 +38,14 @@ describe('fixture verification (D4 invariante)', () => {
 
 describe('tratos MSW handler — DELETE /tratos/:id', () => {
   it('responde 204 cuando el trato no tiene tareas asociadas', async () => {
-    const res = await fetch(`/api/v1/tratos/${TRATO_WITHOUT_TAREAS}`, {
+    const res = await fetch(`/api/tratos/${TRATO_WITHOUT_TAREAS}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(204);
   });
 
   it('responde 409 cuando el trato tiene tareas asociadas, con mensaje que incluye conteo', async () => {
-    const res = await fetch(`/api/v1/tratos/${TRATO_WITH_TAREAS}`, {
+    const res = await fetch(`/api/tratos/${TRATO_WITH_TAREAS}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(409);
@@ -64,7 +64,7 @@ describe('tratos MSW handler — DELETE /tratos/:id', () => {
   });
 
   it('responde 404 cuando el trato no existe', async () => {
-    const res = await fetch(`/api/v1/tratos/${TRATO_NONEXISTENT}`, {
+    const res = await fetch(`/api/tratos/${TRATO_NONEXISTENT}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(404);

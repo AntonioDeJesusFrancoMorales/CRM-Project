@@ -27,7 +27,7 @@ describe('useDesactivarUsuario', () => {
 
   it('muestra toast de error cuando el usuario no existe (404)', async () => {
     server.use(
-      http.patch('/api/v1/usuarios/:id/desactivar', () =>
+      http.patch('/api/usuarios/:id/desactivar', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Usuario no encontrado' },
           { status: 404 },
@@ -46,3 +46,4 @@ describe('useDesactivarUsuario', () => {
     expect(error.status).toBe(404);
   });
 });
+

@@ -19,28 +19,30 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TareaEditDialog } from '../components/TareaEditDialog';
 import { TareaDeleteDialog } from '../components/TareaDeleteDialog';
 import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
+import { getTareaEstado } from '../hooks/useTareaEstado';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
-
-const tipoLabels: Record<TipoTarea, string> = {
-  llamada: 'Llamada',
-  reunion: 'Reunión',
-  email: 'Email',
-  demo: 'Demo',
-  seguimiento: 'Seguimiento',
-};
-
-const prioridadLabels: Record<1 | 2 | 3, string> = {
-  1: 'Alta',
-  2: 'Media',
-  3: 'Baja',
-};
 
 const estadoLabels: Record<string, string> = {
   pendiente: 'Pendiente',
   en_progreso: 'En progreso',
   completada: 'Completada',
 };
+
+const tipoLabels: Record<TipoTarea, string> = {
+  GENERAL: 'General',
+  SEGUIMIENTO: 'Seguimiento',
+  NEGOCIACION: 'Negociación',
+  CIERRE: 'Cierre',
+};
+
+const prioridadLabels: Record<string, string> = {
+  BAJA: 'Baja',
+  MEDIA: 'Media',
+  ALTA: 'Alta',
+  URGENTE: 'Urgente',
+};
+
 
 interface FieldProps {
   label: string;
@@ -63,7 +65,7 @@ export function TareaDetailPage() {
   const navigate = useNavigate();
 
   const { data: tarea, isLoading, error } = useTarea(id);
-  const { data: trato } = useTrato(tarea?.trato_id);
+  const { data: trato } = useTrato(tarea?.tratoId);
   const { data: usuarios = [] } = useUsuarios();
 
   const deleteMutation = useDeleteTarea();
@@ -122,7 +124,8 @@ export function TareaDetailPage() {
     );
   }
 
-  const responsable = usuarios.find((u) => u.id === tarea.responsable_id);
+  const responsable = usuarios.find((u) => u.id === tarea.responsableId);
+  const estadoLocal = getTareaEstado(tarea.id);
 
   return (
     <div className="space-y-6">
@@ -139,8 +142,8 @@ export function TareaDetailPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{tarea.titulo}</h1>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">
-                {estadoLabels[tarea.estado] ?? tarea.estado}
+              <Badge variant="outline">
+                {estadoLabels[estadoLocal]}
               </Badge>
               <Badge variant="outline">
                 {prioridadLabels[tarea.prioridad]}
@@ -186,10 +189,10 @@ export function TareaDetailPage() {
 
         <Field label="Prioridad">{prioridadLabels[tarea.prioridad]}</Field>
 
-        <Field label="Fecha límite">{formatDate(tarea.fecha_limite)}</Field>
+        <Field label="Fecha límite">{formatDate(tarea.fechaLimite)}</Field>
 
-        {tarea.estado === 'completada' && (
-          <Field label="Fecha completada">{formatDate(tarea.fecha_completada)}</Field>
+        {tarea.fechaCompletada && (
+          <Field label="Fecha completada">{formatDate(tarea.fechaCompletada)}</Field>
         )}
 
         {tarea.descripcion && (
@@ -201,8 +204,8 @@ export function TareaDetailPage() {
           </div>
         )}
 
-        <Field label="Creado">{formatDate(tarea.creado_en)}</Field>
-        <Field label="Última actualización">{formatDate(tarea.actualizado_en)}</Field>
+        <Field label="Creado">{formatDate(tarea.creadoEn)}</Field>
+        <Field label="Última actualización">{formatDate(tarea.actualizadoEn)}</Field>
       </div>
 
       {/* Dialogs */}

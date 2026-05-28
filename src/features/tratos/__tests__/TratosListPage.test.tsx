@@ -83,7 +83,7 @@ describe('TratosListPage', () => {
 
   it('error 500 muestra botón reintentar', async () => {
     server.use(
-      http.get('/api/v1/tratos', () =>
+      http.get('/api/tratos', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
           { status: 500 },
@@ -192,7 +192,7 @@ describe('TratosListPage', () => {
 
     // Override del handler para responder a ?estado=ganado
     server.use(
-      http.get('/api/v1/tratos', ({ request }) => {
+      http.get('/api/tratos', ({ request }) => {
         const url = new URL(request.url);
         const estado = url.searchParams.get('estado');
         if (estado === 'ganado') {
@@ -244,7 +244,7 @@ describe('TratosListPage', () => {
     // El backend filtra por cliente_id (como en producción). Sin este override,
     // el handler default devuelve todos y el bug no se reproduce.
     server.use(
-      http.get('/api/v1/tratos', ({ request }) => {
+      http.get('/api/tratos', ({ request }) => {
         const clienteId = new URL(request.url).searchParams.get('cliente_id');
         const data = clienteId
           ? tratosFixture.filter((t) => t.cliente_id === clienteId)
@@ -278,3 +278,4 @@ describe('TratosListPage', () => {
     expect(await screen.findByRole('option', { name: 'Diego Vargas' })).toBeInTheDocument();
   });
 });
+

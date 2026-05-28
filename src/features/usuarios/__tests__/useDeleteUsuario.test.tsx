@@ -13,7 +13,7 @@ describe('useDeleteUsuario', () => {
   it('elimina y limpia el cache del detalle + invalida la lista', async () => {
     // Sobreescribe el handler DELETE para que retorne 204 exitoso.
     server.use(
-      http.delete('/api/v1/usuarios/:id', () => new HttpResponse(null, { status: 204 })),
+      http.delete('/api/usuarios/:id', () => new HttpResponse(null, { status: 204 })),
     );
 
     const { Wrapper, queryClient } = setupTestWrapper();
@@ -31,7 +31,7 @@ describe('useDeleteUsuario', () => {
 
   it('maneja 404 graciosamente cuando el usuario ya fue eliminado', async () => {
     server.use(
-      http.delete('/api/v1/usuarios/:id', () =>
+      http.delete('/api/usuarios/:id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Usuario no encontrado' },
           { status: 404 },
@@ -50,3 +50,4 @@ describe('useDeleteUsuario', () => {
     expect(error.status).toBe(404);
   });
 });
+

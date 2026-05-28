@@ -84,7 +84,7 @@ function EditDialog({
     nombre: empresa.nombre,
     sector: empresa.sector ?? '',
     telefono: empresa.telefono ?? '',
-    pagina_web: empresa.pagina_web ?? '',
+    pagina_web: empresa.paginaWeb ?? '',
     facebook: empresa.facebook ?? '',
     instagram: empresa.instagram ?? '',
     twitter: empresa.twitter ?? '',
