@@ -7,7 +7,7 @@ export type TipoContrato = 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCION' | 'PERMANENTE
 export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
 export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 export type EstadoTareaLocal = 'pendiente' | 'en_progreso' | 'completada';
-export type TipoFicha = 'trato' | 'tarea';
+// TipoFicha eliminado — usar tipoFicha de src/features/kanban/schemas/ficha.schema.ts
 
 export interface Usuario {
   id: string;
@@ -110,30 +110,7 @@ export interface Tarea {
   actualizadoEn: string;
 }
 
-export interface Tablero {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  tipo_ficha: TipoFicha;
-  creado_en: string;
-}
-
-export interface Columna {
-  id: string;
-  tablero_id: string;
-  nombre: string;
-  color: string;
-  posicion: number;
-  limite_wip: number | null;
-  estado_vinculado: string | null;
-}
-
-export interface Ficha {
-  id: string;
-  columna_id: string;
-  responsable_id: string;
-  creado_por: string;
-}
+// Tablero, Columna, Ficha eliminados — usar schemas de src/features/kanban/schemas/
 
 export interface Etiqueta {
   id: string;

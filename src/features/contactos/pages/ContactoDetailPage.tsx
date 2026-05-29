@@ -12,6 +12,9 @@ import { ContactoFormDialog } from '../components/ContactoFormDialog';
 import { ContactoDeleteDialog } from '../components/ContactoDeleteDialog';
 import { EstadoRelacionSelect } from '../components/EstadoRelacionSelect';
 import { useUpdateContacto } from '../hooks/useUpdateContacto';
+import { useFichas } from '@/features/kanban/hooks/useFichas';
+import { useTableros } from '@/features/kanban/hooks/useTableros';
+import { deriveEstadoTrato } from '@/features/kanban/lib/deriveEstadoTrato';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -43,7 +46,14 @@ export function ContactoDetailPage() {
   const navigate = useNavigate();
   const { data: contacto, isLoading, error } = useContacto(id);
   const { data: tratos } = useTratos();
+  const { data: fichas } = useFichas();
+  const { data: tableros } = useTableros();
   const updateMutation = useUpdateContacto();
+
+  // Supuesto (NO CONFIRMADO): se asume que existe un único tablero de tipo TRATOS.
+  // Si hubiera varios, se toma el primero encontrado. Documentado en design.md §Open Questions.
+  const tableroTratos = tableros?.find((t) => t.tipoTablero === 'TRATOS');
+  const columnasTablTratos = tableroTratos?.columnas ?? [];
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contacto | null>(null);
@@ -90,10 +100,13 @@ export function ContactoDetailPage() {
 
   const tratosDelContacto = tratos?.filter((t) => t.contactoId === id) ?? [];
 
-  // El modelo Trato ya no expone `estado` (ciclo de vida diferido al Kanban, Change 4).
-  // Hasta entonces, cualquier trato vinculado se considera relación activa para el guard
-  // que impide marcar el contacto como INACTIVO.
-  const tieneTratosActivos = tratosDelContacto.length > 0;
+  // W1 fix (Change 4 / B8): el estado del trato se DERIVA de la columna del Kanban.
+  // Un trato es "activo" solo si su ficha está en una columna con estadoTrato === 'ABIERTO'.
+  // Requiere: fichas (GET /fichas/get-all, queryKey ['fichas']) + columnas del tablero TRATOS.
+  // Si fichas o tablero TRATOS no están disponibles aún, se asume sin tratos activos (safe default).
+  const tieneTratosActivos = tratosDelContacto.some(
+    (t) => deriveEstadoTrato(t.id, fichas ?? [], columnasTablTratos) === 'ABIERTO',
+  );
 
   function handleEstadoChange(nuevoEstado: string) {
     if (!contacto) return;

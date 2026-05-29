@@ -16,7 +16,7 @@ const items: NavItem[] = [
   { label: 'Empresas', to: '/empresas', icon: Building2 },
   { label: 'Contactos', to: '/contactos', icon: Contact2 },
   { label: 'Tratos', to: '/tratos', icon: Handshake },
-  { label: 'Tableros', to: '/tableros', icon: KanbanSquare, disabled: true, badge: 'Próximamente' },
+  { label: 'Tableros', to: '/tableros', icon: KanbanSquare },
   { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, adminOnly: true },
 ];
 

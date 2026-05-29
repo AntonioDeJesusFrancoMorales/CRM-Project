@@ -29,4 +29,22 @@ export const endpoints = {
     edit: (id: string) => `/tratos/edit?id=${id}`,
     delete: (id: string) => `/tratos/delete?id=${id}`,
   },
+  tableros: {
+    getAll: () => '/tableros/get-all',
+    getById: (id: string) => `/tableros/get-by-id?id=${id}`,
+    asignarColumna: (tableroId: string, columnaId: string) =>
+      `/tableros/asignar-columna?id=${tableroId}&columnaId=${columnaId}`,
+    eliminarColumna: (tableroId: string, columnaId: string) =>
+      `/tableros/eliminar-columna?id=${tableroId}&columnaId=${columnaId}`,
+    reordenarColumnas: (tableroId: string) => `/tableros/reordenar-columnas?id=${tableroId}`,
+  },
+  columnas: {
+    getAll: () => '/columnas/get-all',
+  },
+  fichas: {
+    getAll: () => '/fichas/get-all',
+    create: () => '/fichas/create',
+    edit: (id: string) => `/fichas/edit?id=${id}`,
+    delete: (id: string) => `/fichas/delete?id=${id}`,
+  },
 } as const;

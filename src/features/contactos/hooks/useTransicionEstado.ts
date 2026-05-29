@@ -8,8 +8,13 @@
 //   * → INACTIVO con tieneTratosActivos: bloqueado
 //   Demás (incluyendo idempotencia): permitido
 //
-// "Trato activo" = trato.estado === 'abierto' (enum real del front).
-// El caller computa: tieneTratosActivos = tratosDelContacto.some(t => t.estado === 'abierto')
+// "Trato activo" (Change 4 / W1 fix): el estado del trato se DERIVA de la columna del Kanban.
+// El campo `trato.estado` NO existe en el modelo. El caller computa:
+//   tieneTratosActivos = tratosDelContacto.some(t =>
+//     deriveEstadoTrato(t.id, fichas, columnasTablTratos) === 'ABIERTO'
+//   )
+// donde fichas viene de useFichas() (queryKey ['fichas']) y columnasTablTratos
+// son las columnas del primer tablero con tipoTablero === 'TRATOS'.
 
 import type { EstadoRelacion } from '@/api/types';
 

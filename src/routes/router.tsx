@@ -12,7 +12,8 @@ import { TratosListPage } from '@/features/tratos/pages/TratosListPage';
 import { TratoDetailPage } from '@/features/tratos/pages/TratoDetailPage';
 import { TareasListPage } from '@/features/tareas/pages/TareasListPage';
 import { TareaDetailPage } from '@/features/tareas/pages/TareaDetailPage';
-import { TablerosPlaceholder } from './placeholders';
+import { KanbanListPage } from '@/features/kanban/pages/KanbanListPage';
+import { KanbanPage } from '@/features/kanban/pages/KanbanPage';
 
 export const router = createBrowserRouter([
   {
@@ -40,7 +41,8 @@ export const router = createBrowserRouter([
           { path: 'tratos/:id', element: <TratoDetailPage /> },
           { path: 'tareas', element: <TareasListPage /> },
           { path: 'tareas/:id', element: <TareaDetailPage /> },
-          { path: 'tableros', element: <TablerosPlaceholder /> },
+          { path: 'tableros', element: <KanbanListPage /> },
+          { path: 'tableros/:id', element: <KanbanPage /> },
           {
             element: <RoleGuard role="admin" />,
             children: [{ path: 'usuarios', element: <UsuariosListPage /> }],
