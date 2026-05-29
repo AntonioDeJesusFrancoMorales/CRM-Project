@@ -74,10 +74,9 @@ export const contactosHandlers = [
     const idx = contactosFixture.findIndex((c) => c.id === id);
     if (idx === -1) return errors.notFound();
 
-    // Guard 409: el contacto tiene tratos abiertos si aparece como prospecto_id o cliente_id
-    // en algún trato con estado === 'abierto'.
+    // Guard 409: el contacto tiene tratos si aparece como contactoId en algún trato.
     const tieneTratosAbiertos = tratosFixture.some(
-      (t) => (t.prospecto_id === id || t.cliente_id === id) && t.estado === 'abierto',
+      (t) => t.contactoId === id,
     );
     if (tieneTratosAbiertos) {
       return HttpResponse.json(

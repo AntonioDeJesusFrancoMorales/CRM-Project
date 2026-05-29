@@ -1,4 +1,5 @@
 import { isHttpError } from '@/api/http-error';
+import type { TratoCreatePayload } from '@/api/types';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,19 @@ export function TratoCreateDialog({
       : undefined;
 
   function handleSubmit(values: TratoCreateInput) {
-    mutation.mutate(values, {
+    // Normaliza opcionales del form (undefined) a null para el contrato del back.
+    const payload: TratoCreatePayload = {
+      contactoId: values.contactoId,
+      responsableId: values.responsableId,
+      nombre: values.nombre,
+      tipoContrato: values.tipoContrato,
+      valorEstimado: values.valorEstimado ?? null,
+      probabilidad: values.probabilidad ?? null,
+      fechaCierreEsperada: values.fechaCierreEsperada?.trim()
+        ? values.fechaCierreEsperada
+        : null,
+    };
+    mutation.mutate(payload, {
       onSuccess: () => onOpenChange(false),
     });
   }

@@ -88,11 +88,12 @@ export function ContactoDetailPage() {
     );
   }
 
-  const tratosDelContacto = tratos?.filter(
-    (t) => t.prospecto_id === id || t.cliente_id === id,
-  ) ?? [];
+  const tratosDelContacto = tratos?.filter((t) => t.contactoId === id) ?? [];
 
-  const tieneTratosActivos = tratosDelContacto.some((t) => t.estado === 'abierto');
+  // El modelo Trato ya no expone `estado` (ciclo de vida diferido al Kanban, Change 4).
+  // Hasta entonces, cualquier trato vinculado se considera relación activa para el guard
+  // que impide marcar el contacto como INACTIVO.
+  const tieneTratosActivos = tratosDelContacto.length > 0;
 
   function handleEstadoChange(nuevoEstado: string) {
     if (!contacto) return;
@@ -183,17 +184,7 @@ export function ContactoDetailPage() {
                 {tratosDelContacto.map((trato) => (
                   <li key={trato.id} className="py-3 flex items-center justify-between">
                     <span className="text-sm font-medium">{trato.nombre}</span>
-                    <Badge
-                      variant={
-                        trato.estado === 'abierto'
-                          ? 'default'
-                          : trato.estado === 'ganado'
-                            ? 'outline'
-                            : 'secondary'
-                      }
-                    >
-                      {trato.estado}
-                    </Badge>
+                    <Badge variant="outline">{trato.tipoContrato}</Badge>
                   </li>
                 ))}
               </ul>

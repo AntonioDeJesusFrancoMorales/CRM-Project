@@ -22,4 +22,11 @@ export const endpoints = {
     edit: (id: string) => `/contactos/edit?id=${id}`,
     delete: (id: string) => `/contactos/delete?id=${id}`,
   },
+  tratos: {
+    getAll: () => '/tratos/get-all',
+    getById: (id: string) => `/tratos/get-by-id?id=${id}`,
+    create: () => '/tratos/create',
+    edit: (id: string) => `/tratos/edit?id=${id}`,
+    delete: (id: string) => `/tratos/delete?id=${id}`,
+  },
 } as const;

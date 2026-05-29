@@ -3,8 +3,7 @@
 
 export type RolSistema = 'admin' | 'usuario';
 export type EstadoRelacion = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO';
-export type TipoContrato = 'precio_fijo' | 'tiempo_materiales' | 'retainer';
-export type EstadoTrato = 'abierto' | 'ganado' | 'perdido';
+export type TipoContrato = 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCION' | 'PERMANENTE' | 'OTRO';
 export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
 export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 export type EstadoTareaLocal = 'pendiente' | 'en_progreso' | 'completada';
@@ -73,19 +72,29 @@ export interface ContactoUpdatePayload {
 
 export interface Trato {
   id: string;
-  prospecto_id: string | null;
-  cliente_id: string | null;
-  responsable_id: string;
+  contactoId: string;
+  responsableId: string;
   nombre: string;
-  valor_estimado: number | null;
+  valorEstimado: number | null;
   probabilidad: number | null;
-  fecha_cierre_esperada: string | null;
-  tipo_contrato: TipoContrato | null;
-  estado: EstadoTrato;
-  motivo_perdida: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  fechaCierreEsperada: string | null;
+  tipoContrato: TipoContrato;
+  motivoPerdida: string | null;
+  creadoEn: string;
+  actualizadoEn: string | null;
 }
+
+export interface TratoCreatePayload {
+  contactoId: string;
+  responsableId: string;
+  nombre: string;
+  valorEstimado: number | null;
+  probabilidad: number | null;
+  fechaCierreEsperada: string | null;
+  tipoContrato: TipoContrato;
+}
+
+export type TratoUpdatePayload = Omit<TratoCreatePayload, 'contactoId'>;
 
 export interface Tarea {
   id: string;

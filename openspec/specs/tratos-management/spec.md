@@ -1,65 +1,28 @@
 # tratos-management Specification
 
 **Capability**: tratos-management
-**Change**: tratos-management (Change 6a)
-**Status**: proposed
+**Change**: trato-modelo-unificado (Change 3)
+**Status**: active
+**Last updated**: 2026-05-28
 
 ## Purpose
 
-Provee la gestión completa de Tratos en el CRM Pipely: listado filtrable, detalle, CRUD vía diálogos, cambio de estado inline (`abierto → ganado | perdido`) con modal obligatorio para `motivo_perdida`, polimorfismo `cliente_id | prospecto_id` (XOR), y migración del hook `useTratosByCliente` desde `features/clientes/` hacia un hook paramétrico `useTratos`. Es el Change que convierte `Trato` en entidad de primer nivel navegable, paso previo al Kanban (Change 7).
+Provee la gestión completa de Tratos en el CRM Pipely con modelo unificado basado en `contactoId` (elimina polimorfismo XOR cliente/prospecto). Listado plano sin kanban, detalle con tabs, CRUD sin estado (ciclo de vida pospuesto a Change 4), centralización de endpoints RPC. El modelo se alinea con el contrato del back: camelCase plano, sin campo `estado`, sin endpoints de ciclo de vida.
 
 ## Requirements
 
 ---
 
-### Requirement: Sidebar navegable
-
-El item "Tratos" en el sidebar MUST mostrar un link funcional navegable a `/tratos`. Los atributos `disabled` y `badge: 'Próximamente'` MUST ser eliminados de `src/components/layout/Sidebar.tsx` (patrón recurrente #155).
-
-#### Scenario: Sidebar link navega a /tratos [integration test]
-
-- GIVEN el usuario autenticado está en cualquier ruta de la app
-- WHEN hace clic en el item "Tratos" del sidebar
-- THEN el router navega a `/tratos`
-- AND no se muestra "Próximamente" ni overlay de disabled
-
-#### Scenario: Sidebar item sin disabled [component test]
-
-- WHEN se inspecciona el item "Tratos" del Sidebar
-- THEN no tiene atributo `disabled` ni clase CSS de estado deshabilitado
-
----
-
-### Requirement: Routing de páginas
-
-El sistema MUST wirear `/tratos` (lista) y `/tratos/:id` (detalle) en `src/routes/router.tsx`. El `TratosPlaceholder` MUST ser eliminado de `placeholders.tsx`. NO MUST existir `/tratos/nuevo` (create es Dialog).
-
-#### Scenario: /tratos renderiza TratosListPage [integration test]
-
-- WHEN el usuario navega a `/tratos`
-- THEN se renderiza `TratosListPage`
-- AND no se muestra placeholder
-
-#### Scenario: /tratos/:id renderiza TratoDetailPage [integration test]
-
-- GIVEN existe un trato con id `d1111111`
-- WHEN el usuario navega a `/tratos/d1111111`
-- THEN se renderiza `TratoDetailPage` con datos del trato
-
----
-
 ### Requirement: Listado de tratos
 
-El sistema MUST mostrar `/tratos` con una tabla que consume `GET /api/v1/tratos` con cache TanStack Query bajo la key `['tratos', { filters }]`. Columnas: `nombre`, estado (badge), valor estimado, tipo de contrato, cliente/prospecto vinculado, fecha de cierre esperada. El nombre MUST ser clickeable y navegar a `/tratos/:id` (homologación con tablas de empresas/prospectos/clientes).
-
-La tabla MUST ser accesible vía el toggle de vista (`?vista=tabla`). La vista por defecto de `/tratos` es el kanban (sin query param); la tabla es la vista secundaria.
-(Previously: `/tratos` renderizaba directamente la tabla sin toggle de vista; era la única vista disponible.)
+El sistema MUST mostrar `/tratos` con una tabla que consume `GET /api/tratos` con cache TanStack Query bajo la key `['tratos']`. Columnas: `nombre`, valor estimado, tipo de contrato (badge), contacto vinculado (resuelto client-side), responsable, fecha de cierre esperada. El nombre MUST ser clickeable y navegar a `/tratos/:id`. La tabla es la única vista de `/tratos` (sin toggle kanban/tabla).
 
 #### Scenario: Tabla poblada con datos fixture [integration test]
 
-- GIVEN `GET /tratos` devuelve un array no vacío
-- WHEN el usuario navega a `/tratos?vista=tabla`
-- THEN se renderiza una fila por trato con todas las columnas
+- GIVEN `GET /api/tratos` devuelve un array no vacío
+- WHEN el usuario navega a `/tratos`
+- THEN se renderiza una fila por trato con columnas: nombre, valor estimado, tipo de contrato, contacto, responsable, fecha cierre esperada
+- AND ninguna columna muestra estado
 
 #### Scenario: Nombre clickeable navega al detalle [integration test]
 
@@ -69,172 +32,70 @@ La tabla MUST ser accesible vía el toggle de vista (`?vista=tabla`). La vista p
 
 #### Scenario: Error de servidor muestra botón reintentar [integration test]
 
-- GIVEN `GET /tratos` responde 500
+- GIVEN `GET /api/tratos` responde 500
 - THEN se muestra mensaje de error con botón "Reintentar"
 - AND no se renderiza la tabla
 
 ---
 
-### Requirement: Toggle vista Kanban / Tabla en /tratos (ADR-056)
-
-`TratosListPage` MUST renderizar la vista kanban (`KanbanBoard`) como vista por defecto cuando no hay query params en la URL. Cuando el parámetro `?vista=tabla` está presente, MUST renderizar `TratosTable`. El toggle MUST ser bidireccional y gestionado por `useTabSync(['kanban', 'tabla'], 'kanban', 'vista')` (ADR-057). Al seleccionar la vista kanban (fallback), la URL MUST quedar limpia (sin `?vista`). Al seleccionar la vista tabla, la URL MUST mostrar `?vista=tabla`.
-
-#### Scenario: /tratos sin query param muestra kanban [integration test]
-
-- GIVEN el usuario navega a `/tratos` (sin query params)
-- WHEN se renderiza `TratosListPage`
-- THEN se muestra `KanbanBoard`
-- AND no se muestra `TratosTable`
-
-#### Scenario: /tratos?vista=tabla muestra la tabla [integration test]
-
-- GIVEN el usuario navega a `/tratos?vista=tabla`
-- WHEN se renderiza `TratosListPage`
-- THEN se muestra `TratosTable`
-- AND no se muestra `KanbanBoard`
-
-#### Scenario: Toggle a tabla agrega ?vista=tabla a la URL [integration test]
-
-- GIVEN el usuario está en `/tratos` viendo el kanban
-- WHEN selecciona la vista "Tabla"
-- THEN la URL cambia a `/tratos?vista=tabla`
-- AND se renderiza `TratosTable`
-
-#### Scenario: Toggle a kanban desde tabla limpia la URL [integration test]
-
-- GIVEN el usuario está en `/tratos?vista=tabla`
-- WHEN selecciona la vista "Kanban"
-- THEN la URL cambia a `/tratos` (sin query param `?vista`)
-- AND se renderiza `KanbanBoard`
-
----
-
-### Requirement: Extensión backward-compatible de useTabSync con paramKey (ADR-057)
-
-El hook `useTabSync` MUST aceptar un tercer argumento opcional `paramKey: string` con valor por defecto `'tab'`. Cuando `paramKey` se omite, el hook MUST comportarse exactamente igual que antes (parámetro URL `?tab=`). Cuando se pasa `paramKey='vista'`, MUST usar `?vista=` como parámetro URL. Los callers existentes (`TratoDetailPage`, `ClienteDetailPage`) NO MUST ser modificados y MUST seguir funcionando con `?tab=`.
-
-**Firma extendida**:
-```
-useTabSync(
-  allowed: readonly string[],
-  fallback: string,
-  paramKey?: string  // default: 'tab'
-): readonly [string, (next: string) => void]
-```
-
-#### Scenario: Sin paramKey usa ?tab= (backward compat) [unit test]
-
-- GIVEN `useTabSync(['info', 'tratos'], 'info')` sin tercer argumento
-- WHEN el usuario cambia al tab 'tratos'
-- THEN la URL refleja `?tab=tratos` (no `?vista=` ni otro param)
-
-#### Scenario: Con paramKey='vista' usa ?vista= [unit test]
-
-- GIVEN `useTabSync(['kanban', 'tabla'], 'kanban', 'vista')`
-- WHEN el usuario cambia al valor 'tabla'
-- THEN la URL refleja `?vista=tabla`
-
-#### Scenario: Con paramKey='vista' lee ?vista= correctamente [unit test]
-
-- GIVEN la URL es `/tratos?vista=tabla`
-- WHEN se monta `useTabSync(['kanban', 'tabla'], 'kanban', 'vista')`
-- THEN el valor activo es `'tabla'`
-
-#### Scenario: Con paramKey='vista' y fallback, la URL queda limpia [unit test]
-
-- GIVEN el usuario está en `/tratos?vista=tabla`
-- WHEN cambia al valor `'kanban'` (fallback)
-- THEN la URL queda limpia (sin `?vista`)
-
-#### Scenario: Tests existentes de useTabSync no se rompen [regression test]
-
-- GIVEN los tests existentes usan `useTabSync(allowed, fallback)` sin paramKey
-- WHEN se ejecuta `pnpm test:run`
-- THEN todos los tests previos de `useTabSync` siguen en verde
-
----
-
 ### Requirement: Filtros del listado
 
-El sistema MUST ofrecer filtros server-side en la parte superior: `estado` (todos/abierto/ganado/perdido), `cliente_id` (Select con clientes), `prospecto_id` (Select con prospectos), `responsable_id` (Select con usuarios activos). MUST ofrecer búsqueda client-side por `nombre` (case-insensitive). Los filtros server-side MUST embeberse en la queryKey para refetch automático.
-
-#### Scenario: Filtro por estado pasa query param [hook test]
-
-- GIVEN el filtro estado está seteado a `'ganado'`
-- WHEN el hook ejecuta la query
-- THEN se invoca `GET /tratos?estado=ganado`
-- AND la queryKey es `['tratos', { estado: 'ganado' }]`
+El sistema MUST ofrecer búsqueda client-side por `nombre` (case-insensitive) como único filtro. Los filtros server-side por estado, cliente_id, prospecto_id y responsable_id MUST NOT existir. El endpoint se invoca sin query params.
 
 #### Scenario: Búsqueda por nombre filtra client-side [integration test]
 
 - GIVEN la tabla muestra tratos "Demo CTO", "Migración ERP", "Renovación SLA"
-- WHEN el usuario escribe "demo" en el input
+- WHEN el usuario escribe "demo" en el input de búsqueda
 - THEN solo aparece la fila "Demo CTO"
 
-#### Scenario: Filtros server-side combinados [hook test]
+#### Scenario: Tabla carga sin query params [hook test]
 
-- GIVEN filtros `{ estado: 'abierto', cliente_id: 'c1111111' }`
-- WHEN el hook ejecuta
-- THEN se invoca `GET /tratos?estado=abierto&cliente_id=c1111111`
+- WHEN se monta `useTratos()`
+- THEN se invoca `GET /api/tratos` sin query params adicionales
+- AND la queryKey es `['tratos']`
 
 ---
 
 ### Requirement: Hook paramétrico useTratos
 
-El sistema MUST exponer `useTratos(filters?: { cliente_id?, prospecto_id?, estado?, responsable_id? })` en `src/features/tratos/hooks/useTratos.ts` con queryKey `['tratos', filters ?? {}]`. El hook MUST consumir `GET /api/v1/tratos` con los filtros embebidos como query params. El hook `useTratosByCliente` (en `features/clientes/hooks/`) MUST ser eliminado en el mismo commit que actualiza su único consumidor `ClienteTratosTab`.
+El sistema MUST exponer `useTratos()` en `src/features/tratos/hooks/useTratos.ts` con queryKey `['tratos']`. El hook MUST consumir `GET /api/tratos` sin filtros de servidor. El hook `useTratosByCliente` MUST ser eliminado.
 
-#### Scenario: useTratos sin filtros invoca endpoint base [hook test]
+#### Scenario: useTratos invoca endpoint RPC base [hook test]
 
 - WHEN se monta `useTratos()`
-- THEN se invoca `GET /tratos` sin query params
-- AND la queryKey es `['tratos', {}]`
-
-#### Scenario: useTratos({ cliente_id }) reemplaza useTratosByCliente [hook test]
-
-- WHEN se monta `useTratos({ cliente_id: 'c1111111' })`
-- THEN se invoca `GET /tratos?cliente_id=c1111111`
-- AND la queryKey es `['tratos', { cliente_id: 'c1111111' }]`
+- THEN se invoca `GET /api/tratos`
+- AND la queryKey es `['tratos']`
 
 #### Scenario: useTratosByCliente no existe post-migración [unit test]
 
 - WHEN se intenta importar `useTratosByCliente` desde `@/features/clientes/hooks/useTratosByCliente`
 - THEN la importación falla (módulo eliminado)
-- AND `clientesKeys.tratos` no existe en `useClientes.ts`
 
 ---
 
-### Requirement: Crear trato con polimorfismo XOR
+### Requirement: Crear trato
 
-El sistema MUST permitir crear un trato nuevo vía `TratoCreateDialog` con form validado por Zod. Submit llama `POST /api/v1/tratos` con `estado: 'abierto'` por defecto. El form MUST presentar un toggle "Asociar a:" con opciones "Cliente" | "Prospecto" que controla cuál Select aparece. La validación Zod MUST garantizar **exactamente uno** de `cliente_id` o `prospecto_id` (XOR: nunca ambos, nunca ninguno).
+El sistema MUST permitir crear un trato nuevo vía `TratoCreateDialog` con form validado por Zod. Submit llama `POST /api/tratos`. El form MUST presentar un único Select "Contacto" (`contactoId`, requerido) que combina prospectos y clientes de la entidad unificada Contacto. El form MUST incluir Select de responsable (`responsableId`, requerido), Select de `tipoContrato` con opciones `SERVICIO|LICENCIA|SUSCRIPCION|PERMANENTE|OTRO`. El form MUST NOT incluir campo `estado` ni toggle XOR prospecto/cliente.
 
-**Campos**: toggle asociación (requerido), `cliente_id` XOR `prospecto_id` (Select dependiente del toggle, requerido), `nombre` (requerido), `responsable_id` (Select requerido), `valor_estimado` (number opcional), `probabilidad` (number 0-100 opcional), `fecha_cierre_esperada` (date opcional), `tipo_contrato` (Select opcional: `precio_fijo` / `tiempo_materiales` / `retainer`).
-
-#### Scenario: Creación exitosa con cliente [integration test]
+#### Scenario: Creación exitosa con contacto [integration test]
 
 - GIVEN el usuario hace clic en "Nuevo trato"
-- WHEN selecciona toggle "Cliente", elige cliente `c1111111`, ingresa `nombre: "Demo CTO"`, responsable, y envía
-- THEN se invoca `POST /tratos` con `cliente_id: 'c1111111'`, `prospecto_id: null`
-- AND la query `['tratos']` se invalida (prefix match)
+- WHEN selecciona contacto `ct-1111`, ingresa `nombre: "Demo CTO"`, selecciona responsable, y envía
+- THEN se invoca `POST /api/tratos` con `contactoId: 'ct-1111'` y sin campo `estado`
+- AND la query `['tratos']` se invalida
 - AND se muestra toast de éxito
 
-#### Scenario: Creación exitosa con prospecto [integration test]
+#### Scenario: Opciones de tipoContrato son del enum del back [component test]
 
-- WHEN el usuario selecciona toggle "Prospecto", elige prospecto `b1111111`, completa y envía
-- THEN se invoca `POST /tratos` con `prospecto_id: 'b1111111'`, `cliente_id: null`
+- WHEN se abre el TratoCreateDialog y se inspecciona el Select de tipoContrato
+- THEN las opciones disponibles son exactamente: SERVICIO, LICENCIA, SUSCRIPCION, PERMANENTE, OTRO
 
-#### Scenario: Validación XOR — ambos vacíos rechaza submit [component test]
+#### Scenario: Validación bloquea submit sin contacto [component test]
 
-- GIVEN el usuario no selecciona ningún cliente ni prospecto
+- GIVEN el usuario no selecciona ningún contacto
 - WHEN intenta enviar el form
-- THEN se muestra error inline "Debe seleccionar un cliente o un prospecto"
+- THEN se muestra error inline en el campo contactoId
 - AND no se llama al backend
-
-#### Scenario: Validación XOR — ambos llenos rechaza submit [unit test]
-
-- GIVEN se construye un input con `cliente_id` y `prospecto_id` ambos no-vacíos
-- WHEN se ejecuta `tratoCreateSchema.safeParse(input)`
-- THEN `success === false`
-- AND el error indica violación XOR
 
 #### Scenario: Error 422 mapea field errors [integration test]
 
@@ -246,48 +107,35 @@ El sistema MUST permitir crear un trato nuevo vía `TratoCreateDialog` con form 
 
 ### Requirement: Editar trato
 
-El sistema MUST permitir editar un trato existente vía `TratoEditDialog` con form prefilled. Submit llama `PATCH /api/v1/tratos/:id`. El toggle asociación MUST permanecer editable (permitir mover un trato de prospecto a cliente o viceversa). El estado MUST NOT ser editable desde este form (se cambia vía DropdownMenu o botones del detalle).
+El sistema MUST permitir editar un trato existente vía `TratoEditDialog` con form prefilled. Submit llama `PUT /api/tratos?id={id}`. El form MUST mostrar un único Select de Contacto (`contactoId`) prefilled. El form MUST NOT mostrar toggle XOR ni campo `estado`.
 
 #### Scenario: Edición exitosa de nombre [integration test]
 
 - GIVEN el usuario está en `/tratos/d1111111` y hace clic en "Editar"
 - WHEN cambia `nombre` a "Demo CTO v2" y envía
-- THEN se invoca `PATCH /tratos/d1111111`, recibe 200
+- THEN se invoca `PUT /api/tratos?id=d1111111`, recibe 200
 - AND las queries `['tratos']` y `['tratos', 'd1111111']` se invalidan
 
 #### Scenario: Form prefilled con datos actuales [component test]
 
-- GIVEN un trato tiene `nombre: "Demo CTO"`, `valor_estimado: 50000`, `cliente_id: "c1111111"`
+- GIVEN un trato tiene `nombre: "Demo CTO"`, `valorEstimado: 50000`, `contactoId: "ct-1111"`
 - WHEN se abre el TratoEditDialog
-- THEN `nombre` muestra "Demo CTO", `valor_estimado` muestra 50000, toggle en "Cliente", Select cliente con "c1111111"
-
-#### Scenario: Form de edición no muestra campo estado [component test]
-
-- WHEN se abre el TratoEditDialog
-- THEN no existe ningún input para `estado`
-- AND el cambio de estado se realiza fuera del form
+- THEN `nombre` muestra "Demo CTO", `valorEstimado` muestra 50000, Select Contacto muestra "ct-1111"
+- AND no existe toggle XOR ni campo de estado
 
 ---
 
-### Requirement: Eliminar trato con validación 409
+### Requirement: Eliminar trato
 
-El sistema MUST permitir eliminar un trato tras confirmación explícita en un `AlertDialog` (`TratoDeleteDialog`). Submit llama `DELETE /api/v1/tratos/:id`. Si el backend responde 409 (trato con tareas asociadas), el sistema MUST mostrar mensaje de error con el conteo de tareas y NO eliminar el trato. Si la respuesta es 204, el sistema MUST redirigir a `/tratos`.
+El sistema MUST permitir eliminar un trato tras confirmación en `AlertDialog`. Submit llama `DELETE /api/tratos?id={id}`. Si la respuesta es 200/204, el sistema MUST redirigir a `/tratos`.
 
 #### Scenario: Eliminación exitosa redirige a lista [integration test]
 
-- GIVEN el usuario está en `/tratos/:id` y hace clic en "Eliminar"
-- WHEN confirma y el backend responde 204
+- GIVEN el usuario está en `/tratos/d1111111` y hace clic en "Eliminar"
+- WHEN confirma y el backend responde 200
 - THEN el router navega a `/tratos`
 - AND se muestra toast "Trato eliminado"
-- AND la query `['tratos', id]` se remueve y `['tratos']` se invalida
-
-#### Scenario: 409 muestra mensaje con conteo de tareas [integration test]
-
-- GIVEN el trato tiene 2 tareas asociadas
-- WHEN el usuario confirma y el backend responde 409 con `{ message: "tiene 2 tareas asociadas" }`
-- THEN se muestra toast de error con ese texto
-- AND el trato permanece en el sistema
-- AND el AlertDialog se cierra
+- AND la query `['tratos']` se invalida
 
 #### Scenario: Cancelar cierra dialog sin acción [component test]
 
@@ -299,179 +147,77 @@ El sistema MUST permitir eliminar un trato tras confirmación explícita en un `
 
 ### Requirement: Detalle del trato
 
-El sistema MUST mostrar `/tratos/:id` con layout TABBED: un header superior y dos tabs ("Información" y "Tareas") controladas por `useTabSync(['info','tareas'],'info')`.
-
-**Header** (dos zonas):
-- Izquierda: botón volver + `<h1>{trato.nombre}</h1>` + `TratoEstadoBadge` + badge de tareas pendientes (count derivado de `useTareas({ trato_id, estado: 'pendiente' })`; si count > 0, muestra el número).
-- Derecha: las 5 acciones existentes (Marcar como ganado, Marcar como perdido…, Reabrir, Editar, Eliminar) PERMANECEN en el header.
-
-**Tab "Información"** (`TratoInfoTab`): los campos actuales del detalle (nombre, estado, valor estimado, probabilidad, fecha cierre esperada, tipo de contrato, cliente/prospecto vinculado, responsable, `motivo_perdida`, `creado_en`, `actualizado_en`). Campos nulos MUST mostrarse como "—".
-
-**Tab "Tareas"** (`TratoTareasTab`): tabla de tareas del trato (`useTareas({ trato_id })`) + botón "Crear tarea" que abre `TareaCreateDialog` con `tratoIdFijo={trato.id}` (Select de trato precargado y bloqueado).
-
-El badge de pendientes MUST derivarse del MISMO query que alimenta el tab Tareas (sin tercera query). El query MUST montarse a nivel de `TratoDetailPage`, no dentro del `TabsContent`.
-
-Si `GET /tratos/:id` responde 404, el sistema MUST mostrar toast "Este trato no existe" y redirigir a `/tratos`.
-
-(Previously: `TratoDetailPage` tenía layout plano sin tabs; los campos se mostraban directamente en la página; no existían el tab "Tareas" ni el badge de pendientes.)
+El sistema MUST mostrar `/tratos/:id` consumiendo `GET /api/tratos?id={id}`. El layout MUST mostrar un header con nombre del trato y acciones "Editar" y "Eliminar" únicamente. La tab "Información" MUST mostrar: nombre, contacto resuelto (nombre del Contacto), responsable resuelto (nombre del usuario), tipoContrato, motivoPerdida (siempre visible si no es null), valorEstimado, probabilidad, fechaCierreEsperada. El header MUST NOT mostrar badge de estado ni acciones ganar/perder/reabrir. El layout MUST conservar las tabs "Información" y "Tareas" y el badge de pendientes con su comportamiento actual (funcionalidad de tareas, fuera de alcance de este change).
 
 #### Scenario: Detalle con id válido muestra tabs [integration test]
 
-- GIVEN existe el trato `d1111111` con `cliente_id: "c1111111"`
+- GIVEN existe el trato `d1111111` con `contactoId: "ct-1111"`
 - WHEN el usuario navega a `/tratos/d1111111`
 - THEN se renderiza el header con el nombre del trato
 - AND se muestran las tabs "Información" y "Tareas"
 - AND la tab "Información" está activa por defecto
 
-#### Scenario: Tab Información muestra campos del trato [integration test]
+#### Scenario: Tab Información muestra contacto y responsable resueltos [integration test]
 
-- GIVEN el usuario está en `/tratos/d1111111` con la tab "Información" activa
-- THEN se muestran todos los campos (nombre, estado, valor estimado, cliente vinculado como link a `/clientes/c1111111`, etc.)
+- GIVEN el trato tiene `contactoId: "ct-1111"` y `responsableId: "u-abc"`
+- WHEN el usuario está en la tab "Información"
+- THEN se muestra el nombre del contacto (resuelto client-side)
+- AND se muestra el nombre del responsable (resuelto client-side)
+- AND no hay badge de estado ni acciones ganar/perder/reabrir
 
-#### Scenario: motivo_perdida visible solo si estado=perdido [component test]
+#### Scenario: motivoPerdida visible cuando no es null [component test]
 
-- GIVEN un trato tiene `estado: 'abierto'` y `motivo_perdida: null`
+- GIVEN un trato tiene `motivoPerdida: "precio fuera de presupuesto"`
 - WHEN se renderiza la tab Información
-- THEN no se muestra el campo `motivo_perdida`
-- AND cuando el trato tiene `estado: 'perdido'` con `motivo_perdida: "precio fuera de presupuesto"`, ese texto SÍ se muestra
+- THEN se muestra el campo motivoPerdida con ese texto
 
-#### Scenario: Header muestra las 5 acciones de estado [component test]
+#### Scenario: motivoPerdida oculto cuando es null [component test]
 
-- GIVEN el usuario está en `/tratos/d1111111` con `estado: 'abierto'`
-- WHEN se renderiza el header
-- THEN están visibles las acciones "Marcar como ganado", "Marcar como perdido…", Editar, Eliminar
-- AND "Reabrir" está deshabilitado (estado es 'abierto')
-
-#### Scenario: Badge de pendientes muestra count cuando hay tareas [integration test]
-
-- GIVEN el trato `d1111111` tiene 2 tareas con `estado: 'pendiente'`
-- WHEN el usuario navega a `/tratos/d1111111`
-- THEN el header muestra el badge con el número "2"
-- AND no se realiza una tercera query adicional (el badge usa el mismo query del tab Tareas)
-
-#### Scenario: Badge de pendientes no visible cuando count es cero [component test]
-
-- GIVEN el trato `d2222222` no tiene tareas con `estado: 'pendiente'`
-- WHEN se renderiza el header
-- THEN el badge de pendientes NO está visible (o muestra "0" en su ausencia)
-
-#### Scenario: Tab Tareas muestra tabla de tareas del trato [integration test]
-
-- GIVEN el trato `d1111111` tiene 3 tareas asociadas
-- WHEN el usuario hace clic en la tab "Tareas"
-- THEN se renderiza la tabla con las 3 tareas
-- AND está visible el botón "Crear tarea"
-
-#### Scenario: Crear tarea desde tab del trato bloquea Select de trato [integration test]
-
-- GIVEN el usuario está en la tab "Tareas" del trato `d1111111`
-- WHEN hace clic en "Crear tarea" y se abre el dialog
-- THEN el Select de trato muestra el nombre del trato `d1111111` y está `disabled`
-- AND al enviar el form se invoca `POST /tratos/d1111111/tareas`
-
-#### Scenario: Tab activo persiste en URL via useTabSync [integration test]
-
-- GIVEN el usuario navega a `/tratos/d1111111` y hace clic en la tab "Tareas"
-- THEN la URL refleja `?tab=tareas`
-- AND al recargar la página la tab "Tareas" sigue activa
+- GIVEN un trato tiene `motivoPerdida: null`
+- WHEN se renderiza la tab Información
+- THEN el campo motivoPerdida NO se muestra (o muestra "—")
 
 #### Scenario: 404 redirige a lista [integration test]
 
-- WHEN `GET /tratos/:id` responde 404
+- WHEN `GET /api/tratos?id=inexistente` responde 404
 - THEN se muestra toast "Este trato no existe"
 - AND el router navega a `/tratos`
 
 ---
 
-### Requirement: Cambio de estado inline
+### Requirement: Centralización de endpoints de tratos
 
-El sistema MUST ofrecer cambio de estado del trato desde dos ubicaciones:
-1. **Tabla** (`TratosListPage`): un DropdownMenu por fila con ítems "Marcar como ganado", "Marcar como perdido…", "Reabrir" (visible solo si `estado !== 'abierto'`). Ítems incompatibles con el estado actual MUST estar deshabilitados.
-2. **Detalle** (`TratoDetailPage`): botones equivalentes en el header.
+El sistema MUST centralizar las URLs de tratos en `endpoints.tratos` dentro de `src/api/endpoints.ts`. Todos los hooks MUST referenciar `endpoints.tratos` en lugar de URLs hardcodeadas. Las URLs MUST seguir el contrato RPC del back: base `/api`, rutas `/tratos`, `/tratos?id=`, etc.
 
-Marcar como ganado MUST invocar `PATCH /api/v1/tratos/:id/ganar`. Reabrir MUST invocar `PATCH /api/v1/tratos/:id` con `{ estado: 'abierto', motivo_perdida: null }`. Marcar como perdido NEVER invoca el endpoint directamente — siempre abre `TratoPerderDialog` (ver siguiente requirement).
+#### Scenario: endpoints.tratos existe y es referenciado por hooks [unit test]
 
-#### Scenario: DropdownMenu en fila ofrece acciones por estado [component test]
-
-- GIVEN un trato tiene `estado: 'abierto'`
-- WHEN se abre el DropdownMenu de la fila
-- THEN ítem "Marcar como ganado" está habilitado
-- AND ítem "Marcar como perdido…" está habilitado
-- AND ítem "Reabrir" NO está visible (o está deshabilitado)
-
-#### Scenario: Marcar como ganado invoca /ganar [integration test]
-
-- GIVEN un trato `d1111111` con `estado: 'abierto'`
-- WHEN el usuario selecciona "Marcar como ganado"
-- THEN se invoca `PATCH /tratos/d1111111/ganar`
-- AND las queries `['tratos']` y `['tratos', 'd1111111']` se invalidan
-- AND el badge de estado refleja "Ganado"
-
-#### Scenario: Reabrir trato perdido limpia motivo_perdida [integration test]
-
-- GIVEN un trato con `estado: 'perdido'` y `motivo_perdida: "..."`
-- WHEN el usuario selecciona "Reabrir"
-- THEN se invoca `PATCH /tratos/:id` con `{ estado: 'abierto', motivo_perdida: null }`
-
----
-
-### Requirement: Modal obligatorio motivo_perdida
-
-El sistema MUST abrir `TratoPerderDialog` cuando el usuario intente marcar un trato como `perdido` (desde tabla o detalle). El modal MUST contener un textarea `motivo_perdida` validado por Zod como string requerido (no-vacío, mínimo 1 caracter, máximo 2000). Submit MUST invocar `PATCH /api/v1/tratos/:id/perder` con `{ motivo_perdida }`. Cancelar MUST cerrar el modal sin cambios.
-
-El endpoint `PATCH /perder` MUST devolver 422 si `motivo_perdida` falta o es vacío, mapeado a inline error en el textarea.
-
-#### Scenario: Marcar perdido abre el modal [integration test]
-
-- GIVEN el usuario hace clic en "Marcar como perdido…" en cualquier ubicación
-- THEN se abre `TratoPerderDialog` con textarea vacío
-- AND no se invoca el endpoint hasta el submit del modal
-
-#### Scenario: Submit con motivo válido marca como perdido [integration test]
-
-- GIVEN el modal está abierto para el trato `d1111111`
-- WHEN el usuario ingresa "precio fuera de presupuesto" y envía
-- THEN se invoca `PATCH /tratos/d1111111/perder` con `{ motivo_perdida: "precio fuera de presupuesto" }`
-- AND las queries `['tratos']` y `['tratos', 'd1111111']` se invalidan
-- AND el modal se cierra y el badge refleja "Perdido"
-
-#### Scenario: Submit con motivo vacío bloquea acción [component test]
-
-- WHEN el usuario intenta enviar el modal sin completar el textarea
-- THEN se muestra error inline "El motivo de pérdida es requerido"
-- AND no se invoca el endpoint
-
-#### Scenario: Cancelar cierra sin cambios [component test]
-
-- WHEN el usuario hace clic en "Cancelar"
-- THEN el modal se cierra
-- AND el estado del trato NO cambia
+- WHEN se importa `endpoints` desde `src/api/endpoints.ts`
+- THEN `endpoints.tratos` existe y contiene las rutas del contrato RPC
+- AND ningún hook de tratos contiene URLs hardcodeadas
 
 ---
 
 ### Requirement: Invalidación de cache tras mutations
 
-El sistema MUST invalidar las query keys afectadas tras cada mutación exitosa.
+El sistema MUST invalidar las query keys afectadas tras cada mutación exitosa de CRUD básico.
 
 | Mutation | Keys a invalidar |
 |---|---|
-| Crear trato | `['tratos']` (prefix match cubre todos los filtros) |
+| Crear trato | `['tratos']` |
 | Editar trato | `['tratos']`, `['tratos', id]` |
-| Eliminar (204) | remove `['tratos', id]` + invalidate `['tratos']` |
-| Ganar | `['tratos']`, `['tratos', id]` |
-| Perder | `['tratos']`, `['tratos', id]` |
+| Eliminar | `['tratos']` |
 
 #### Scenario: Crear trato invalida la lista [hook test]
 
-- GIVEN `useCreateTrato` ejecuta `POST /tratos` con éxito (201)
+- GIVEN `useCreateTrato` ejecuta `POST /api/tratos` con éxito
 - WHEN la mutación se resuelve
 - THEN `queryClient.invalidateQueries({ queryKey: ['tratos'] })` se invoca
 
-#### Scenario: Eliminar trato remueve key individual [hook test]
+#### Scenario: Editar trato invalida lista e individual [hook test]
 
-- GIVEN `useDeleteTrato` ejecuta `DELETE /tratos/:id` con éxito (204)
+- GIVEN `useEditTrato` ejecuta `PUT /api/tratos?id=d1111111` con éxito
 - WHEN la mutación se resuelve
-- THEN `queryClient.removeQueries({ queryKey: ['tratos', id] })` y `invalidateQueries({ queryKey: ['tratos'] })` se invocan
+- THEN se invalidan `['tratos']` y `['tratos', 'd1111111']`
 
 ---
 
@@ -479,23 +225,22 @@ El sistema MUST invalidar las query keys afectadas tras cada mutación exitosa.
 
 | Método | Path | Descripción |
 |---|---|---|
-| GET | `/api/v1/tratos` | Lista tratos; soporta `?estado=`, `?cliente_id=`, `?prospecto_id=`, `?responsable_id=` |
-| POST | `/api/v1/tratos` | Crea un trato nuevo (XOR `cliente_id` / `prospecto_id`); estado inicial `'abierto'` |
-| GET | `/api/v1/tratos/:id` | Obtiene un trato por id |
-| PATCH | `/api/v1/tratos/:id` | Edita campos del trato (no estado) |
-| DELETE | `/api/v1/tratos/:id` | Elimina (204) o bloquea (409 si hay tareas) |
-| PATCH | `/api/v1/tratos/:id/ganar` | Transición a estado 'ganado' |
-| PATCH | `/api/v1/tratos/:id/perder` | Transición a 'perdido' con `motivo_perdida` requerido (422 si falta) |
+| GET | `/api/tratos` | Lista tratos; sin query params |
+| POST | `/api/tratos` | Crea un trato nuevo con `contactoId` (sin `estado`) |
+| GET | `/api/tratos?id={id}` | Obtiene un trato por id |
+| PUT | `/api/tratos?id={id}` | Edita campos del trato (sin `estado`) |
+| DELETE | `/api/tratos?id={id}` | Elimina un trato (200/204) |
 
 Errores normalizados con `{ status, error, message, details? }`.
 
 ## Out of Scope
 
-- CRUD de Tareas (Change 6b)
-- Tab Tareas en detalle de trato (Change 6b)
-- Kanban / dnd-kit (Change 7)
-- Componente shadcn Command/Combobox (diferido)
-- Edición del estado desde el form (siempre vía DropdownMenu o botones)
-- Cambio masivo de estado (bulk)
+- CRUD de Tareas
+- Tab Tareas en detalle de trato (fuera de alcance de este change)
+- Kanban / ciclo de vida (pospuesto a Change 4)
+- @dnd-kit y drag-and-drop
+- Cambio de estado inline
+- Modal de motivo_perdida
+- Filtros server-side
 - Estadísticas, pipeline analytics, conversion rates
 - Soft delete, audit trail

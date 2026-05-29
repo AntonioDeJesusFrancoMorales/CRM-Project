@@ -7,35 +7,67 @@ import { tratosKeys } from '../hooks/useTratos';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
-// d1111111 tiene 2 tareas en el fixture (e1111111 + e2222222) → 409
-const ID_CON_TAREAS = 'd1111111-dddd-1111-dddd-111111111111';
+const TRATO_ID_SIN_TAREAS = 'd3333333-dddd-3333-dddd-333333333333';
+const TRATO_ID_CON_TAREAS = 'd1111111-dddd-1111-dddd-111111111111';
 
 describe('useDeleteTrato', () => {
-  it('elimina (204) y limpia el cache del detalle + invalida la lista', async () => {
-    const ID_SIN_TAREAS = 'aaaa1111-aaaa-1111-aaaa-111111111111';
+  it('invoca DELETE /api/tratos/delete?id= (no DELETE /:id)', async () => {
+    let capturedUrl: string | null = null;
     server.use(
-      http.delete(`/api/tratos/${ID_SIN_TAREAS}`, () =>
-        new HttpResponse(null, { status: 204 }),
-      ),
+      http.delete('/api/tratos/delete', ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      }),
     );
 
-    const { Wrapper, queryClient } = setupTestWrapper();
-    queryClient.setQueryData(tratosKeys.detail(ID_SIN_TAREAS), { id: ID_SIN_TAREAS });
-
-    const { result } = renderHook(() => useDeleteTrato(), { wrapper: Wrapper });
-
-    result.current.mutate(ID_SIN_TAREAS);
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(queryClient.getQueryData(tratosKeys.detail(ID_SIN_TAREAS))).toBeUndefined();
-  });
-
-  it('DELETE 409 — expone error con el mensaje del backend (incluye conteo de tareas)', async () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useDeleteTrato(), { wrapper: Wrapper });
 
-    result.current.mutate(ID_CON_TAREAS);
+    result.current.mutate(TRATO_ID_SIN_TAREAS);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(capturedUrl).toContain(`/tratos/delete?id=${TRATO_ID_SIN_TAREAS}`);
+  });
+
+  it('elimina (204) y limpia el cache del detalle + invalida la lista', async () => {
+    server.use(
+      http.delete('/api/tratos/delete', () => new HttpResponse(null, { status: 204 })),
+    );
+
+    const { Wrapper, queryClient } = setupTestWrapper();
+    queryClient.setQueryData(tratosKeys.detail(TRATO_ID_SIN_TAREAS), { id: TRATO_ID_SIN_TAREAS });
+
+    const { result } = renderHook(() => useDeleteTrato(), { wrapper: Wrapper });
+
+    result.current.mutate(TRATO_ID_SIN_TAREAS);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(queryClient.getQueryData(tratosKeys.detail(TRATO_ID_SIN_TAREAS))).toBeUndefined();
+  });
+
+  it('DELETE responde 409 cuando el trato tiene tareas — expone error con mensaje', async () => {
+    // El handler MSW real de B4 enviará 409 para d1111111 que tiene tareas.
+    // Aquí mockeamos directamente para que el test sea independiente de B4.
+    server.use(
+      http.delete('/api/tratos/delete', () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            error: 'CONFLICT',
+            message: 'El trato tiene 2 tareas asociadas',
+            details: [{ field: 'trato_id', message: 'tareas_vinculadas' }],
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useDeleteTrato(), { wrapper: Wrapper });
+
+    result.current.mutate(TRATO_ID_CON_TAREAS);
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
@@ -44,4 +76,3 @@ describe('useDeleteTrato', () => {
     expect(error.message).toContain('tarea');
   });
 });
-

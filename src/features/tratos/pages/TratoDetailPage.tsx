@@ -1,34 +1,29 @@
-// ADR-051: TratoDetailPage refactorizado a layout tabbed (homologa ClienteDetailPage).
+// TratoDetailPage — detalle de un trato con layout tabbed.
+// Modelo unificado (Change 3): contactoId único, sin estado, sin ganar/perder/reabrir.
 // Tabs: Información (TratoInfoTab) + Tareas (TratoTareasTab).
 // useTabSync(['info','tareas'], 'info') sincroniza el tab activo con ?tab= en la URL.
-// ADR-052: badge de pendientes derivado del mismo query del tab, levantado a nivel página.
-// badge-zero: badge OCULTO cuando count = 0 (solo visible si hay >= 1 tarea pendiente).
-// Las 5 acciones (Ganar/Perder/Reabrir/Editar/Eliminar) permanecen en el header.
+// Badge de pendientes derivado del query de tareas, OCULTO cuando count = 0.
+// Header: solo acciones Editar y Eliminar (el ciclo de vida del trato vuelve en Change 4).
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { ArrowLeft, Pencil, Trash2, Check, X, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isHttpError } from '@/api/http-error';
-import type { Trato } from '@/api/types';
 import { useTabSync } from '@/lib/useTabSync';
 import { useTrato } from '../hooks/useTrato';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
-import { useGanarTrato } from '../hooks/useGanarTrato';
-import { useUpdateTrato } from '../hooks/useUpdateTrato';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { getTareaEstado } from '@/features/tareas/hooks/useTareaEstado';
-import { TratoEstadoBadge } from '../components/TratoEstadoBadge';
 import { TratoInfoTab } from '../components/TratoInfoTab';
 import { TratoTareasTab } from '../components/TratoTareasTab';
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
-import { TratoPerderDialog } from '../components/TratoPerderDialog';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -37,30 +32,22 @@ export function TratoDetailPage() {
   const navigate = useNavigate();
 
   const { data: trato, isLoading, error } = useTrato(id);
-  const { data: contactosAll = [] } = useContactos();
-  const clientes = contactosAll.filter(
-    (c) => c.estadoRelacion === 'ACTIVO' || c.estadoRelacion === 'INACTIVO',
-  );
-  const prospectos = contactosAll.filter((c) => c.estadoRelacion === 'PROSPECTO');
+  const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
 
-  // ADR-052: query de pendientes levantado a nivel página.
-  // Estado es client-only (localStorage), así que traemos todas las tareas
-  // y filtramos client-side por tratoId + estado 'pendiente'.
+  // Badge de pendientes: estado client-only (localStorage), traemos todas las
+  // tareas y filtramos client-side por tratoId + estado 'pendiente'.
   const { data: todasLasTareas = [] } = useTareas();
-  const tareasTrato = todasLasTareas.filter((t) => t.tratoId === id);
-  const tareasPendientes = tareasTrato
+  const tareasPendientes = todasLasTareas
+    .filter((t) => t.tratoId === id)
     .filter((t) => getTareaEstado(t.id) === 'pendiente');
 
   const deleteMutation = useDeleteTrato();
-  const ganarMutation = useGanarTrato();
-  const updateMutation = useUpdateTrato();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [perderOpen, setPerderOpen] = useState(false);
 
-  // ADR-045: sincroniza el tab activo con ?tab= en la URL.
+  // Sincroniza el tab activo con ?tab= en la URL.
   const [tab, setTab] = useTabSync(['info', 'tareas'], 'info');
 
   const is404 = isHttpError(error) && error.status === 404;
@@ -87,19 +74,6 @@ export function TratoDetailPage() {
         }
         setDeleteOpen(false);
       },
-    });
-  }
-
-  function handleGanar() {
-    if (!id) return;
-    ganarMutation.mutate(id);
-  }
-
-  function handleReabrir() {
-    if (!id) return;
-    updateMutation.mutate({
-      id,
-      data: { estado: 'abierto', motivo_perdida: null },
     });
   }
 
@@ -130,23 +104,16 @@ export function TratoDetailPage() {
     );
   }
 
-  // Resolver entidades relacionadas
-  const responsable = usuarios.find((u) => u.id === trato.responsable_id);
-  const cliente = trato.cliente_id ? clientes.find((c) => c.id === trato.cliente_id) : null;
-  const prospecto = trato.prospecto_id
-    ? prospectos.find((p) => p.id === trato.prospecto_id)
-    : null;
+  // Resolución client-side de entidades relacionadas (modelo unificado: un solo contacto).
+  const contacto = contactos.find((c) => c.id === trato.contactoId);
+  const responsable = usuarios.find((u) => u.id === trato.responsableId);
 
-  const isPending =
-    deleteMutation.isPending || ganarMutation.isPending || updateMutation.isPending;
-
-  // ADR-052 + badge-zero: badge OCULTO cuando count = 0
   const pendientesCount = tareasPendientes.length;
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        {/* Lado izquierdo: volver + título + badge estado + badge pendientes */}
+        {/* Lado izquierdo: volver + título + badge de pendientes */}
         <div className="flex items-start gap-3">
           <Button
             variant="ghost"
@@ -159,43 +126,16 @@ export function TratoDetailPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{trato.nombre}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <TratoEstadoBadge estado={trato.estado} />
-              {/* badge-zero: solo renderizado si hay >= 1 tarea pendiente */}
+              {/* badge OCULTO cuando count = 0 (solo visible si hay >= 1 tarea pendiente) */}
               {pendientesCount > 0 && (
-                <Badge data-testid="badge-pendientes">
-                  {pendientesCount}
-                </Badge>
+                <Badge data-testid="badge-pendientes">{pendientesCount}</Badge>
               )}
             </div>
           </div>
         </div>
 
-        {/* Lado derecho: las 5 acciones permanecen en el header (ADR-051) */}
+        {/* Lado derecho: solo Editar y Eliminar */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={handleGanar}
-            disabled={trato.estado === 'ganado' || isPending}
-          >
-            <Check className="mr-2 h-4 w-4" aria-hidden="true" />
-            Marcar como ganado
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setPerderOpen(true)}
-            disabled={trato.estado === 'perdido' || isPending}
-          >
-            <X className="mr-2 h-4 w-4" aria-hidden="true" />
-            Marcar como perdido…
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleReabrir}
-            disabled={trato.estado === 'abierto' || isPending}
-          >
-            <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
-            Reabrir
-          </Button>
           <Button variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
             Editar
@@ -211,8 +151,7 @@ export function TratoDetailPage() {
         </div>
       </header>
 
-      {/* Tabs: Información y Tareas (ADR-051).
-          ADR-045: tab activo sincronizado con ?tab= en la URL via useTabSync. */}
+      {/* Tabs: Información y Tareas. Tab activo sincronizado con ?tab= via useTabSync. */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="info">Información</TabsTrigger>
@@ -222,10 +161,8 @@ export function TratoDetailPage() {
         <TabsContent value="info" className="mt-4">
           <TratoInfoTab
             trato={trato}
-            clienteNombre={cliente ? cliente.nombre : undefined}
-            clienteId={cliente?.id}
-            prospectoNombre={prospecto ? prospecto.nombre : undefined}
-            prospectoId={prospecto?.id}
+            contactoNombre={contacto?.nombre}
+            contactoId={contacto?.id}
             responsableNombre={responsable?.nombre}
           />
         </TabsContent>
@@ -237,11 +174,7 @@ export function TratoDetailPage() {
       </Tabs>
 
       {/* Dialogs */}
-      <TratoEditDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        trato={trato as Trato}
-      />
+      <TratoEditDialog open={editOpen} onOpenChange={setEditOpen} trato={trato} />
 
       <TratoDeleteDialog
         open={deleteOpen}
@@ -249,13 +182,6 @@ export function TratoDetailPage() {
         nombre={trato.nombre}
         onConfirm={handleConfirmDelete}
         isDeleting={deleteMutation.isPending}
-      />
-
-      <TratoPerderDialog
-        open={perderOpen}
-        onOpenChange={setPerderOpen}
-        tratoId={trato.id}
-        nombre={trato.nombre}
       />
     </div>
   );

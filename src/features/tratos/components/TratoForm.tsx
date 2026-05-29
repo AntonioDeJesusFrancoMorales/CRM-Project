@@ -1,6 +1,6 @@
-// ADR-042 D2: Form presentational shared create/edit con toggle Cliente/Prospecto.
-// El toggle controla cuál Select aparece. Zod superRefine valida XOR a nivel schema.
-// Patrón homologado con ClienteForm (ADR-035).
+// TratoForm — modelo unificado al contrato del back.
+// Un único select Contacto (contactoId), select responsable (responsableId),
+// select tipoContrato con 5 valores del back. Sin toggle XOR, sin campo estado.
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -25,15 +25,17 @@ import {
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import {
-  tratoCreateSchema,
+  tratoSchema,
   TRATO_EMPTY_DEFAULTS,
   type TratoCreateInput,
 } from '../schemas/trato.schema';
 
-const TIPO_CONTRATO_OPTIONS: Array<{ value: 'precio_fijo' | 'tiempo_materiales' | 'retainer'; label: string }> = [
-  { value: 'precio_fijo', label: 'Precio fijo' },
-  { value: 'tiempo_materiales', label: 'Tiempo y materiales' },
-  { value: 'retainer', label: 'Retainer' },
+const TIPO_CONTRATO_OPTIONS: Array<{ value: 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCION' | 'PERMANENTE' | 'OTRO'; label: string }> = [
+  { value: 'SERVICIO', label: 'Servicio' },
+  { value: 'LICENCIA', label: 'Licencia' },
+  { value: 'SUSCRIPCION', label: 'Suscripción' },
+  { value: 'PERMANENTE', label: 'Permanente' },
+  { value: 'OTRO', label: 'Otro' },
 ];
 
 interface TratoFormProps {
@@ -53,18 +55,8 @@ export function TratoForm({
   isSubmitting = false,
   serverErrors,
 }: TratoFormProps) {
-  const { data: contactosAll, isLoading: contactosLoading } = useContactos();
-  const { data: usuarios, isLoading: usuariosLoading } = useUsuarios();
-
-  // Clientes: contactos con estadoRelacion ACTIVO o INACTIVO.
-  const clientes = contactosAll?.filter(
-    (c) => c.estadoRelacion === 'ACTIVO' || c.estadoRelacion === 'INACTIVO',
-  ) ?? [];
-  const clientesLoading = contactosLoading;
-
-  // Prospectos: contactos con estadoRelacion PROSPECTO.
-  const prospectos = contactosAll?.filter((c) => c.estadoRelacion === 'PROSPECTO') ?? [];
-  const prospectosLoading = contactosLoading;
+  const { data: contactos = [], isLoading: contactosLoading } = useContactos();
+  const { data: usuarios = [], isLoading: usuariosLoading } = useUsuarios();
 
   const resolvedDefaults: TratoCreateInput = {
     ...TRATO_EMPTY_DEFAULTS,
@@ -72,20 +64,9 @@ export function TratoForm({
   };
 
   const form = useForm<TratoCreateInput>({
-    resolver: zodResolver(tratoCreateSchema),
+    resolver: zodResolver(tratoSchema),
     defaultValues: resolvedDefaults,
   });
-
-  const asociacion = form.watch('asociacion');
-
-  // Cuando el toggle cambia, limpiar el campo opuesto para que la validación XOR pase.
-  useEffect(() => {
-    if (asociacion === 'cliente') {
-      form.setValue('prospecto_id', '');
-    } else {
-      form.setValue('cliente_id', '');
-    }
-  }, [asociacion, form]);
 
   useEffect(() => {
     if (!serverErrors?.length) return;
@@ -97,113 +78,40 @@ export function TratoForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {/* Toggle Cliente | Prospecto */}
+        {/* Contacto (único select unificado) */}
         <FormField
           control={form.control}
-          name="asociacion"
+          name="contactoId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Asociar a{' '}
+                Contacto{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
-              <div className="flex gap-2" role="radiogroup" aria-label="Asociar a">
-                <Button
-                  type="button"
-                  variant={field.value === 'cliente' ? 'default' : 'outline'}
-                  onClick={() => field.onChange('cliente')}
-                  className="flex-1"
-                  role="radio"
-                  aria-checked={field.value === 'cliente'}
-                >
-                  Cliente
-                </Button>
-                <Button
-                  type="button"
-                  variant={field.value === 'prospecto' ? 'default' : 'outline'}
-                  onClick={() => field.onChange('prospecto')}
-                  className="flex-1"
-                  role="radio"
-                  aria-checked={field.value === 'prospecto'}
-                >
-                  Prospecto
-                </Button>
-              </div>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value ?? ''}
+                disabled={contactosLoading}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={contactosLoading ? 'Cargando contactos...' : 'Selecciona un contacto'}
+                    />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {contactos.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        {/* Select dependiente: cliente_id O prospecto_id */}
-        {asociacion === 'cliente' ? (
-          <FormField
-            control={form.control}
-            name="cliente_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Cliente{' '}
-                  <span aria-hidden="true" className="text-destructive">*</span>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value ?? ''}
-                  disabled={clientesLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={clientesLoading ? 'Cargando clientes...' : 'Selecciona un cliente'}
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        ) : (
-          <FormField
-            control={form.control}
-            name="prospecto_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Prospecto{' '}
-                  <span aria-hidden="true" className="text-destructive">*</span>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value ?? ''}
-                  disabled={prospectosLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={prospectosLoading ? 'Cargando prospectos...' : 'Selecciona un prospecto'}
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {prospectos.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
 
         {/* Nombre */}
         <FormField
@@ -226,7 +134,7 @@ export function TratoForm({
         {/* Responsable */}
         <FormField
           control={form.control}
-          name="responsable_id"
+          name="responsableId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>
@@ -235,7 +143,7 @@ export function TratoForm({
               </FormLabel>
               <Select
                 onValueChange={field.onChange}
-                value={field.value}
+                value={field.value ?? ''}
                 disabled={usuariosLoading}
               >
                 <FormControl>
@@ -246,7 +154,7 @@ export function TratoForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {(usuarios ?? [])
+                  {usuarios
                     .filter((u) => u.activo)
                     .map((u) => (
                       <SelectItem key={u.id} value={u.id}>
@@ -260,10 +168,39 @@ export function TratoForm({
           )}
         />
 
+        {/* Tipo de contrato */}
+        <FormField
+          control={form.control}
+          name="tipoContrato"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipo de contrato</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value ?? ''}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un tipo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {TIPO_CONTRATO_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Valor estimado */}
         <FormField
           control={form.control}
-          name="valor_estimado"
+          name="valorEstimado"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Valor estimado (MXN)</FormLabel>
@@ -312,7 +249,7 @@ export function TratoForm({
         {/* Fecha cierre esperada */}
         <FormField
           control={form.control}
-          name="fecha_cierre_esperada"
+          name="fechaCierreEsperada"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Fecha de cierre esperada</FormLabel>
@@ -323,35 +260,6 @@ export function TratoForm({
                   value={field.value ?? ''}
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Tipo de contrato */}
-        <FormField
-          control={form.control}
-          name="tipo_contrato"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo de contrato</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? ''}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un tipo" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {TIPO_CONTRATO_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <FormMessage />
             </FormItem>
           )}
