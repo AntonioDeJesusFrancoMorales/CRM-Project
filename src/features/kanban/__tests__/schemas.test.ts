@@ -9,7 +9,8 @@ import {
   columnaTableroSchema,
 } from '../schemas/tablero.schema';
 import { tipoFicha, fichaSchema, fichaCreateSchema, fichaEditSchema } from '../schemas/ficha.schema';
-import { columnaSchema } from '../schemas/columna.schema';
+import { columnaSchema, asignarColumnaSchema } from '../schemas/columna.schema';
+import { MOCK_USER_ID } from '../lib/mockUser';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -265,5 +266,92 @@ describe('columnaSchema', () => {
   it('rechaza tipoColumna inválido', () => {
     const result = columnaSchema.safeParse({ ...COLUMNA_VALIDA, tipoColumna: 'CUSTOM' });
     expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// asignarColumnaSchema (input form para asignar columna a tablero)
+// Tasks 1.1 (RED) + 1.2 (GREEN)
+// ---------------------------------------------------------------------------
+
+describe('asignarColumnaSchema', () => {
+  const ASIGNAR_VALIDO = {
+    limiteWip: 3,
+    totalValorEstimado: 0,
+  };
+
+  it('acepta limiteWip: 1 (mínimo válido)', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, limiteWip: 1 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.limiteWip).toBe(1);
+    }
+  });
+
+  it('rechaza limiteWip: 0', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, limiteWip: 0 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('El límite WIP debe ser al menos 1');
+    }
+  });
+
+  it('rechaza limiteWip: -1', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, limiteWip: -1 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('El límite WIP debe ser al menos 1');
+    }
+  });
+
+  it('acepta estadoTrato opcional — omitido no falla', () => {
+    const result = asignarColumnaSchema.safeParse(ASIGNAR_VALIDO);
+    expect(result.success).toBe(true);
+  });
+
+  it('acepta estadoTrato: ABIERTO cuando se incluye', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_VALIDO,
+      estadoTrato: 'ABIERTO',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.estadoTrato).toBe('ABIERTO');
+    }
+  });
+
+  it('rechaza estadoTrato inválido', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_VALIDO,
+      estadoTrato: 'CERRADO',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rechaza totalValorEstimado negativo', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, totalValorEstimado: -1 });
+    expect(result.success).toBe(false);
+  });
+
+  it('acepta totalValorEstimado: 0', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, totalValorEstimado: 0 });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MOCK_USER_ID — constante UUID placeholder
+// Tasks 1.3 (RED) + 1.4 (GREEN)
+// ---------------------------------------------------------------------------
+
+describe('MOCK_USER_ID', () => {
+  it('es un string de 36 caracteres', () => {
+    expect(typeof MOCK_USER_ID).toBe('string');
+    expect(MOCK_USER_ID).toHaveLength(36);
+  });
+
+  it('tiene formato UUID estándar (8-4-4-4-12)', () => {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    expect(MOCK_USER_ID).toMatch(UUID_REGEX);
   });
 });

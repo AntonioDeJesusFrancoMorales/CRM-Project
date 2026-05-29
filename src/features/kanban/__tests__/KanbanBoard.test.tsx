@@ -159,18 +159,30 @@ describe('buildDragEndHandler — lógica pura de onDragEnd', () => {
 // Tests de render del KanbanBoard (integración con MSW)
 // ---------------------------------------------------------------------------
 
-function renderBoard(columnas: ColumnaTablero[], fichas: Ficha[]) {
+const TABLERO_ID = 'f1111111-ffff-1111-ffff-111111111111';
+
+function renderBoard(columnas: ColumnaTablero[], fichas: Ficha[], tableroId = TABLERO_ID) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <KanbanBoard columnas={columnas} fichas={fichas} />
+        <KanbanBoard columnas={columnas} fichas={fichas} tableroId={tableroId} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
+
+describe('KanbanBoard — tableroId threading', () => {
+  it('(f-tableroId) recibe tableroId como prop y lo pasa a cada KanbanColumn (los botones Quitar columna aparecen por columna)', () => {
+    // Si tableroId llega a KanbanColumn, cada columna renderizará su botón "Quitar columna"
+    renderBoard([COLUMNA_A, COLUMNA_B], [], TABLERO_ID);
+    const quitarBtns = screen.getAllByRole('button', { name: /quitar columna/i });
+    // Una por cada columna
+    expect(quitarBtns).toHaveLength(2);
+  });
+});
 
 describe('KanbanBoard — render', () => {
   it('(f) renderiza una columna por cada elemento del array', () => {

@@ -3,8 +3,11 @@
 // DnD (useDroppable) no se testea con jsdom — se testea la lógica del handler en KanbanBoard.
 
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { server } from '@/test/server';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 
@@ -70,13 +73,15 @@ function makeFixhas(columnaId: string, count: number): Ficha[] {
   }));
 }
 
-function renderColumn(columna: ColumnaTablero, fichas: Ficha[] = []) {
+const TABLERO_ID = 'f1111111-ffff-1111-ffff-111111111111';
+
+function renderColumn(columna: ColumnaTablero, fichas: Ficha[] = [], tableroId = TABLERO_ID) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   return render(
     <QueryClientProvider client={qc}>
-      <KanbanColumn columna={columna} fichas={fichas} />
+      <KanbanColumn columna={columna} fichas={fichas} tableroId={tableroId} />
     </QueryClientProvider>,
   );
 }
@@ -196,5 +201,85 @@ describe('KanbanColumn — fichas children', () => {
     // La tarjeta más antigua (d-viejo) debe aparecer primero
     expect(cards[0]).toHaveTextContent('d-viejo');
     expect(cards[1]).toHaveTextContent('d-nuevo');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Batch 5 — Botones en el header de KanbanColumn
+// ---------------------------------------------------------------------------
+
+describe('KanbanColumn — botón "+" y FichaCreateDialog', () => {
+  it('(m) header muestra botón "+"', () => {
+    renderColumn(COL_BASE);
+    expect(screen.getByRole('button', { name: /nueva ficha/i })).toBeInTheDocument();
+  });
+
+  it('(n) clic en "+" abre FichaCreateDialog con columnaId de la columna precargado', async () => {
+    const user = userEvent.setup();
+    renderColumn(COL_BASE);
+
+    const addBtn = screen.getByRole('button', { name: /nueva ficha/i });
+    await user.click(addBtn);
+
+    // El dialog se abre y muestra el título
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/nueva ficha/i)).toBeInTheDocument();
+  });
+});
+
+describe('KanbanColumn — botón "Quitar columna"', () => {
+  it('(o) header muestra botón "Quitar columna"', () => {
+    renderColumn(COL_BASE);
+    expect(screen.getByRole('button', { name: /quitar columna/i })).toBeInTheDocument();
+  });
+
+  it('(p) clic en "Quitar columna" invoca DELETE eliminar-columna con tableroId y columnaId correctos', async () => {
+    const user = userEvent.setup();
+    let capturedParams: Record<string, string | null> = {};
+
+    server.use(
+      http.delete('/api/tableros/eliminar-columna', ({ request }) => {
+        const url = new URL(request.url);
+        capturedParams = {
+          id: url.searchParams.get('id'),
+          columnaId: url.searchParams.get('columnaId'),
+        };
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderColumn(COL_BASE, [], TABLERO_ID);
+
+    const quitarBtn = screen.getByRole('button', { name: /quitar columna/i });
+    await user.click(quitarBtn);
+
+    await waitFor(() => {
+      expect(capturedParams.id).toBe(TABLERO_ID);
+      expect(capturedParams.columnaId).toBe(COL_BASE.id);
+    });
+  });
+
+  it('(q) 409 en Quitar columna — botón se re-habilita tras error (wiring del hook)', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.delete('/api/tableros/eliminar-columna', () => {
+        return HttpResponse.json(
+          { status: 409, error: 'CONFLICT', message: 'La columna tiene fichas activas' },
+          { status: 409 },
+        );
+      }),
+    );
+
+    renderColumn(COL_BASE, [], TABLERO_ID);
+
+    const quitarBtn = screen.getByRole('button', { name: /quitar columna/i });
+    await user.click(quitarBtn);
+
+    // El hook maneja el 409 con toast.error — aquí verificamos que la mutación fue invocada
+    // y el botón queda habilitado (no en estado de carga permanente)
+    await waitFor(() => {
+      expect(quitarBtn).not.toBeDisabled();
+    });
   });
 });

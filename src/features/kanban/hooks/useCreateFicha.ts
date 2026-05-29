@@ -1,7 +1,6 @@
 // useCreateFicha — POST /fichas/create con FichaCreateInput.
 // tipoFicha=TRATO y tratoId son requeridos para fichas de trato.
-// responsableId/creadoPor: auth fuera de alcance en v1; el llamador pasa 'MOCK_USER'
-// como constante provisional hasta que el contexto de auth esté en scope.
+// responsableId/creadoPor los pasa el dialog (FichaCreateDialog) con MOCK_USER_ID.
 // Sin optimistic update: invalidación simple tras éxito.
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';

@@ -70,13 +70,14 @@ export function buildDragEndHandler({ fichas, mutate }: DragEndHandlerParams) {
 interface KanbanBoardProps {
   columnas: ColumnaTablero[];
   fichas: Ficha[];
+  tableroId: string;
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function KanbanBoard({ columnas, fichas }: KanbanBoardProps) {
+export function KanbanBoard({ columnas, fichas, tableroId }: KanbanBoardProps) {
   const { mutate } = useUpdateFicha();
 
   // Solo mostrar fichas de tipo TRATO
@@ -111,6 +112,7 @@ export function KanbanBoard({ columnas, fichas }: KanbanBoardProps) {
             key={columna.id}
             columna={columna}
             fichas={fichasPorColumna.get(columna.id) ?? []}
+            tableroId={tableroId}
           />
         ))}
       </div>

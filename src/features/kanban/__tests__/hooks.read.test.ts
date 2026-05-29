@@ -429,3 +429,150 @@ describe('useFichas', () => {
     expect(ficha).toHaveProperty('creadoEn');
   });
 });
+
+// ---------------------------------------------------------------------------
+// useTratosSinFicha — tratos que NO tienen ficha activa
+// Tasks 1.5 (RED) + 1.6 (GREEN)
+// ---------------------------------------------------------------------------
+
+// Fichas solo para d1 y d2 — d3 queda sin ficha intencionalmente
+const FICHAS_D1_D2: Ficha[] = [
+  {
+    id: 'h1111111-hhhh-1111-hhhh-111111111111',
+    columnaId: 'a1111111-aaaa-1111-aaaa-111111111111',
+    tipoFicha: 'TRATO',
+    tratoId: 'd1111111-dddd-1111-dddd-111111111111',
+    tareaId: null,
+    responsableId: '22222222-2222-2222-2222-222222222222',
+    creadoPor: '22222222-2222-2222-2222-222222222222',
+    creadoEn: '2026-04-10T08:00:00Z',
+    actualizadoEn: '2026-04-10T08:00:00Z',
+  },
+  {
+    id: 'h2222222-hhhh-2222-hhhh-222222222222',
+    columnaId: 'a2222222-aaaa-2222-aaaa-222222222222',
+    tipoFicha: 'TRATO',
+    tratoId: 'd2222222-dddd-2222-dddd-222222222222',
+    tareaId: null,
+    responsableId: '22222222-2222-2222-2222-222222222222',
+    creadoPor: '22222222-2222-2222-2222-222222222222',
+    creadoEn: '2026-04-11T09:00:00Z',
+    actualizadoEn: '2026-04-11T09:00:00Z',
+  },
+];
+
+// Fixtures para useTratosSinFicha
+// d1 y d2 tienen fichas; d3 no tiene ficha → solo d3 debe retornarse
+const TRATOS_FIXTURE_SIN_FICHA = [
+  {
+    id: 'd1111111-dddd-1111-dddd-111111111111',
+    nombre: 'Trato con ficha 1',
+    contactoId: 'c1',
+    responsableId: 'u1',
+    valorEstimado: null,
+    probabilidad: null,
+    fechaCierreEsperada: null,
+    tipoContrato: 'SERVICIO',
+    motivoPerdida: null,
+    creadoEn: '2026-01-01T00:00:00',
+    actualizadoEn: null,
+  },
+  {
+    id: 'd2222222-dddd-2222-dddd-222222222222',
+    nombre: 'Trato con ficha 2',
+    contactoId: 'c2',
+    responsableId: 'u1',
+    valorEstimado: null,
+    probabilidad: null,
+    fechaCierreEsperada: null,
+    tipoContrato: 'SERVICIO',
+    motivoPerdida: null,
+    creadoEn: '2026-01-02T00:00:00',
+    actualizadoEn: null,
+  },
+  {
+    id: 'd3333333-dddd-3333-dddd-333333333333',
+    nombre: 'Trato sin ficha',
+    contactoId: 'c3',
+    responsableId: 'u1',
+    valorEstimado: null,
+    probabilidad: null,
+    fechaCierreEsperada: null,
+    tipoContrato: 'SERVICIO',
+    motivoPerdida: null,
+    creadoEn: '2026-01-03T00:00:00',
+    actualizadoEn: null,
+  },
+];
+
+// FICHAS_FIXTURE ya incluye fichas para d1 y d2; d3 no tiene ficha
+
+describe('useTratosSinFicha', () => {
+  it('retorna solo los tratos que no tienen ficha activa', async () => {
+    // d1 y d2 tienen fichas; d3 no → solo d3 debe aparecer
+    server.use(
+      http.get('/api/tratos/get-all', () => HttpResponse.json(TRATOS_FIXTURE_SIN_FICHA)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(FICHAS_D1_D2)),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useTratosSinFicha } = await import('../lib/useTratosSinFicha');
+    const { result } = renderHook(() => useTratosSinFicha(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const tratos = result.current.data!;
+    expect(tratos).toHaveLength(1);
+    expect(tratos[0]!.id).toBe('d3333333-dddd-3333-dddd-333333333333');
+  });
+
+  it('retorna todos los tratos cuando ninguno tiene ficha', async () => {
+    // Sin fichas → todos los tratos deben retornarse
+    server.use(
+      http.get('/api/tratos/get-all', () => HttpResponse.json(TRATOS_FIXTURE_SIN_FICHA)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useTratosSinFicha } = await import('../lib/useTratosSinFicha');
+    const { result } = renderHook(() => useTratosSinFicha(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const tratos = result.current.data!;
+    expect(tratos).toHaveLength(3);
+  });
+
+  it('retorna lista vacía cuando todos los tratos tienen ficha', async () => {
+    // Fichas para d1, d2, y también d3 → ningún trato queda libre
+    const FICHAS_TODAS: Ficha[] = [
+      ...FICHAS_D1_D2,
+      {
+        id: 'h4444444-hhhh-4444-hhhh-444444444444',
+        columnaId: 'a1111111-aaaa-1111-aaaa-111111111111',
+        tipoFicha: 'TRATO',
+        tratoId: 'd3333333-dddd-3333-dddd-333333333333',
+        tareaId: null,
+        responsableId: '22222222-2222-2222-2222-222222222222',
+        creadoPor: '22222222-2222-2222-2222-222222222222',
+        creadoEn: '2026-04-13T11:00:00Z',
+        actualizadoEn: '2026-04-13T11:00:00Z',
+      },
+    ];
+
+    server.use(
+      http.get('/api/tratos/get-all', () => HttpResponse.json(TRATOS_FIXTURE_SIN_FICHA)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(FICHAS_TODAS)),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useTratosSinFicha } = await import('../lib/useTratosSinFicha');
+    const { result } = renderHook(() => useTratosSinFicha(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const tratos = result.current.data!;
+    // Todos los tratos tienen ficha → resultado vacío (condición producida por el filtro)
+    expect(tratos).toHaveLength(0);
+  });
+});

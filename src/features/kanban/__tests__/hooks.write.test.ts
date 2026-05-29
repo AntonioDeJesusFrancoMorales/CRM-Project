@@ -603,3 +603,113 @@ describe('useReordenarColumnas', () => {
     expect(Array.isArray(result.current.data?.columnas)).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// useQuitarColumna — DELETE /tableros/eliminar-columna?id=&columnaId=, invalida ['tableros', tableroId]
+// 409 (columna con fichas) → toast distinto al genérico; 422 → sin toast genérico
+// ---------------------------------------------------------------------------
+
+describe('useQuitarColumna', () => {
+  const TABLERO_ID = 'f1111111-ffff-1111-ffff-111111111111';
+  const COLUMNA_ID = 'a1111111-aaaa-1111-aaaa-111111111111';
+
+  it('invoca DELETE /api/tableros/eliminar-columna?id=&columnaId= con los parámetros correctos', async () => {
+    let capturedUrl: string | null = null;
+    server.use(
+      http.delete('/api/tableros/eliminar-columna', ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useQuitarColumna } = await import('../hooks/useQuitarColumna');
+    const { result } = renderHook(() => useQuitarColumna(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.mutate({ tableroId: TABLERO_ID, columnaId: COLUMNA_ID });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(capturedUrl).toContain(`id=${TABLERO_ID}`);
+    expect(capturedUrl).toContain(`columnaId=${COLUMNA_ID}`);
+  });
+
+  it('invalida queryKey ["tableros", tableroId] tras 204', async () => {
+    server.use(
+      http.delete('/api/tableros/eliminar-columna', () => new HttpResponse(null, { status: 204 })),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(TABLERO_FIXTURE)),
+    );
+
+    const { Wrapper, queryClient } = setupTestWrapper();
+    const { useQuitarColumna } = await import('../hooks/useQuitarColumna');
+    const { result } = renderHook(() => useQuitarColumna(), { wrapper: Wrapper });
+
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await act(async () => {
+      result.current.mutate({ tableroId: TABLERO_ID, columnaId: COLUMNA_ID });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['tableros', TABLERO_ID] }),
+    );
+  });
+
+  it('409 produce toast con mensaje específico de fichas pendientes', async () => {
+    const { toast } = await import('sonner');
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+
+    server.use(
+      http.delete('/api/tableros/eliminar-columna', () =>
+        HttpResponse.json(
+          { status: 409, error: 'CONFLICT', message: 'La columna tiene fichas activas' },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useQuitarColumna } = await import('../hooks/useQuitarColumna');
+    const { result } = renderHook(() => useQuitarColumna(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.mutate({ tableroId: TABLERO_ID, columnaId: COLUMNA_ID });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(toastErrorSpy).toHaveBeenCalledWith(
+      'La columna tiene fichas; muévelas o elimínalas antes de quitarla',
+    );
+  });
+
+  it('422 no muestra toast genérico (retorna silenciosamente)', async () => {
+    const { toast } = await import('sonner');
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+
+    server.use(
+      http.delete('/api/tableros/eliminar-columna', () =>
+        HttpResponse.json(
+          { status: 422, error: 'UNPROCESSABLE_ENTITY', message: 'Datos inválidos' },
+          { status: 422 },
+        ),
+      ),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useQuitarColumna } = await import('../hooks/useQuitarColumna');
+    const { result } = renderHook(() => useQuitarColumna(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.mutate({ tableroId: TABLERO_ID, columnaId: COLUMNA_ID });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(toastErrorSpy).not.toHaveBeenCalled();
+  });
+});

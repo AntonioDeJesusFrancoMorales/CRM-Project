@@ -3,16 +3,23 @@
 // Muestra: nombre (fallback 'Sin nombre'), badge estadoTrato, contador fichas,
 //          indicador limiteWip (si no null), indicador WIP superado (data-testid="wip-exceeded").
 // Orden de fichas: creadoEn ASC (orden estable derivado del back).
+// Batch 5: prop tableroId + botón "+" (FichaCreateDialog) + botón "Quitar columna".
 // Tailwind + Radix Badge (via componentes del proyecto).
 
+import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import { useQuitarColumna } from '@/features/kanban/hooks/useQuitarColumna';
+import { FichaCreateDialog } from './FichaCreateDialog';
 import { KanbanCard } from './KanbanCard';
 
 interface KanbanColumnProps {
   columna: ColumnaTablero;
   fichas: Ficha[];
+  tableroId: string;
 }
 
 const estadoBadgeClasses: Record<string, string> = {
@@ -36,8 +43,10 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
   );
 }
 
-export function KanbanColumn({ columna, fichas }: KanbanColumnProps) {
+export function KanbanColumn({ columna, fichas, tableroId }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: columna.id });
+  const [createOpen, setCreateOpen] = useState(false);
+  const { mutate: quitarColumna, isPending: isQuitando } = useQuitarColumna();
 
   const nombre = columna.nombre ?? 'Sin nombre';
   const color = columna.color ?? DEFAULT_COLUMN_COLOR;
@@ -45,6 +54,10 @@ export function KanbanColumn({ columna, fichas }: KanbanColumnProps) {
 
   const wipExcedido =
     columna.limiteWip !== null && fichas.length > columna.limiteWip;
+
+  function handleQuitarColumna() {
+    quitarColumna({ tableroId, columnaId: columna.id });
+  }
 
   return (
     <div className="flex w-72 flex-shrink-0 flex-col gap-2">
@@ -80,6 +93,29 @@ export function KanbanColumn({ columna, fichas }: KanbanColumnProps) {
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
             {fichas.length}
           </span>
+
+          {/* Botón "+" — abre FichaCreateDialog */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            aria-label="Nueva ficha"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Botón "Quitar columna" */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-destructive hover:text-destructive"
+            aria-label="Quitar columna"
+            onClick={handleQuitarColumna}
+            disabled={isQuitando}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
 
@@ -113,6 +149,13 @@ export function KanbanColumn({ columna, fichas }: KanbanColumnProps) {
           <KanbanCard key={ficha.id} ficha={ficha} />
         ))}
       </div>
+
+      {/* FichaCreateDialog — abierto desde el botón "+" */}
+      <FichaCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        columnaId={columna.id}
+      />
     </div>
   );
 }

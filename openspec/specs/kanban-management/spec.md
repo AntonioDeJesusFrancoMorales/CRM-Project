@@ -1,7 +1,7 @@
 # kanban-management Specification
 
 **Capability**: kanban-management
-**Change**: kanban-tablero-back (Change 4)
+**Change**: kanban-crud-ui (Change 5)
 **Status**: active
 **Last updated**: 2026-05-29
 
@@ -89,21 +89,41 @@ El sistema MUST consumir `GET /api/fichas/get-all` y filtrar client-side las fic
 
 ### Requirement: Crear ficha de trato
 
-El sistema MUST permitir crear una ficha nueva vía `POST /api/fichas/create` con `tipoFicha: 'TRATO'`, `tratoId` (requerido), `columnaId` (requerido), y `responsableId` (requerido). El back valida que `tratoId != null` cuando `tipoFicha == 'TRATO'`. Tras exito, las queries `['fichas']` se invalidan.
+El sistema MUST exponer un dialog (`FichaCreateDialog`) abierto desde el botón "+" del header de cada `KanbanColumn`, con `columnaId` precargado. El formulario MUST incluir: selector de trato (solo tratos sin ficha activa, derivados de `useTratos()` filtrado contra `useFichas()`) y selector de responsable (`useUsuarios()`). El body enviado a `POST /api/fichas/create` MUST incluir `tipoFicha: 'TRATO'`, `tratoId`, `columnaId`, `responsableId`, y `creadoPor: '00000000-0000-0000-0000-000000000001'` (UUID fijo). Los errores 422 del servidor MUST mostrarse como `serverErrors` en el campo correspondiente. Tras éxito, la query `['fichas']` MUST invalidarse y el dialog cerrarse.
 
-#### Scenario: Creacion exitosa de ficha de trato [integration test]
+#### Scenario: Dialog abre con columnaId precargado [component test]
 
-- GIVEN el usuario selecciona un trato y una columna destino
-- WHEN confirma la creacion
-- THEN se invoca `POST /api/fichas/create` con `tipoFicha: 'TRATO'`, `tratoId`, `columnaId`, `responsableId`
+- GIVEN el usuario hace clic en "+" en el header de la columna c1
+- WHEN se abre `FichaCreateDialog`
+- THEN el campo `columnaId` está precargado con el id de c1
+- AND el campo no es editable por el usuario
+
+#### Scenario: Selector de trato solo muestra tratos sin ficha [component test]
+
+- GIVEN existen tratos t1 (sin ficha) y t2 (con ficha activa)
+- WHEN se abre el selector de trato en el form
+- THEN solo aparece t1 en las opciones
+
+#### Scenario: Creación exitosa envía creadoPor UUID válido [integration test]
+
+- GIVEN el usuario selecciona trato t1 y responsable u1
+- WHEN confirma la creación
+- THEN se invoca `POST /api/fichas/create` con `creadoPor: '00000000-0000-0000-0000-000000000001'`, `responsableId: u1`, `tipoFicha: 'TRATO'`, `tratoId: t1`, `columnaId` precargado
 - AND la query `['fichas']` se invalida
-- AND la ficha aparece en la columna correcta
+- AND el dialog se cierra
+
+#### Scenario: Error 422 muestra serverError en campo [integration test]
+
+- GIVEN el back responde 422 con error en campo `tratoId`
+- WHEN el usuario envía el form
+- THEN se muestra el mensaje de error bajo el campo `tratoId`
+- AND el dialog permanece abierto
 
 #### Scenario: tratoId requerido para ficha de tipo TRATO [component test]
 
-- GIVEN el formulario de creacion de ficha
+- GIVEN el formulario de creación de ficha
 - WHEN el usuario no selecciona un trato
-- THEN se muestra error de validacion en el campo tratoId
+- THEN se muestra error de validación en el campo tratoId
 - AND no se invoca el backend
 
 ---
@@ -123,20 +143,20 @@ El sistema MUST permitir editar una ficha existente vía `PUT /api/fichas/edit?i
 
 ### Requirement: Eliminar ficha de trato
 
-El sistema MUST permitir eliminar una ficha tras confirmacion vía `DELETE /api/fichas/delete?id={fichaId}`. Tras exito (204), la query `['fichas']` se invalida y la tarjeta desaparece del tablero.
+El sistema MUST exponer un `AlertDialog` de confirmación accesible desde un menú/dropdown en `KanbanCard`. Tras confirmación, MUST invocar `DELETE /api/fichas/delete?id={fichaId}`. Tras éxito (204), la query `['fichas']` MUST invalidarse. Si el usuario cancela, NO MUST invocarse el endpoint.
 
-#### Scenario: Eliminacion exitosa de ficha [integration test]
+#### Scenario: Eliminación exitosa desde KanbanCard [integration test]
 
-- GIVEN existe la ficha f1 en la columna c1
-- WHEN el usuario confirma la eliminacion
+- GIVEN existe la ficha f1 en la columna c1 y el usuario abre el menú de la tarjeta
+- WHEN el usuario selecciona "Eliminar" y confirma en el AlertDialog
 - THEN se invoca `DELETE /api/fichas/delete?id=f1`
 - AND la tarjeta desaparece de la columna c1
 - AND la query `['fichas']` se invalida
 
 #### Scenario: Cancelar no invoca DELETE [component test]
 
-- WHEN el usuario hace clic en "Cancelar" en el dialogo de confirmacion
-- THEN se cierra el dialogo
+- WHEN el usuario hace clic en "Cancelar" en el dialog de confirmación
+- THEN se cierra el dialog
 - AND no se invoca `DELETE`
 
 ---
@@ -199,20 +219,36 @@ El sistema MUST derivar el estado del trato cruzando `ficha.tratoId → columna.
 
 ### Requirement: Gestionar columnas del tablero
 
-El sistema MUST permitir asignar una columna del catalogo al tablero vía `POST /api/tableros/asignar-columna?id={tableroId}&columnaId={columnaId}` con body `AsignarColumnaRequest` (MUST NOT usar `/agregar-columna` que esta `@Deprecated`). El body MUST incluir `limiteWip` (requerido, min 1), `nota` (opcional), `estadoTrato` (uno de `ABIERTO | GANADO | PERDIDO`), `totalValorEstimado` (requerido, BigDecimal). El sistema MUST permitir quitar una columna del tablero vía `DELETE /api/tableros/eliminar-columna?id={tableroId}&columnaId={columnaId}`. Tras exito, la query `['tableros', tableroId]` se invalida.
+El sistema MUST permitir asignar una columna del catálogo al tablero vía `POST /api/tableros/asignar-columna?id={tableroId}&columnaId={columnaId}`. El body MUST incluir `limiteWip` (`@NotNull`, `@Min(1)` — validado client-side antes de enviar), `estadoTrato` (opcional, uno de `ABIERTO | GANADO | PERDIDO`), `totalValorEstimado` (`@NotNull`, BigDecimal). El sistema MUST permitir quitar una columna del tablero vía `DELETE /api/tableros/eliminar-columna?id={tableroId}&columnaId={columnaId}` con botón en el header de `KanbanColumn`. Una respuesta 409 MUST mostrarse con mensaje claro que indique que la columna tiene fichas (distinto del mensaje genérico 422). Tras éxito de cualquiera de las dos operaciones, la query `['tableros', tableroId]` MUST invalidarse.
 
-#### Scenario: Asignar columna del catalogo invoca asignar-columna [integration test]
+#### Scenario: Asignar columna valida limiteWip >= 1 [component test]
 
-- GIVEN el tablero t1 y la columna del catalogo col1
-- WHEN el usuario asigna col1 al tablero con `limiteWip: 3`, `estadoTrato: 'ABIERTO'`, `totalValorEstimado: 0`
+- GIVEN el formulario de asignar columna
+- WHEN el usuario introduce `limiteWip: 0` o negativo y envía
+- THEN se muestra error de validación en el campo `limiteWip`
+- AND no se invoca el backend
+
+#### Scenario: Asignar columna exitosa invoca asignar-columna [integration test]
+
+- GIVEN el tablero t1 y la columna col1
+- WHEN el usuario asigna col1 con `limiteWip: 3`, `totalValorEstimado: 0`, `estadoTrato: 'ABIERTO'`
 - THEN se invoca `POST /api/tableros/asignar-columna?id=t1&columnaId=col1` con el body requerido
 - AND NO se invoca `/agregar-columna`
 - AND la query `['tableros', 't1']` se invalida
 
-#### Scenario: Quitar columna invoca eliminar-columna [integration test]
+#### Scenario: Quitar columna con fichas muestra error 409 [integration test]
 
-- GIVEN el tablero t1 tiene la columna c1
-- WHEN el usuario quita c1 del tablero
+- GIVEN el tablero t1 tiene la columna c1 que contiene fichas
+- WHEN el usuario hace clic en "Quitar columna" y confirma
+- THEN se invoca `DELETE /api/tableros/eliminar-columna?id=t1&columnaId=c1`
+- AND el back responde 409
+- THEN se muestra mensaje que indica que la columna tiene fichas (distinto del mensaje 422 genérico)
+- AND la UI no rompe
+
+#### Scenario: Quitar columna vacía exitosa [integration test]
+
+- GIVEN el tablero t1 tiene la columna c1 sin fichas
+- WHEN el usuario hace clic en "Quitar columna" y confirma
 - THEN se invoca `DELETE /api/tableros/eliminar-columna?id=t1&columnaId=c1`
 - AND la columna desaparece del tablero
 - AND la query `['tableros', 't1']` se invalida
@@ -313,7 +349,7 @@ El sistema MUST habilitar la entrada "Tableros" en el Sidebar (remover `disabled
 
 - Tableros `TipoTablero.TAREAS` (futuro Change).
 - Persistencia de orden intra-columna (DnD solo ENTRE columnas; orden por `creadoEn` derivado del back).
-- Creacion y edicion de tableros desde la UI (futuro Change 5 — UI CRUD de fichas/columnas).
+- Creacion y edicion de tableros desde la UI (futuro change).
 - Creacion y edicion de columnas del catalogo desde la UI de Kanban.
-- UI de formulario de creacion/eliminacion de fichas (hooks listos; capa de presentacion diferida a Change 5).
+- Edicion de fichas desde la UI (formulario de edicion completa — futuro change).
 - Auth y gestion de usuarios.
