@@ -3,8 +3,6 @@ import { withDelay } from '@/mocks/utils/withDelay';
 import { errors } from '@/mocks/utils/error';
 import { nowIso } from '@/mocks/utils/crud';
 import { empresasFixture } from '@/mocks/fixtures/empresas';
-import { prospectosFixture } from '@/mocks/fixtures/prospectos';
-import { clientesFixture } from '@/mocks/fixtures/clientes';
 import type { Empresa } from '@/api/types';
 
 const API = '/api';
@@ -67,13 +65,4 @@ export const empresasHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // Handlers de prospectos/clientes por empresa — out-of-scope; actualizar prefijo a /api
-  http.get(`${API}/empresas/:id/prospectos`, async ({ params }) => {
-    await withDelay();
-    return HttpResponse.json(prospectosFixture.filter((p) => p.empresa_id === params['id']));
-  }),
-  http.get(`${API}/empresas/:id/clientes`, async ({ params }) => {
-    await withDelay();
-    return HttpResponse.json(clientesFixture.filter((c) => c.empresa_id === params['id']));
-  }),
 ];

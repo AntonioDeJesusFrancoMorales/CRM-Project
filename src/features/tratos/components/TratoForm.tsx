@@ -22,8 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useClientes } from '@/features/clientes/hooks/useClientes';
-import { useProspectos } from '@/features/prospectos/hooks/useProspectos';
+import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import {
   tratoCreateSchema,
@@ -54,13 +53,18 @@ export function TratoForm({
   isSubmitting = false,
   serverErrors,
 }: TratoFormProps) {
-  const { data: clientes, isLoading: clientesLoading } = useClientes();
-  const { data: prospectosAll, isLoading: prospectosLoading } = useProspectos();
+  const { data: contactosAll, isLoading: contactosLoading } = useContactos();
   const { data: usuarios, isLoading: usuariosLoading } = useUsuarios();
 
-  // Lote F (post-smoke fix #1): solo prospectos NO convertidos pueden recibir tratos
-  // nuevos. Los convertidos ya pasaron a cliente; sus tratos nuevos van al cliente derivado.
-  const prospectos = prospectosAll?.filter((p) => p.estado_posible_cliente !== 'convertido');
+  // Clientes: contactos con estadoRelacion ACTIVO o INACTIVO.
+  const clientes = contactosAll?.filter(
+    (c) => c.estadoRelacion === 'ACTIVO' || c.estadoRelacion === 'INACTIVO',
+  ) ?? [];
+  const clientesLoading = contactosLoading;
+
+  // Prospectos: contactos con estadoRelacion PROSPECTO.
+  const prospectos = contactosAll?.filter((c) => c.estadoRelacion === 'PROSPECTO') ?? [];
+  const prospectosLoading = contactosLoading;
 
   const resolvedDefaults: TratoCreateInput = {
     ...TRATO_EMPTY_DEFAULTS,
@@ -154,9 +158,9 @@ export function TratoForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {(clientes ?? []).map((c) => (
+                    {clientes.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.nombre_contacto}
+                        {c.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -188,9 +192,9 @@ export function TratoForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {(prospectos ?? []).map((p) => (
+                    {prospectos.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.nombre_contacto}
+                        {p.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>

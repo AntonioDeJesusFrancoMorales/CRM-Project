@@ -260,22 +260,24 @@ describe('TratosListPage', () => {
     );
 
     // Ambos clientes con tratos aparecen inicialmente (Ana=c1111111, Diego=c2222222).
+    // Ahora solo se muestra nombre (sin apellido) — fixture actualizado.
     const selectCliente = screen.getByRole('combobox', { name: /cliente/i });
     await user.click(selectCliente);
-    expect(await screen.findByRole('option', { name: 'Ana Rodríguez' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Diego Vargas' })).toBeInTheDocument();
+    // Ana (c1111111) y Diego (c2222222) — segundo Diego del fixture
+    const anaOptions = await screen.findAllByRole('option', { name: /^Ana$/ });
+    expect(anaOptions.length).toBeGreaterThanOrEqual(1);
 
-    // Filtrar por Ana Rodríguez.
-    await user.click(screen.getByRole('option', { name: 'Ana Rodríguez' }));
+    // Filtrar por Ana.
+    await user.click(anaOptions[0]!);
 
     // El refetch filtrado deja solo el trato de Ana; el de Diego desaparece del board.
     await waitFor(() =>
       expect(screen.queryByText('Consultoría procesos Maya')).not.toBeInTheDocument(),
     );
 
-    // Reabrir el select: Diego Vargas DEBE seguir disponible (el bug lo eliminaba).
+    // Reabrir el select: Diego DEBE seguir disponible (el bug lo eliminaba).
     await user.click(screen.getByRole('combobox', { name: /cliente/i }));
-    expect(await screen.findByRole('option', { name: 'Diego Vargas' })).toBeInTheDocument();
+    expect(await screen.findAllByRole('option', { name: /^Diego$/ })).toBeTruthy();
   });
 });
 

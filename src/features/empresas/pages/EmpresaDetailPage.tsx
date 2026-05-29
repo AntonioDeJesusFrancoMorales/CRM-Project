@@ -7,8 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Empresa } from '@/api/types';
 import { useEmpresa } from '../hooks/useEmpresa';
 import { EmpresaInfoTab } from '../components/EmpresaInfoTab';
-import { EmpresaProspectosTab } from '../components/EmpresaProspectosTab';
-import { EmpresaClientesTab } from '../components/EmpresaClientesTab';
+import { EmpresaContactosTab } from '../components/EmpresaContactosTab';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
 
@@ -101,17 +100,13 @@ export function EmpresaDetailPage() {
       <Tabs defaultValue="info">
         <TabsList>
           <TabsTrigger value="info">Información</TabsTrigger>
-          <TabsTrigger value="prospectos">Prospectos</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="contactos">Contactos</TabsTrigger>
         </TabsList>
         <TabsContent value="info" className="mt-4">
           <EmpresaInfoTab empresa={empresa} />
         </TabsContent>
-        <TabsContent value="prospectos" className="mt-4">
-          <EmpresaProspectosTab empresaId={empresa.id} />
-        </TabsContent>
-        <TabsContent value="clientes" className="mt-4">
-          <EmpresaClientesTab empresaId={empresa.id} />
+        <TabsContent value="contactos" className="mt-4">
+          <EmpresaContactosTab empresaId={empresa.id} />
         </TabsContent>
       </Tabs>
 

@@ -31,8 +31,7 @@ function renderPage(initialPath: string) {
         <Routes>
           <Route path="/tratos" element={<div>Listado de tratos</div>} />
           <Route path="/tratos/:id" element={<TratoDetailPage />} />
-          <Route path="/clientes/:id" element={<div>Detalle cliente</div>} />
-          <Route path="/prospectos/:id" element={<div>Detalle prospecto</div>} />
+          <Route path="/contactos/:id" element={<div>Detalle contacto</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -68,11 +67,11 @@ describe('TratoDetailPage', () => {
     expect(screen.getByText(/valor estimado/i)).toBeInTheDocument();
     expect(screen.getByText(/responsable/i)).toBeInTheDocument();
 
-    // Link al cliente vinculado (c1111111 = Ana Rodríguez) — se resuelve async al cargar el cliente
+    // Link al contacto vinculado (c1111111 = Ana Rodríguez) — se resuelve async al cargar contactos
     await waitFor(() => {
       const links = screen.getAllByRole('link');
-      const clienteLink = links.find((l) => l.getAttribute('href')?.includes('/clientes/'));
-      expect(clienteLink).toBeDefined();
+      const contactoLink = links.find((l) => l.getAttribute('href')?.includes('/contactos/'));
+      expect(contactoLink).toBeDefined();
     });
   });
 

@@ -12,8 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useTratos, type UseTratosFilters } from '../hooks/useTratos';
-import { useClientes } from '@/features/clientes/hooks/useClientes';
-import { useProspectos } from '@/features/prospectos/hooks/useProspectos';
+import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TratosTable } from '../components/TratosTable';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -43,8 +42,11 @@ export function TratosListPage() {
   // el filtro activo lo excluya. (Bug previo: al elegir un cliente desaparecían los demás
   // del dropdown — había que pasar por "Todos" para volver a verlos.)
   const { data: tratosTodos = [] } = useTratos();
-  const { data: allClientes = [] } = useClientes();
-  const { data: allProspectos = [] } = useProspectos();
+  const { data: contactosTodos = [] } = useContactos();
+  const allClientes = contactosTodos.filter(
+    (c) => c.estadoRelacion === 'ACTIVO' || c.estadoRelacion === 'INACTIVO',
+  );
+  const allProspectos = contactosTodos.filter((c) => c.estadoRelacion === 'PROSPECTO');
   const { data: usuarios = [] } = useUsuarios();
 
   // Lote F (post-smoke fix #2): los Selects de cliente/prospecto solo muestran
@@ -150,7 +152,7 @@ export function TratosListPage() {
             <SelectItem value="todos">Todos los clientes</SelectItem>
             {clientes.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.nombre_contacto}
+                {c.nombre}
               </SelectItem>
             ))}
           </SelectContent>
@@ -164,7 +166,7 @@ export function TratosListPage() {
             <SelectItem value="todos">Todos los prospectos</SelectItem>
             {prospectos.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                {p.nombre_contacto}
+                {p.nombre}
               </SelectItem>
             ))}
           </SelectContent>

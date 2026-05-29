@@ -1,0 +1,94 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
+
+import { ContactosTable } from '../components/ContactosTable';
+import type { Contacto } from '@/api/types';
+
+const contactoBase: Contacto = {
+  id: 'c0333333-cccc-0003-cccc-000000000003',
+  nombre: 'Sofía',
+  correo: 'sofia.mendoza@example.com',
+  telefono: '+52 961 333 0003',
+  empresaId: 'a1111111-aaaa-1111-aaaa-111111111111',
+  estadoRelacion: 'ACTIVO',
+  comoNosConocio: 'Conferencia de tecnología 2025',
+  responsableId: null,
+  creadoPor: null,
+  creadoEn: '2026-02-15T08:00:00.000Z',
+  actualizadoEn: '2026-03-01T11:00:00.000Z',
+};
+
+const contactos: Contacto[] = [
+  contactoBase,
+  {
+    id: 'c0111111-cccc-0001-cccc-000000000001',
+    nombre: 'Lucía',
+    correo: null,
+    telefono: null,
+    empresaId: 'a1111111-aaaa-1111-aaaa-111111111111',
+    estadoRelacion: 'PROSPECTO',
+    comoNosConocio: null,
+    responsableId: null,
+    creadoPor: null,
+    creadoEn: '2026-01-15T09:00:00.000Z',
+    actualizadoEn: '2026-01-15T09:00:00.000Z',
+  },
+];
+
+function renderTable(items: Contacto[] = contactos) {
+  const onEdit = vi.fn();
+  const onDelete = vi.fn();
+  render(
+    <MemoryRouter>
+      <ContactosTable contactos={items} onEdit={onEdit} onDelete={onDelete} />
+    </MemoryRouter>,
+  );
+  return { onEdit, onDelete };
+}
+
+describe('ContactosTable', () => {
+  it('renderiza una fila por cada contacto del array', () => {
+    renderTable();
+    expect(screen.getByText('Sofía')).toBeInTheDocument();
+    expect(screen.getByText('Lucía')).toBeInTheDocument();
+  });
+
+  it('nombre es un link que apunta a /contactos/:id', () => {
+    renderTable();
+    const link = screen.getByRole('link', { name: 'Sofía' });
+    expect(link).toHaveAttribute('href', `/contactos/${contactoBase.id}`);
+  });
+
+  it('muestra estadoRelacion como badge con texto visible', () => {
+    renderTable();
+    // Badge ACTIVO de Sofía
+    expect(screen.getByText('Activo')).toBeInTheDocument();
+    // Badge PROSPECTO de Lucía
+    expect(screen.getByText('Prospecto')).toBeInTheDocument();
+  });
+
+  it('tabla vacía renderiza mensaje de vacío', () => {
+    renderTable([]);
+    expect(screen.getByText(/no hay contactos/i)).toBeInTheDocument();
+  });
+
+  it('las acciones de editar y eliminar llaman los callbacks correctos', async () => {
+    const user = userEvent.setup();
+    const { onEdit, onDelete } = renderTable();
+
+    // Abrir el menú de acciones de la primera fila (Sofía)
+    const triggers = screen.getAllByRole('button', { name: /acciones/i });
+    await user.click(triggers[0]);
+
+    const editarBtn = await screen.findByRole('menuitem', { name: /editar/i });
+    await user.click(editarBtn);
+    expect(onEdit).toHaveBeenCalledWith(contactoBase);
+  });
+
+  it('muestra comoNosConocio cuando está disponible', () => {
+    renderTable();
+    expect(screen.getByText('Conferencia de tecnología 2025')).toBeInTheDocument();
+  });
+});

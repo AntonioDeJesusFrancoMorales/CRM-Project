@@ -2,8 +2,6 @@
 // Cuando el contrato cambie, actualizar acá y propaga a TODA la app.
 
 export type RolSistema = 'admin' | 'usuario';
-export type ComoNosConocio = 'referido' | 'redes_sociales' | 'busqueda' | 'evento' | 'otro';
-export type EstadoPosibleCliente = 'frio' | 'tibio' | 'caliente' | 'convertido';
 export type EstadoRelacion = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO';
 export type TipoContrato = 'precio_fijo' | 'tiempo_materiales' | 'retainer';
 export type EstadoTrato = 'abierto' | 'ganado' | 'perdido';
@@ -39,36 +37,38 @@ export interface Empresa {
   actualizadoEn: string;
 }
 
-export interface Prospecto {
+export interface Contacto {
   id: string;
-  empresa_id: string;
-  responsable_id: string;
-  creado_por: string;
-  nombre_contacto: string;
-  correo_contacto: string | null;
-  telefono_contacto: string | null;
-  cargo_contacto: string | null;
-  como_nos_conocio: ComoNosConocio | null;
-  estado_posible_cliente: EstadoPosibleCliente;
-  notas: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  nombre: string;
+  correo: string | null;
+  telefono: string | null;
+  empresaId: string;
+  estadoRelacion: EstadoRelacion;
+  comoNosConocio: string | null;
+  responsableId: string | null;
+  creadoPor: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
-export interface Cliente {
-  id: string;
-  empresa_id: string;
-  responsable_id: string;
-  creado_por: string;
-  nombre_contacto: string;
-  correo_contacto: string | null;
-  telefono_contacto: string | null;
-  cargo_contacto: string | null;
-  como_nos_conocio: ComoNosConocio | null;
-  notas: string | null;
-  prospecto_origen_id: string | null;
-  creado_en: string;
-  actualizado_en: string;
+// empresaId y creadoPor son inmutables en el back — no van en los payloads de mutación.
+export interface ContactoCreatePayload {
+  nombre: string;
+  correo?: string | null;
+  telefono?: string | null;
+  empresaId: string;
+  estadoRelacion: EstadoRelacion;
+  comoNosConocio?: string | null;
+  responsableId?: string | null;
+}
+
+export interface ContactoUpdatePayload {
+  nombre?: string;
+  correo?: string | null;
+  telefono?: string | null;
+  estadoRelacion?: EstadoRelacion;
+  comoNosConocio?: string | null;
+  responsableId?: string | null;
 }
 
 export interface Trato {

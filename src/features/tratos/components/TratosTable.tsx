@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import type { Cliente, Prospecto, TipoContrato, Trato } from '@/api/types';
+import type { Contacto, TipoContrato, Trato } from '@/api/types';
 import {
   Table,
   TableBody,
@@ -31,8 +31,8 @@ function formatCurrency(value: number | null): string {
 
 interface TratosTableProps {
   tratos: Trato[];
-  clientes?: Cliente[];
-  prospectos?: Prospecto[];
+  clientes?: Contacto[];
+  prospectos?: Contacto[];
   searchTerm?: string;
 }
 
@@ -79,10 +79,12 @@ export function TratosTable({
             </TableRow>
           ) : (
             filtered.map((trato) => {
-              const vinculado = trato.cliente_id
-                ? clientesById[trato.cliente_id]?.nombre_contacto
-                : trato.prospecto_id
-                  ? prospectosById[trato.prospecto_id]?.nombre_contacto
+              const clienteContacto = trato.cliente_id ? clientesById[trato.cliente_id] : null;
+              const prospectoContacto = trato.prospecto_id ? prospectosById[trato.prospecto_id] : null;
+              const vinculado = clienteContacto
+                ? clienteContacto.nombre
+                : prospectoContacto
+                  ? prospectoContacto.nombre
                   : null;
               return (
                 <TableRow key={trato.id}>

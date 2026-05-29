@@ -19,8 +19,7 @@ import { useTrato } from '../hooks/useTrato';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
 import { useGanarTrato } from '../hooks/useGanarTrato';
 import { useUpdateTrato } from '../hooks/useUpdateTrato';
-import { useClientes } from '@/features/clientes/hooks/useClientes';
-import { useProspectos } from '@/features/prospectos/hooks/useProspectos';
+import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { getTareaEstado } from '@/features/tareas/hooks/useTareaEstado';
@@ -38,8 +37,11 @@ export function TratoDetailPage() {
   const navigate = useNavigate();
 
   const { data: trato, isLoading, error } = useTrato(id);
-  const { data: clientes = [] } = useClientes();
-  const { data: prospectos = [] } = useProspectos();
+  const { data: contactosAll = [] } = useContactos();
+  const clientes = contactosAll.filter(
+    (c) => c.estadoRelacion === 'ACTIVO' || c.estadoRelacion === 'INACTIVO',
+  );
+  const prospectos = contactosAll.filter((c) => c.estadoRelacion === 'PROSPECTO');
   const { data: usuarios = [] } = useUsuarios();
 
   // ADR-052: query de pendientes levantado a nivel página.
@@ -220,9 +222,9 @@ export function TratoDetailPage() {
         <TabsContent value="info" className="mt-4">
           <TratoInfoTab
             trato={trato}
-            clienteNombre={cliente?.nombre_contacto}
+            clienteNombre={cliente ? cliente.nombre : undefined}
             clienteId={cliente?.id}
-            prospectoNombre={prospecto?.nombre_contacto}
+            prospectoNombre={prospecto ? prospecto.nombre : undefined}
             prospectoId={prospecto?.id}
             responsableNombre={responsable?.nombre}
           />

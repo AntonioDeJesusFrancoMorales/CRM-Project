@@ -15,4 +15,11 @@ export const endpoints = {
     edit: (id: string) => `/tareas/edit?id=${id}`,
     delete: (id: string) => `/tareas/delete?id=${id}`,
   },
+  contactos: {
+    getAll: () => '/contactos/get-all',
+    getById: (id: string) => `/contactos/get-by-id?id=${id}`,
+    create: () => '/contactos/create',
+    edit: (id: string) => `/contactos/edit?id=${id}`,
+    delete: (id: string) => `/contactos/delete?id=${id}`,
+  },
 } as const;

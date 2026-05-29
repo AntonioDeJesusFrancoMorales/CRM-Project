@@ -68,11 +68,11 @@ export function TratoInfoTab({
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <Field label="Vinculado a">
         {clienteId && clienteNombre ? (
-          <Link to={`/clientes/${clienteId}`} className="text-primary hover:underline">
+          <Link to={`/contactos/${clienteId}`} className="text-primary hover:underline">
             {clienteNombre} (cliente)
           </Link>
         ) : prospectoId && prospectoNombre ? (
-          <Link to={`/prospectos/${prospectoId}`} className="text-primary hover:underline">
+          <Link to={`/contactos/${prospectoId}`} className="text-primary hover:underline">
             {prospectoNombre} (prospecto)
           </Link>
         ) : (
