@@ -316,9 +316,9 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () =>
+      http.get('/api/usuarios/get-all', () =>
         HttpResponse.json([
-          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', activo: true },
+          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', rolId: 'rol-admin-uuid-1111-111111111111', creadoEn: '2026-01-15T10:00:00Z', activo: true, keycloakId: null, correo: 'admin@crm.test' },
         ]),
       ),
       http.post('/api/fichas/create', async ({ request }) => {
@@ -366,9 +366,9 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () =>
+      http.get('/api/usuarios/get-all', () =>
         HttpResponse.json([
-          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', activo: true },
+          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', rolId: 'rol-admin-uuid-1111-111111111111', creadoEn: '2026-01-15T10:00:00Z', activo: true, keycloakId: null, correo: 'admin@crm.test' },
         ]),
       ),
       http.post('/api/fichas/create', async () =>
@@ -409,9 +409,9 @@ describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () =>
+      http.get('/api/usuarios/get-all', () =>
         HttpResponse.json([
-          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', activo: true },
+          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', rolId: 'rol-admin-uuid-1111-111111111111', creadoEn: '2026-01-15T10:00:00Z', activo: true, keycloakId: null, correo: 'admin@crm.test' },
         ]),
       ),
       http.post('/api/fichas/create', () =>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import type { Usuario } from '@/api/types';
+import type { Usuario, Rol } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,14 +28,14 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { formatRelativeDate } from '@/lib/format';
+import { resolveRolNombre } from '../lib/rolLookup';
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
+  roles: Rol[];
   sessionUserId: string;
   onEdit: (usuario: Usuario) => void;
   onDelete: (usuario: Usuario) => void;
-  onDesactivar: (usuario: Usuario) => void;
-  onReactivar: (usuario: Usuario) => void;
 }
 
 /** Normaliza acentos y mayúsculas para comparación de búsqueda. */
@@ -48,14 +48,13 @@ function normalizar(str: string): string {
 
 export function UsuariosTable({
   usuarios,
+  roles,
   sessionUserId,
   onEdit,
   onDelete,
-  onDesactivar,
-  onReactivar,
 }: UsuariosTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [rolFilter, setRolFilter] = useState<'admin' | 'usuario' | 'todos'>('todos');
+  const [rolFilter, setRolFilter] = useState<string>('todos');
 
   const filtered = useMemo(() => {
     const term = normalizar(searchTerm.trim());
@@ -64,10 +63,18 @@ export function UsuariosTable({
         term === '' ||
         normalizar(u.nombre).includes(term) ||
         normalizar(u.correo).includes(term);
-      const coincideRol = rolFilter === 'todos' || u.rol_sistema === rolFilter;
+      const rolNombre = resolveRolNombre(u.rolId, roles);
+      const coincideRol =
+        rolFilter === 'todos' ||
+        normalizar(rolNombre).includes(normalizar(rolFilter));
       return coincideBusqueda && coincideRol;
     });
-  }, [usuarios, searchTerm, rolFilter]);
+  }, [usuarios, roles, searchTerm, rolFilter]);
+
+  // Build unique role options from the provided roles list
+  const rolOptions = useMemo(() => {
+    return roles.map((r) => ({ value: r.nombre, label: r.nombre }));
+  }, [roles]);
 
   return (
     <div className="space-y-4">
@@ -82,15 +89,18 @@ export function UsuariosTable({
         />
         <Select
           value={rolFilter}
-          onValueChange={(v) => setRolFilter(v as 'admin' | 'usuario' | 'todos')}
+          onValueChange={(v) => setRolFilter(v)}
         >
           <SelectTrigger className="w-[160px]" aria-label="Filtrar por rol">
             <SelectValue placeholder="Filtrar por rol" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="usuario">Usuario</SelectItem>
+            {rolOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -100,8 +110,7 @@ export function UsuariosTable({
           <TableRow>
             <TableHead>Nombre</TableHead>
             <TableHead>Correo</TableHead>
-            <TableHead>Rol sistema</TableHead>
-            <TableHead>Rol empresa</TableHead>
+            <TableHead>Rol</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Creado</TableHead>
             <TableHead className="w-10" />
@@ -111,7 +120,7 @@ export function UsuariosTable({
           {filtered.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={6}
                 className="py-8 text-center text-muted-foreground"
               >
                 No se encontraron usuarios con esos filtros
@@ -120,19 +129,15 @@ export function UsuariosTable({
           ) : (
             filtered.map((usuario) => {
               const isOwnAccount = usuario.id === sessionUserId;
+              const rolNombre = resolveRolNombre(usuario.rolId, roles);
 
               return (
                 <TableRow key={usuario.id}>
                   <TableCell className="font-medium">{usuario.nombre}</TableCell>
                   <TableCell>{usuario.correo}</TableCell>
                   <TableCell>
-                    {usuario.rol_sistema === 'admin' ? (
-                      <Badge variant="default">Admin</Badge>
-                    ) : (
-                      <Badge variant="secondary">Usuario</Badge>
-                    )}
+                    <Badge variant="secondary">{rolNombre}</Badge>
                   </TableCell>
-                  <TableCell>{usuario.rol_empresa ?? '—'}</TableCell>
                   <TableCell>
                     {usuario.activo ? (
                       <Badge
@@ -150,7 +155,7 @@ export function UsuariosTable({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{formatRelativeDate(usuario.creado_en)}</TableCell>
+                  <TableCell>{formatRelativeDate(usuario.creadoEn)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -163,43 +168,10 @@ export function UsuariosTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {/* Editar — siempre habilitado, incluso para cuenta propia */}
+                        {/* Editar — siempre habilitado */}
                         <DropdownMenuItem onClick={() => onEdit(usuario)}>
                           Editar
                         </DropdownMenuItem>
-
-                        <DropdownMenuSeparator />
-
-                        {/* Desactivar / Reactivar según estado */}
-                        {usuario.activo ? (
-                          isOwnAccount ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <DropdownMenuItem
-                                    disabled
-                                    className="cursor-not-allowed opacity-50"
-                                  >
-                                    Desactivar
-                                  </DropdownMenuItem>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                No puedes realizar esta acción sobre tu propia cuenta
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={() => onDesactivar(usuario)}
-                            >
-                              Desactivar
-                            </DropdownMenuItem>
-                          )
-                        ) : (
-                          <DropdownMenuItem onClick={() => onReactivar(usuario)}>
-                            Reactivar
-                          </DropdownMenuItem>
-                        )}
 
                         <DropdownMenuSeparator />
 

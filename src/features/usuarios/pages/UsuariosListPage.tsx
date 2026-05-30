@@ -1,58 +1,22 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { Usuario } from '@/api/types';
-import { apiClient } from '@/api/client';
-import { isHttpError } from '@/api/http-error';
 import { useAuthStore } from '@/store/authStore';
 import { useUsuarios } from '../hooks/useUsuarios';
-import { useDesactivarUsuario } from '../hooks/useDesactivarUsuario';
-import { usuariosKeys } from '../hooks/useUsuarios';
+import { useRoles } from '../hooks/useRoles';
 import { UsuariosTable } from '../components/UsuariosTable';
 import { UsuarioFormDialog } from '../components/UsuarioFormDialog';
 import { UsuarioDeleteDialog } from '../components/UsuarioDeleteDialog';
 
 export function UsuariosListPage() {
   const { data: usuarios, isPending, isError, refetch } = useUsuarios();
+  const { data: roles = [] } = useRoles();
   const sessionUserId = useAuthStore((s) => s.usuario?.id ?? '');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Usuario | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
-
-  const queryClient = useQueryClient();
-  const desactivarMutation = useDesactivarUsuario();
-
-  /**
-   * Reactivación imperativa vía PATCH /usuarios/:id con { activo: true }.
-   * No existe endpoint dedicado (asimetría intencional, ADR-018).
-   * Se usa useMutation aquí para acceder al queryClient y manejar toasts.
-   */
-  const reactivarMutation = useMutation<Usuario, Error, string>({
-    mutationFn: (id) =>
-      apiClient.patch<Usuario>(`/usuarios/${id}`, { activo: true }),
-    onSuccess: (updated) => {
-      void queryClient.invalidateQueries({ queryKey: usuariosKeys.list() });
-      toast.success(`Usuario "${updated.nombre}" reactivado`);
-    },
-    onError: (error) => {
-      if (isHttpError(error)) {
-        toast.error(error.message);
-      } else {
-        toast.error('No fue posible reactivar el usuario');
-      }
-    },
-  });
-
-  function handleDesactivar(usuario: Usuario) {
-    desactivarMutation.mutate(usuario.id);
-  }
-
-  function handleReactivar(usuario: Usuario) {
-    reactivarMutation.mutate(usuario.id);
-  }
 
   return (
     <div className="space-y-6">
@@ -106,11 +70,10 @@ export function UsuariosListPage() {
         <div className="rounded-md border">
           <UsuariosTable
             usuarios={usuarios}
+            roles={roles}
             sessionUserId={sessionUserId}
             onEdit={(usuario) => setEditTarget(usuario)}
             onDelete={(usuario) => setDeleteTarget(usuario)}
-            onDesactivar={handleDesactivar}
-            onReactivar={handleReactivar}
           />
         </div>
       )}
@@ -131,7 +94,6 @@ export function UsuariosListPage() {
             if (!v) setEditTarget(null);
           }}
           usuario={editTarget}
-          isOwnAccount={editTarget.id === sessionUserId}
         />
       )}
 

@@ -13,10 +13,25 @@ export interface Usuario {
   id: string;
   nombre: string;
   correo: string;
+  rolId: string;
+  creadoEn: string;
+  activo: boolean;                // READ-ONLY desde el back
+  keycloakId: string | null;
+}
+
+export interface UsuarioSesion {  // Exclusivo para sesion de auth; independiente de Usuario
+  id: string;
+  nombre: string;
+  correo: string;
   rol_sistema: RolSistema;
   rol_empresa: string | null;
+}
+
+export interface Rol {            // == RolResponse del back
+  id: string;
+  nombre: string;
+  descripcion: string | null;
   activo: boolean;
-  creado_en: string;
 }
 
 export interface Empresa {
@@ -130,7 +145,7 @@ export interface Comentario {
 // Respuesta de POST /auth/login
 export interface LoginResponse {
   token: string;
-  usuario: Pick<Usuario, 'id' | 'nombre' | 'correo' | 'rol_sistema' | 'rol_empresa'>;
+  usuario: UsuarioSesion;
 }
 
 // Forma del error normalizado del contrato.

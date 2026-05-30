@@ -71,3 +71,32 @@ describe('endpoints.contactos — rutas RPC', () => {
     expect(endpoints.contactos.delete('c1')).toBe('/contactos/delete?id=c1');
   });
 });
+
+// F1.1 — usuarios RPC + roles
+describe('endpoints.usuarios — rutas RPC', () => {
+  it('getAll() retorna /usuarios/get-all', () => {
+    expect(endpoints.usuarios.getAll()).toBe('/usuarios/get-all');
+  });
+
+  it('getById(id) retorna /usuarios/get-by-id?id=u1', () => {
+    expect(endpoints.usuarios.getById('u1')).toBe('/usuarios/get-by-id?id=u1');
+  });
+
+  it('create() retorna /usuarios/create', () => {
+    expect(endpoints.usuarios.create()).toBe('/usuarios/create');
+  });
+
+  it('edit(id) retorna /usuarios/edit?id=u1', () => {
+    expect(endpoints.usuarios.edit('u1')).toBe('/usuarios/edit?id=u1');
+  });
+
+  it('delete(id) retorna /usuarios/delete?id=u1', () => {
+    expect(endpoints.usuarios.delete('u1')).toBe('/usuarios/delete?id=u1');
+  });
+});
+
+describe('endpoints.roles — rutas RPC', () => {
+  it('getAll() retorna /roles/get-all', () => {
+    expect(endpoints.roles.getAll()).toBe('/roles/get-all');
+  });
+});

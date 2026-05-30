@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { usuariosKeys } from './useUsuarios';
 
@@ -8,7 +9,7 @@ export function useDeleteUsuario(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, string>({
-    mutationFn: (id) => apiClient.delete<void>(`/usuarios/${id}`),
+    mutationFn: (id) => apiClient.delete<void>(endpoints.usuarios.delete(id)),
     onSuccess: (_void, id) => {
       queryClient.removeQueries({ queryKey: usuariosKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: usuariosKeys.list() });

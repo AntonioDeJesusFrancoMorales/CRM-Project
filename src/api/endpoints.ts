@@ -47,4 +47,14 @@ export const endpoints = {
     edit: (id: string) => `/fichas/edit?id=${id}`,
     delete: (id: string) => `/fichas/delete?id=${id}`,
   },
+  usuarios: {
+    getAll: () => '/usuarios/get-all',
+    getById: (id: string) => `/usuarios/get-by-id?id=${id}`,
+    create: () => '/usuarios/create',
+    edit: (id: string) => `/usuarios/edit?id=${id}`,
+    delete: (id: string) => `/usuarios/delete?id=${id}`,
+  },
+  roles: {
+    getAll: () => '/roles/get-all',
+  },
 } as const;

@@ -2,21 +2,27 @@
 // La signature NO se verifica criptográficamente (es un mock). El payload sí
 // codifica datos reales para que jwt.io pueda inspeccionarlo en debug.
 
-import type { Usuario } from '@/api/types';
+import type { RolSistema } from '@/api/types';
 
 interface JwtPayload {
   sub: string;
   exp: number;
   iat: number;
   nombre: string;
-  rol_sistema: Usuario['rol_sistema'];
+  rol_sistema: RolSistema;
+}
+
+interface FakeJwtUser {
+  id: string;
+  nombre: string;
+  rol_sistema: RolSistema;
 }
 
 function base64UrlEncode(input: string): string {
   return btoa(input).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function fakeJwt(user: Pick<Usuario, 'id' | 'nombre' | 'rol_sistema'>): string {
+export function fakeJwt(user: FakeJwtUser): string {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'HS256', typ: 'JWT' };
   const payload: JwtPayload = {
