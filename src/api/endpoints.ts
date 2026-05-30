@@ -32,14 +32,23 @@ export const endpoints = {
   tableros: {
     getAll: () => '/tableros/get-all',
     getById: (id: string) => `/tableros/get-by-id?id=${id}`,
+    create: () => '/tableros/create',
+    edit: (id: string) => `/tableros/edit?id=${id}`,
+    delete: (id: string) => `/tableros/delete?id=${id}`,
     asignarColumna: (tableroId: string, columnaId: string) =>
       `/tableros/asignar-columna?id=${tableroId}&columnaId=${columnaId}`,
     eliminarColumna: (tableroId: string, columnaId: string) =>
       `/tableros/eliminar-columna?id=${tableroId}&columnaId=${columnaId}`,
     reordenarColumnas: (tableroId: string) => `/tableros/reordenar-columnas?id=${tableroId}`,
+    // Nota: /tableros/agregar-columna existe en el back pero está @Deprecated;
+    // el flujo vigente es asignar-columna (sobre columnas del catálogo).
   },
   columnas: {
     getAll: () => '/columnas/get-all',
+    getById: (id: string) => `/columnas/get-by-id?id=${id}`,
+    create: () => '/columnas/create',
+    edit: (id: string) => `/columnas/edit?id=${id}`,
+    delete: (id: string) => `/columnas/delete?id=${id}`,
   },
   fichas: {
     getAll: () => '/fichas/get-all',
