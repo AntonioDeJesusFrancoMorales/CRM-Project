@@ -130,11 +130,6 @@ describe('EstadoRelacionSelect', () => {
     const prospecto = screen
       .getAllByRole('option', { hidden: true })
       .find((o) => o.textContent?.toLowerCase().includes('prospecto'));
-    expect(prospecto).toHaveAttribute('data-disabled');
-
-    // El texto de razón debe estar en el DOM (TooltipContent montado aunque no visible)
-    const razonEl = document.body.querySelector('[data-radix-popper-content-wrapper]');
-    // Si existe el portal, contiene la razón; si no, el texto puede estar en hidden state
     // El assert más robusto es verificar que el SelectItem está disabled
     expect(prospecto).toHaveAttribute('data-disabled');
     void container; // referencia usada
