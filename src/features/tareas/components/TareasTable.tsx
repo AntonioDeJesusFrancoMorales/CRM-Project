@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
 import { TareaEstadoMenu } from './TareaEstadoMenu';
+import { TareaEstadoBadge } from './TareaEstadoBadge';
 import { TareaEditDialog } from './TareaEditDialog';
 import { TareaDeleteDialog } from './TareaDeleteDialog';
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
@@ -113,7 +114,10 @@ export function TareasTable({
                   <Badge variant="outline">{prioridadLabels[tarea.prioridad]}</Badge>
                 </TableCell>
                 <TableCell>
-                  <TareaEstadoMenu tarea={tarea} />
+                  <div className="flex items-center gap-2">
+                    <TareaEstadoBadge tareaId={tarea.id} />
+                    <TareaEstadoMenu tarea={tarea} />
+                  </div>
                 </TableCell>
                 <TableCell>{usuariosById[tarea.responsableId] ?? '—'}</TableCell>
                 <TableCell>{tratosById[tarea.tratoId] ?? '—'}</TableCell>
