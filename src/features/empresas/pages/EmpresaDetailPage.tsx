@@ -5,11 +5,9 @@ import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Empresa } from '@/api/types';
-import { isHttpError } from '@/api/http-error';
 import { useEmpresa } from '../hooks/useEmpresa';
 import { EmpresaInfoTab } from '../components/EmpresaInfoTab';
-import { EmpresaProspectosTab } from '../components/EmpresaProspectosTab';
-import { EmpresaClientesTab } from '../components/EmpresaClientesTab';
+import { EmpresaContactosTab } from '../components/EmpresaContactosTab';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
 
@@ -23,16 +21,17 @@ export function EmpresaDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
 
-  const is404 = isHttpError(error) && error.status === 404;
+  // La empresa no existe cuando la query resolvió pero no encontró el id en el listado.
+  const notFound = !isLoading && !empresa && !!error;
 
   useEffect(() => {
-    if (!is404) return;
+    if (!notFound) return;
     toast.message('Empresa no encontrada');
     const timeoutId = window.setTimeout(() => {
       navigate('/empresas', { replace: true });
     }, NOT_FOUND_REDIRECT_DELAY);
     return () => window.clearTimeout(timeoutId);
-  }, [is404, navigate]);
+  }, [notFound, navigate]);
 
   if (isLoading) {
     return (
@@ -42,7 +41,7 @@ export function EmpresaDetailPage() {
     );
   }
 
-  if (is404) {
+  if (notFound) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
         Esta empresa no existe. Volviendo al listado...
@@ -101,17 +100,13 @@ export function EmpresaDetailPage() {
       <Tabs defaultValue="info">
         <TabsList>
           <TabsTrigger value="info">Información</TabsTrigger>
-          <TabsTrigger value="prospectos">Prospectos</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="contactos">Contactos</TabsTrigger>
         </TabsList>
         <TabsContent value="info" className="mt-4">
           <EmpresaInfoTab empresa={empresa} />
         </TabsContent>
-        <TabsContent value="prospectos" className="mt-4">
-          <EmpresaProspectosTab empresaId={empresa.id} />
-        </TabsContent>
-        <TabsContent value="clientes" className="mt-4">
-          <EmpresaClientesTab empresaId={empresa.id} />
+        <TabsContent value="contactos" className="mt-4">
+          <EmpresaContactosTab empresaId={empresa.id} />
         </TabsContent>
       </Tabs>
 

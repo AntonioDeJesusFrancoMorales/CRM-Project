@@ -1,67 +1,120 @@
 import { http, HttpResponse } from 'msw';
-import { nowIso } from '@/mocks/utils/crud';
 import { withDelay } from '@/mocks/utils/withDelay';
 import { errors } from '@/mocks/utils/error';
+import { nowIso } from '@/mocks/utils/crud';
 import { usuariosFixture, toUsuarioDto } from '@/mocks/fixtures/usuarios';
+import type { UsuarioMock } from '@/mocks/fixtures/usuarios';
 import type { Usuario } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
-// Los handlers operan directamente sobre `usuariosFixture` (UsuarioMock[]),
-// que incluye `password`. Las respuestas pasan por `toUsuarioDto` para excluirlo.
-// Patrón equivalente al de Empresas, pero hand-written por la asimetría de la fixture.
+// Handlers RPC del back — rutas /get-all, /create, /edit?id=, /delete?id=, /get-by-id?id=.
+// El id va siempre como query param (nunca en el path).
+// Los handlers operan sobre usuariosFixture (UsuarioMock[]).
+// Las respuestas pasan por toUsuarioDto para excluir password, rol_sistema, rol_empresa.
 export const usuariosHandlers = [
-  http.get(`${API}/usuarios`, async () => {
+  // GET /api/usuarios/get-all — retorna lista completa
+  http.get(`${API}/usuarios/get-all`, async () => {
     await withDelay();
     return HttpResponse.json(usuariosFixture.map(toUsuarioDto));
   }),
 
-  http.get(`${API}/usuarios/:id`, async ({ params }) => {
+  // GET /api/usuarios/get-by-id?id= — retorna usuario individual por query param
+  http.get(`${API}/usuarios/get-by-id`, async ({ request }) => {
     await withDelay();
-    const u = usuariosFixture.find((x) => x.id === params['id']);
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    const u = usuariosFixture.find((x) => x.id === id);
     return u ? HttpResponse.json(toUsuarioDto(u)) : errors.notFound();
   }),
 
-  http.post(`${API}/usuarios`, async ({ request }) => {
+  // POST /api/usuarios/create — crea usuario; body: nombre, correo, rolId, initialPassword
+  http.post(`${API}/usuarios/create`, async ({ request }) => {
     await withDelay();
     const body = (await request.json()) as Record<string, unknown>;
-    const nuevo = {
+
+    // Validacion basica: campos requeridos
+    const missing: Array<{ field: string; message: string }> = [];
+    if (!body['nombre']) missing.push({ field: 'nombre', message: 'El nombre es requerido' });
+    if (!body['correo']) missing.push({ field: 'correo', message: 'El correo es requerido' });
+    if (!body['rolId']) missing.push({ field: 'rolId', message: 'El rol es requerido' });
+    if (!body['initialPassword']) missing.push({ field: 'initialPassword', message: 'La contrasena inicial es requerida' });
+    if (missing.length > 0) {
+      return HttpResponse.json(
+        { status: 422, error: 'VALIDATION_ERROR', message: 'Datos invalidos', details: missing },
+        { status: 422 },
+      );
+    }
+
+    const nuevo: UsuarioMock = {
       id: crypto.randomUUID(),
-      nombre: String(body['nombre'] ?? ''),
-      correo: String(body['correo'] ?? ''),
-      password: '', // mock — usuarios creados desde la UI quedan sin password funcional
-      rol_sistema: (body['rol_sistema'] as Usuario['rol_sistema']) ?? 'usuario',
-      rol_empresa: (body['rol_empresa'] as string | null) ?? null,
+      nombre: String(body['nombre']),
+      correo: String(body['correo']),
+      rolId: String(body['rolId']),
+      creadoEn: nowIso(),
       activo: true,
-      creado_en: nowIso(),
+      keycloakId: (body['keycloakId'] as string | null) ?? null,
+      password: String(body['initialPassword']),
+      rol_sistema: 'usuario',
+      rol_empresa: null,
     };
     usuariosFixture.push(nuevo);
+    // La response NO incluye initialPassword ni campos de auth
     return HttpResponse.json(toUsuarioDto(nuevo), { status: 201 });
   }),
 
-  http.patch(`${API}/usuarios/:id`, async ({ params, request }) => {
+  // PUT /api/usuarios/edit?id= — actualiza usuario; id en query param; sin activo ni initialPassword
+  http.put(`${API}/usuarios/edit`, async ({ request }) => {
     await withDelay();
-    const idx = usuariosFixture.findIndex((u) => u.id === params['id']);
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    const idx = usuariosFixture.findIndex((u) => u.id === id);
     if (idx === -1) return errors.notFound();
+
     const body = (await request.json()) as Record<string, unknown>;
-    const updated = { ...usuariosFixture[idx]!, ...body };
-    usuariosFixture[idx] = updated;
-    return HttpResponse.json(toUsuarioDto(updated));
+
+    // Validacion basica para edit
+    const details: Array<{ field: string; message: string }> = [];
+    if (body['nombre'] !== undefined && !body['nombre']) {
+      details.push({ field: 'nombre', message: 'El nombre no puede estar vacio' });
+    }
+    if (body['correo'] !== undefined && !body['correo']) {
+      details.push({ field: 'correo', message: 'El correo no puede estar vacio' });
+    }
+    if (details.length > 0) {
+      return HttpResponse.json(
+        { status: 422, error: 'VALIDATION_ERROR', message: 'Datos invalidos', details },
+        { status: 422 },
+      );
+    }
+
+    // NO se actualiza activo ni se acepta initialPassword
+    const { activo: _activo, initialPassword: _ip, password: _pw, ...safeBody } = body as {
+      activo?: unknown;
+      initialPassword?: unknown;
+      password?: unknown;
+      [key: string]: unknown;
+    };
+
+    usuariosFixture[idx] = {
+      ...usuariosFixture[idx]!,
+      ...(safeBody as Partial<UsuarioMock>),
+    };
+    return HttpResponse.json(toUsuarioDto(usuariosFixture[idx]!));
   }),
 
-  http.delete(`${API}/usuarios/:id`, async ({ params }) => {
+  // DELETE /api/usuarios/delete?id= — elimina usuario; responde 204
+  http.delete(`${API}/usuarios/delete`, async ({ request }) => {
     await withDelay();
-    const idx = usuariosFixture.findIndex((u) => u.id === params['id']);
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    const idx = usuariosFixture.findIndex((u) => u.id === id);
     if (idx === -1) return errors.notFound();
     usuariosFixture.splice(idx, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.patch(`${API}/usuarios/:id/desactivar`, async ({ params }) => {
-    await withDelay();
-    const idx = usuariosFixture.findIndex((u) => u.id === params['id']);
-    if (idx === -1) return errors.notFound();
-    usuariosFixture[idx]!.activo = false;
-    return HttpResponse.json(toUsuarioDto(usuariosFixture[idx]!));
-  }),
 ];
+
+// Re-exportamos el tipo para otros modulos que lo necesiten
+export type { Usuario };

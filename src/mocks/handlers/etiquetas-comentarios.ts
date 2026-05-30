@@ -5,7 +5,7 @@ import { nowIso } from '@/mocks/utils/crud';
 import { etiquetasFixture, comentariosFixture } from '@/mocks/fixtures/tableros';
 import type { Etiqueta, Comentario } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 export const etiquetasComentariosHandlers = [
   // Etiquetas

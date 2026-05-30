@@ -5,7 +5,7 @@ import { withDelay } from '@/mocks/utils/withDelay';
 import { errors } from '@/mocks/utils/error';
 import type { LoginResponse } from '@/api/types';
 
-const API = '/api/v1';
+const API = '/api';
 
 interface LoginBody {
   email?: string;
@@ -24,15 +24,16 @@ export const authHandlers = [
     const user = findUsuarioByCreds(body.email!, body.password!);
     if (!user) return errors.unauthorized('Credenciales inválidas');
 
-    const dto = toUsuarioDto(user);
+    // UsuarioSesion se construye directamente desde UsuarioMock (que tiene rol_sistema/rol_empresa).
+    // toUsuarioDto ya no incluye esos campos (son exclusivos del mock de auth).
     const response: LoginResponse = {
       token: fakeJwt({ id: user.id, nombre: user.nombre, rol_sistema: user.rol_sistema }),
       usuario: {
-        id: dto.id,
-        nombre: dto.nombre,
-        correo: dto.correo,
-        rol_sistema: dto.rol_sistema,
-        rol_empresa: dto.rol_empresa,
+        id: user.id,
+        nombre: user.nombre,
+        correo: user.correo,
+        rol_sistema: user.rol_sistema,
+        rol_empresa: user.rol_empresa,
       },
     };
     return HttpResponse.json(response);

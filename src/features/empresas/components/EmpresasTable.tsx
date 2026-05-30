@@ -79,20 +79,20 @@ export function EmpresasTable({
               <TableCell>{empresa.sector ?? '—'}</TableCell>
               <TableCell>{empresa.telefono ?? '—'}</TableCell>
               <TableCell>
-                {empresa.pagina_web ? (
+                {empresa.paginaWeb ? (
                   <a
-                    href={empresa.pagina_web}
+                    href={empresa.paginaWeb}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline underline-offset-4 hover:text-primary/80"
                   >
-                    {empresa.pagina_web}
+                    {empresa.paginaWeb}
                   </a>
                 ) : (
                   '—'
                 )}
               </TableCell>
-              <TableCell>{formatRelativeDate(empresa.creado_en)}</TableCell>
+              <TableCell>{formatRelativeDate(empresa.creadoEn)}</TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

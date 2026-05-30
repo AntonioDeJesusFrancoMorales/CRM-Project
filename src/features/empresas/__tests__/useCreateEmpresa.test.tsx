@@ -32,7 +32,7 @@ describe('useCreateEmpresa', () => {
 
   it('propaga errores de validación 422 con details', async () => {
     server.use(
-      http.post('/api/v1/empresas', () =>
+      http.post('/api/empresas/create', () =>
         HttpResponse.json(
           {
             status: 422,

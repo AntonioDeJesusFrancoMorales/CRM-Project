@@ -7,7 +7,7 @@ import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
 describe('useUsuarios', () => {
-  it('devuelve la lista de usuarios desde el endpoint', async () => {
+  it('invoca GET /api/usuarios/get-all y retorna lista tipificada como Usuario[]', async () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useUsuarios(), { wrapper: Wrapper });
 
@@ -16,14 +16,27 @@ describe('useUsuarios', () => {
     expect(result.current.data).toBeDefined();
     expect(Array.isArray(result.current.data)).toBe(true);
     expect(result.current.data!.length).toBeGreaterThan(0);
-    expect(result.current.data![0]).toHaveProperty('nombre');
-    expect(result.current.data![0]).toHaveProperty('correo');
-    expect(result.current.data![0]).toHaveProperty('rol_sistema');
+    // Campos del back (no rol_sistema ni rol_empresa)
+    expect(result.current.data![0]).toHaveProperty('rolId');
+    expect(result.current.data![0]).toHaveProperty('creadoEn');
+    expect(result.current.data![0]).toHaveProperty('keycloakId');
+    expect(result.current.data![0]).not.toHaveProperty('rol_sistema');
+    expect(result.current.data![0]).not.toHaveProperty('rol_empresa');
+  });
+
+  it('la queryKey es ["usuarios"]', async () => {
+    const { Wrapper, queryClient } = setupTestWrapper();
+    const { result } = renderHook(() => useUsuarios(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const cachedData = queryClient.getQueryData(['usuarios']);
+    expect(cachedData).toBeDefined();
   });
 
   it('reporta error cuando el endpoint responde 500', async () => {
     server.use(
-      http.get('/api/v1/usuarios', () =>
+      http.get('/api/usuarios/get-all', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
           { status: 500 },

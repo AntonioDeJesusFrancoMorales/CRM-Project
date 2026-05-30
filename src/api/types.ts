@@ -2,22 +2,36 @@
 // Cuando el contrato cambie, actualizar acá y propaga a TODA la app.
 
 export type RolSistema = 'admin' | 'usuario';
-export type ComoNosConocio = 'referido' | 'redes_sociales' | 'busqueda' | 'evento' | 'otro';
-export type EstadoPosibleCliente = 'frio' | 'tibio' | 'caliente' | 'convertido';
-export type TipoContrato = 'precio_fijo' | 'tiempo_materiales' | 'retainer';
-export type EstadoTrato = 'abierto' | 'ganado' | 'perdido';
-export type TipoTarea = 'llamada' | 'reunion' | 'email' | 'demo' | 'seguimiento';
-export type EstadoTarea = 'pendiente' | 'en_progreso' | 'completada';
-export type TipoFicha = 'trato' | 'tarea';
+export type EstadoRelacion = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO';
+export type TipoContrato = 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCION' | 'PERMANENTE' | 'OTRO';
+export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
+export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
+export type EstadoTareaLocal = 'pendiente' | 'en_progreso' | 'completada';
+// TipoFicha eliminado — usar tipoFicha de src/features/kanban/schemas/ficha.schema.ts
 
 export interface Usuario {
   id: string;
   nombre: string;
   correo: string;
+  rolId: string;
+  creadoEn: string;
+  activo: boolean;                // READ-ONLY desde el back
+  keycloakId: string | null;
+}
+
+export interface UsuarioSesion {  // Exclusivo para sesion de auth; independiente de Usuario
+  id: string;
+  nombre: string;
+  correo: string;
   rol_sistema: RolSistema;
   rol_empresa: string | null;
+}
+
+export interface Rol {            // == RolResponse del back
+  id: string;
+  nombre: string;
+  descripcion: string | null;
   activo: boolean;
-  creado_en: string;
 }
 
 export interface Empresa {
@@ -25,101 +39,93 @@ export interface Empresa {
   nombre: string;
   sector: string | null;
   telefono: string | null;
-  pagina_web: string | null;
+  paginaWeb: string | null;
   facebook: string | null;
   instagram: string | null;
   twitter: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  estadoRelacion: EstadoRelacion;
+  responsableId: string | null;
+  creadoPor: string | null;
+  notas: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
-export interface Prospecto {
+export interface Contacto {
   id: string;
-  empresa_id: string;
-  responsable_id: string;
-  creado_por: string;
-  nombre_contacto: string;
-  correo_contacto: string | null;
-  telefono_contacto: string | null;
-  cargo_contacto: string | null;
-  como_nos_conocio: ComoNosConocio | null;
-  estado_posible_cliente: EstadoPosibleCliente;
-  notas: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  nombre: string;
+  correo: string | null;
+  telefono: string | null;
+  empresaId: string;
+  estadoRelacion: EstadoRelacion;
+  comoNosConocio: string | null;
+  responsableId: string | null;
+  creadoPor: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
-export interface Cliente {
-  id: string;
-  empresa_id: string;
-  responsable_id: string;
-  creado_por: string;
-  nombre_contacto: string;
-  correo_contacto: string | null;
-  telefono_contacto: string | null;
-  cargo_contacto: string | null;
-  como_nos_conocio: ComoNosConocio | null;
-  notas: string | null;
-  prospecto_origen_id: string | null;
-  creado_en: string;
-  actualizado_en: string;
+// empresaId y creadoPor son inmutables en el back — no van en los payloads de mutación.
+export interface ContactoCreatePayload {
+  nombre: string;
+  correo?: string | null;
+  telefono?: string | null;
+  empresaId: string;
+  estadoRelacion: EstadoRelacion;
+  comoNosConocio?: string | null;
+  responsableId?: string | null;
+}
+
+export interface ContactoUpdatePayload {
+  nombre?: string;
+  correo?: string | null;
+  telefono?: string | null;
+  estadoRelacion?: EstadoRelacion;
+  comoNosConocio?: string | null;
+  responsableId?: string | null;
 }
 
 export interface Trato {
   id: string;
-  prospecto_id: string | null;
-  cliente_id: string | null;
-  responsable_id: string;
+  contactoId: string;
+  responsableId: string;
   nombre: string;
-  valor_estimado: number | null;
+  valorEstimado: number | null;
   probabilidad: number | null;
-  fecha_cierre_esperada: string | null;
-  tipo_contrato: TipoContrato | null;
-  estado: EstadoTrato;
-  motivo_perdida: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  fechaCierreEsperada: string | null;
+  tipoContrato: TipoContrato;
+  motivoPerdida: string | null;
+  creadoEn: string;
+  actualizadoEn: string | null;
 }
+
+export interface TratoCreatePayload {
+  contactoId: string;
+  responsableId: string;
+  nombre: string;
+  valorEstimado: number | null;
+  probabilidad: number | null;
+  fechaCierreEsperada: string | null;
+  tipoContrato: TipoContrato;
+}
+
+export type TratoUpdatePayload = Omit<TratoCreatePayload, 'contactoId'>;
 
 export interface Tarea {
   id: string;
-  trato_id: string;
-  responsable_id: string;
+  tratoId: string;
+  responsableId: string;
   titulo: string;
   descripcion: string | null;
   tipo: TipoTarea;
-  estado: EstadoTarea;
-  prioridad: 1 | 2 | 3;
-  fecha_limite: string | null;
-  fecha_completada: string | null;
-  creado_en: string;
-  actualizado_en: string;
+  prioridad: PrioridadTarea;
+  fechaLimite: string;
+  fechaCompletada: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
-export interface Tablero {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  tipo_ficha: TipoFicha;
-  creado_en: string;
-}
-
-export interface Columna {
-  id: string;
-  tablero_id: string;
-  nombre: string;
-  color: string;
-  posicion: number;
-  limite_wip: number | null;
-  estado_vinculado: string | null;
-}
-
-export interface Ficha {
-  id: string;
-  columna_id: string;
-  responsable_id: string;
-  creado_por: string;
-}
+// Tablero, Columna, Ficha eliminados — usar schemas de src/features/kanban/schemas/
 
 export interface Etiqueta {
   id: string;
@@ -139,7 +145,7 @@ export interface Comentario {
 // Respuesta de POST /auth/login
 export interface LoginResponse {
   token: string;
-  usuario: Pick<Usuario, 'id' | 'nombre' | 'correo' | 'rol_sistema' | 'rol_empresa'>;
+  usuario: UsuarioSesion;
 }
 
 // Forma del error normalizado del contrato.

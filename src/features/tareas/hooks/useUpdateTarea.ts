@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import type { Tarea } from '@/api/types';
 import type { TareaUpdateInput } from '../schemas/tarea.schema';
@@ -15,7 +16,7 @@ export function useUpdateTarea(): UseMutationResult<Tarea, Error, UpdateTareaVar
   const queryClient = useQueryClient();
 
   return useMutation<Tarea, Error, UpdateTareaVars>({
-    mutationFn: ({ id, data }) => apiClient.patch<Tarea>(`/tareas/${id}`, data),
+    mutationFn: ({ id, data }) => apiClient.put<Tarea>(endpoints.tareas.edit(id), data),
     onSuccess: (updated, { id }) => {
       void queryClient.invalidateQueries({ queryKey: tareasKeys.all });
       void queryClient.invalidateQueries({ queryKey: tareasKeys.detail(id) });

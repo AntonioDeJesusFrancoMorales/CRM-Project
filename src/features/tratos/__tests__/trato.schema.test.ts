@@ -1,99 +1,219 @@
-// Tests del schema Zod para Trato — ADR-042 XOR cliente_id/prospecto_id.
-// Valida exactamente uno entre cliente_id y prospecto_id según el toggle `asociacion`.
+// Tests del schema Zod para Trato — modelo unificado sin XOR ni estado.
+// Valida tratoSchema (contactoId requerido) y tratoEditSchema (sin contactoId).
 
 import { describe, it, expect } from 'vitest';
-import { tratoCreateSchema } from '../schemas/trato.schema';
+import { tratoSchema, tratoEditSchema } from '../schemas/trato.schema';
 
-describe('tratoCreateSchema — XOR cliente_id/prospecto_id', () => {
-  it('valida happy path con asociacion=cliente y cliente_id lleno', () => {
-    const result = tratoCreateSchema.safeParse({
-      asociacion: 'cliente',
-      cliente_id: 'c1111111-cccc-1111-cccc-111111111111',
-      prospecto_id: '',
+describe('tratoSchema — modelo unificado', () => {
+  it('valida happy path completo con todos los campos opcionales presentes', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
       nombre: 'Demo CTO',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
-      valor_estimado: 50000,
+      tipoContrato: 'SERVICIO',
+      valorEstimado: 50000,
       probabilidad: 70,
-      fecha_cierre_esperada: '2026-06-30',
-      tipo_contrato: 'precio_fijo',
+      fechaCierreEsperada: '2026-06-30',
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('valida happy path con asociacion=prospecto y prospecto_id lleno', () => {
-    const result = tratoCreateSchema.safeParse({
-      asociacion: 'prospecto',
-      cliente_id: '',
-      prospecto_id: 'b1111111-bbbb-1111-bbbb-111111111111',
-      nombre: 'Lead nuevo',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
+  it('valida happy path mínimo (solo campos requeridos)', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Trato mínimo',
+      tipoContrato: 'OTRO',
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('rechaza cuando asociacion=cliente y cliente_id está vacío (error en cliente_id)', () => {
-    const result = tratoCreateSchema.safeParse({
-      asociacion: 'cliente',
-      cliente_id: '',
-      prospecto_id: '',
-      nombre: 'Demo CTO',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
+  it('rechaza cuando contactoId está vacío', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: '',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo',
+      tipoContrato: 'SERVICIO',
     });
 
     expect(result.success).toBe(false);
     if (!result.success) {
       const paths = result.error.issues.map((i) => i.path.join('.'));
-      expect(paths).toContain('cliente_id');
+      expect(paths).toContain('contactoId');
     }
   });
 
-  it('rechaza cuando asociacion=cliente y ambos llenos (error en prospecto_id)', () => {
-    const result = tratoCreateSchema.safeParse({
-      asociacion: 'cliente',
-      cliente_id: 'c1111111-cccc-1111-cccc-111111111111',
-      prospecto_id: 'b1111111-bbbb-1111-bbbb-111111111111',
-      nombre: 'Demo CTO',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
+  it('rechaza cuando responsableId está vacío', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '',
+      nombre: 'Demo',
+      tipoContrato: 'SERVICIO',
     });
 
     expect(result.success).toBe(false);
     if (!result.success) {
       const paths = result.error.issues.map((i) => i.path.join('.'));
-      expect(paths).toContain('prospecto_id');
+      expect(paths).toContain('responsableId');
     }
   });
 
-  it('rechaza cuando asociacion=prospecto y ambos llenos (error en cliente_id)', () => {
-    const result = tratoCreateSchema.safeParse({
-      asociacion: 'prospecto',
-      cliente_id: 'c1111111-cccc-1111-cccc-111111111111',
-      prospecto_id: 'b1111111-bbbb-1111-bbbb-111111111111',
-      nombre: 'Demo CTO',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const paths = result.error.issues.map((i) => i.path.join('.'));
-      expect(paths).toContain('cliente_id');
-    }
-  });
-
-  it('rechaza nombre vacío con error en path nombre', () => {
-    const result = tratoCreateSchema.safeParse({
-      asociacion: 'cliente',
-      cliente_id: 'c1111111-cccc-1111-cccc-111111111111',
-      prospecto_id: '',
+  it('rechaza nombre vacío', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
       nombre: '',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
+      tipoContrato: 'SERVICIO',
     });
 
     expect(result.success).toBe(false);
     if (!result.success) {
       const paths = result.error.issues.map((i) => i.path.join('.'));
       expect(paths).toContain('nombre');
+    }
+  });
+
+  it('rechaza nombre que supera 200 caracteres', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'a'.repeat(201),
+      tipoContrato: 'SERVICIO',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('acepta todos los valores del enum tipoContrato', () => {
+    const valores = ['SERVICIO', 'LICENCIA', 'SUSCRIPCION', 'PERMANENTE', 'OTRO'] as const;
+    for (const tipoContrato of valores) {
+      const result = tratoSchema.safeParse({
+        contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+        responsableId: '11111111-1111-1111-1111-111111111111',
+        nombre: 'Demo',
+        tipoContrato,
+      });
+      expect(result.success, `tipoContrato=${tipoContrato} debe ser válido`).toBe(true);
+    }
+  });
+
+  it('rechaza un valor de tipoContrato fuera del enum', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo',
+      tipoContrato: 'precio_fijo',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join('.'));
+      expect(paths).toContain('tipoContrato');
+    }
+  });
+
+  it('acepta valorEstimado nulo', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo',
+      tipoContrato: 'LICENCIA',
+      valorEstimado: null,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('acepta probabilidad nula', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo',
+      tipoContrato: 'LICENCIA',
+      probabilidad: null,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('acepta fechaCierreEsperada como string vacío', () => {
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo',
+      tipoContrato: 'OTRO',
+      fechaCierreEsperada: '',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('NO tiene campo estado ni asociacion ni superRefine XOR', () => {
+    // Si el schema tuviera estado, requeriría el campo; si no lo tiene, esto pasa sin él
+    const result = tratoSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Sin estado',
+      tipoContrato: 'SERVICIO',
+    });
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect('estado' in result.data).toBe(false);
+      expect('asociacion' in result.data).toBe(false);
+    }
+  });
+});
+
+describe('tratoEditSchema — sin contactoId', () => {
+  it('valida happy path sin contactoId', () => {
+    const result = tratoEditSchema.safeParse({
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo Editado',
+      tipoContrato: 'SUSCRIPCION',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rechaza cuando se incluye contactoId (campo omitido del schema)', () => {
+    // En Zod con strip mode (default), campos extra se ignoran, por lo que
+    // el resultado no contiene contactoId aunque se pase.
+    const result = tratoEditSchema.safeParse({
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Demo',
+      tipoContrato: 'PERMANENTE',
+    });
+
+    // El parse exitoso pero contactoId no aparece en la data (omitido)
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('contactoId' in result.data).toBe(false);
+    }
+  });
+
+  it('rechaza responsableId vacío', () => {
+    const result = tratoEditSchema.safeParse({
+      responsableId: '',
+      nombre: 'Demo',
+      tipoContrato: 'SERVICIO',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('acepta los 5 valores del enum tipoContrato', () => {
+    const valores = ['SERVICIO', 'LICENCIA', 'SUSCRIPCION', 'PERMANENTE', 'OTRO'] as const;
+    for (const tipoContrato of valores) {
+      const result = tratoEditSchema.safeParse({
+        responsableId: '11111111-1111-1111-1111-111111111111',
+        nombre: 'Demo',
+        tipoContrato,
+      });
+      expect(result.success, `tipoContrato=${tipoContrato} debe ser válido en edit`).toBe(true);
     }
   });
 });

@@ -1,33 +1,31 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
 import { useCreateTrato } from '../hooks/useCreateTrato';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
-import type { TratoCreateInput } from '../schemas/trato.schema';
+import type { TratoCreatePayload } from '@/api/types';
 
 describe('useCreateTrato', () => {
-  it('crea un trato con cliente: body limpio (sin asociacion, prospecto_id null) e invalida ["tratos"]', async () => {
+  it('invoca POST /api/tratos/create con TratoCreatePayload (sin asociacion, con contactoId)', async () => {
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
-      http.post('/api/v1/tratos', async ({ request }) => {
+      http.post('/api/tratos/create', async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(
           {
             id: 'new-trato-id',
-            cliente_id: capturedBody['cliente_id'],
-            prospecto_id: capturedBody['prospecto_id'],
+            contactoId: capturedBody['contactoId'],
+            responsableId: capturedBody['responsableId'],
             nombre: capturedBody['nombre'],
-            responsable_id: capturedBody['responsable_id'],
-            estado: 'abierto',
-            motivo_perdida: null,
-            creado_en: '2026-05-24T00:00:00.000Z',
-            actualizado_en: '2026-05-24T00:00:00.000Z',
-            valor_estimado: null,
+            valorEstimado: null,
             probabilidad: null,
-            fecha_cierre_esperada: null,
-            tipo_contrato: null,
+            fechaCierreEsperada: null,
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-05-24T00:00:00.000Z',
+            actualizadoEn: null,
           },
           { status: 201 },
         );
@@ -37,56 +35,71 @@ describe('useCreateTrato', () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useCreateTrato(), { wrapper: Wrapper });
 
-    const input: TratoCreateInput = {
-      asociacion: 'cliente',
-      cliente_id: 'c1111111-cccc-1111-cccc-111111111111',
-      prospecto_id: '',
+    const payload: TratoCreatePayload = {
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
       nombre: 'Demo CTO',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
-      valor_estimado: 50000,
+      valorEstimado: 50000,
       probabilidad: 70,
-      fecha_cierre_esperada: '',
-      tipo_contrato: 'precio_fijo',
+      fechaCierreEsperada: '2026-06-30',
+      tipoContrato: 'SERVICIO',
     };
 
-    result.current.mutate(input);
+    result.current.mutate(payload);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(capturedBody).not.toBeNull();
-    expect(capturedBody).not.toHaveProperty('asociacion');
-    expect(capturedBody!['cliente_id']).toBe('c1111111-cccc-1111-cccc-111111111111');
-    expect(capturedBody!['prospecto_id']).toBeNull();
+    expect(capturedBody!['contactoId']).toBe('c1111111-cccc-1111-cccc-111111111111');
+    expect(capturedBody!['responsableId']).toBe('11111111-1111-1111-1111-111111111111');
     expect(capturedBody!['nombre']).toBe('Demo CTO');
+    // NO debe tener campos del modelo viejo
+    expect(capturedBody).not.toHaveProperty('asociacion');
+    expect(capturedBody).not.toHaveProperty('prospecto_id');
+    expect(capturedBody).not.toHaveProperty('cliente_id');
+    expect(capturedBody).not.toHaveProperty('estado');
   });
 
-  it('crea un trato con prospecto: cliente_id null en el body', async () => {
-    let capturedBody: Record<string, unknown> | null = null;
+  it('invalida la query ["tratos"] tras mutación exitosa', async () => {
     server.use(
-      http.post('/api/v1/tratos', async ({ request }) => {
-        capturedBody = (await request.json()) as Record<string, unknown>;
+      http.post('/api/tratos/create', async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(
-          { id: 'new', estado: 'abierto', motivo_perdida: null },
+          {
+            id: 'new',
+            contactoId: body['contactoId'],
+            responsableId: body['responsableId'],
+            nombre: body['nombre'],
+            valorEstimado: null,
+            probabilidad: null,
+            fechaCierreEsperada: null,
+            tipoContrato: 'OTRO',
+            motivoPerdida: null,
+            creadoEn: '2026-05-24T00:00:00.000Z',
+            actualizadoEn: null,
+          },
           { status: 201 },
         );
       }),
     );
 
-    const { Wrapper } = setupTestWrapper();
+    const { Wrapper, queryClient } = setupTestWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
     const { result } = renderHook(() => useCreateTrato(), { wrapper: Wrapper });
 
     result.current.mutate({
-      asociacion: 'prospecto',
-      cliente_id: '',
-      prospecto_id: 'b1111111-bbbb-1111-bbbb-111111111111',
-      nombre: 'Lead',
-      responsable_id: '11111111-1111-1111-1111-111111111111',
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Lead nuevo',
+      valorEstimado: null,
+      probabilidad: null,
+      fechaCierreEsperada: null,
+      tipoContrato: 'OTRO',
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(capturedBody!['prospecto_id']).toBe('b1111111-bbbb-1111-bbbb-111111111111');
-    expect(capturedBody!['cliente_id']).toBeNull();
-    expect(capturedBody).not.toHaveProperty('asociacion');
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tratos'] });
   });
 });

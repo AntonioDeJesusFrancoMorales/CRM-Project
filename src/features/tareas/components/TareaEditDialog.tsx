@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { TareaCreateInput } from '../schemas/tarea.schema';
+import type { TareaCreateInput, TareaUpdateInput } from '../schemas/tarea.schema';
 import { useUpdateTarea } from '../hooks/useUpdateTarea';
 import { TareaForm } from './TareaForm';
 
@@ -32,20 +32,26 @@ export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogPr
       : undefined;
 
   // Precarga los valores del form a partir de la tarea existente.
-  // trato_id no es editable en edit — se pasa como tratoIdFijo para que quede disabled.
+  // tratoId no es editable en edit — se pasa como tratoIdFijo para que quede disabled.
   const defaultValues: Partial<TareaCreateInput> = {
-    trato_id: tarea.trato_id,
-    responsable_id: tarea.responsable_id,
+    tratoId: tarea.tratoId,
+    responsableId: tarea.responsableId,
     titulo: tarea.titulo,
     descripcion: tarea.descripcion,
     tipo: tarea.tipo,
     prioridad: tarea.prioridad,
-    fecha_limite: tarea.fecha_limite,
+    fechaLimite: tarea.fechaLimite,
   };
 
   function handleSubmit(values: TareaCreateInput) {
-    // En edit, el trato_id no cambia. Se omite del payload de update.
-    const { trato_id: _trato_id, ...updateData } = values;
+    // En edit, tratoId y responsableId no se incluyen en el update (solo campos editables).
+    const updateData: TareaUpdateInput = {
+      titulo: values.titulo,
+      descripcion: values.descripcion,
+      tipo: values.tipo,
+      prioridad: values.prioridad,
+      fechaLimite: values.fechaLimite,
+    };
     mutation.mutate(
       { id: tarea.id, data: updateData },
       { onSuccess: () => onOpenChange(false) },
@@ -68,7 +74,7 @@ export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogPr
           onCancel={() => onOpenChange(false)}
           isSubmitting={mutation.isPending}
           serverErrors={serverErrors}
-          tratoIdFijo={tarea.trato_id}
+          tratoIdFijo={tarea.tratoId}
         />
       </DialogContent>
     </Dialog>

@@ -1,9 +1,6 @@
-// ADR-050 — TareaEstadoMenu: DropdownMenu con 3 ítems SIEMPRE visibles.
-// El `disabled` de cada ítem se computa por `tarea.estado`:
-//   - "Iniciar":   disabled si estado !== 'pendiente'
-//   - "Completar": disabled si estado === 'completada'
-//   - "Reabrir":   disabled si estado !== 'completada'
-// Sin modal. Homologa TratoEstadoMenu.
+// TareaEstadoMenu: DropdownMenu con 3 ítems para cambiar estado de tarea.
+// Estado es client-only (localStorage). No emite calls al back para estado.
+// ADR-050 (actualizado): estado via localStorage, no via campo del back.
 
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,32 +11,37 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Tarea } from '@/api/types';
-import { useUpdateTarea } from '../hooks/useUpdateTarea';
-import { useCompletarTarea } from '../hooks/useCompletarTarea';
+
+const STORAGE_KEY = (id: string) => `tarea-estado-${id}`;
+
+type EstadoLocal = 'pendiente' | 'en_progreso' | 'completada';
+
+function getEstadoLocal(id: string): EstadoLocal {
+  return (localStorage.getItem(STORAGE_KEY(id)) as EstadoLocal | null) ?? 'pendiente';
+}
+
+function setEstadoLocal(id: string, estado: EstadoLocal): void {
+  localStorage.setItem(STORAGE_KEY(id), estado);
+}
 
 interface TareaEstadoMenuProps {
   tarea: Tarea;
 }
 
 export function TareaEstadoMenu({ tarea }: TareaEstadoMenuProps) {
-  const update = useUpdateTarea();
-  const completar = useCompletarTarea();
-
-  const isMutating = update.isPending || completar.isPending;
+  const estado = getEstadoLocal(tarea.id);
 
   function handleIniciar() {
-    update.mutate({ id: tarea.id, data: { estado: 'en_progreso' } });
+    setEstadoLocal(tarea.id, 'en_progreso');
+    // Forzar re-render no es necesario en este lote; el estado se lee al re-montar
   }
 
   function handleCompletar() {
-    completar.mutate({ tareaId: tarea.id, tratoId: tarea.trato_id });
+    setEstadoLocal(tarea.id, 'completada');
   }
 
   function handleReabrir() {
-    update.mutate({
-      id: tarea.id,
-      data: { estado: 'pendiente', fecha_completada: null },
-    });
+    setEstadoLocal(tarea.id, 'pendiente');
   }
 
   return (
@@ -49,26 +51,25 @@ export function TareaEstadoMenu({ tarea }: TareaEstadoMenuProps) {
           variant="ghost"
           size="icon"
           aria-label="Cambiar estado de la tarea"
-          disabled={isMutating}
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
-          disabled={tarea.estado !== 'pendiente' || isMutating}
+          disabled={estado !== 'pendiente'}
           onClick={handleIniciar}
         >
           Iniciar
         </DropdownMenuItem>
         <DropdownMenuItem
-          disabled={tarea.estado === 'completada' || isMutating}
+          disabled={estado === 'completada'}
           onClick={handleCompletar}
         >
           Completar
         </DropdownMenuItem>
         <DropdownMenuItem
-          disabled={tarea.estado !== 'completada' || isMutating}
+          disabled={estado !== 'completada'}
           onClick={handleReabrir}
         >
           Reabrir

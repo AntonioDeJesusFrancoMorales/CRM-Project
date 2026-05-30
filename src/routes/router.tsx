@@ -5,16 +5,15 @@ import { AppShell } from '@/components/layout/AppShell';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { EmpresasListPage } from '@/features/empresas/pages/EmpresasListPage';
 import { EmpresaDetailPage } from '@/features/empresas/pages/EmpresaDetailPage';
-import { ProspectosListPage } from '@/features/prospectos/pages/ProspectosListPage';
-import { ProspectoDetailPage } from '@/features/prospectos/pages/ProspectoDetailPage';
 import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
-import { ClientesListPage } from '@/features/clientes/pages/ClientesListPage';
-import { ClienteDetailPage } from '@/features/clientes/pages/ClienteDetailPage';
+import { ContactosPage } from '@/features/contactos/pages/ContactosPage';
+import { ContactoDetailPage } from '@/features/contactos/pages/ContactoDetailPage';
 import { TratosListPage } from '@/features/tratos/pages/TratosListPage';
 import { TratoDetailPage } from '@/features/tratos/pages/TratoDetailPage';
 import { TareasListPage } from '@/features/tareas/pages/TareasListPage';
 import { TareaDetailPage } from '@/features/tareas/pages/TareaDetailPage';
-import { TablerosPlaceholder } from './placeholders';
+import { KanbanListPage } from '@/features/kanban/pages/KanbanListPage';
+import { KanbanPage } from '@/features/kanban/pages/KanbanPage';
 
 export const router = createBrowserRouter([
   {
@@ -30,15 +29,20 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/empresas" replace /> },
           { path: 'empresas', element: <EmpresasListPage /> },
           { path: 'empresas/:id', element: <EmpresaDetailPage /> },
-          { path: 'prospectos', element: <ProspectosListPage /> },
-          { path: 'prospectos/:id', element: <ProspectoDetailPage /> },
-          { path: 'clientes', element: <ClientesListPage /> },
-          { path: 'clientes/:id', element: <ClienteDetailPage /> },
+          // Nuevas rutas contactos (unifica prospectos + clientes)
+          { path: 'contactos', element: <ContactosPage /> },
+          { path: 'contactos/:id', element: <ContactoDetailPage /> },
+          // Redirects: rutas legacy de lista → /contactos con tab correspondiente
+          { path: 'prospectos', element: <Navigate to="/contactos?tab=PROSPECTO" replace /> },
+          { path: 'clientes', element: <Navigate to="/contactos?tab=ACTIVO" replace /> },
+          { path: 'prospectos/:id', element: <Navigate to="/contactos" replace /> },
+          { path: 'clientes/:id', element: <Navigate to="/contactos" replace /> },
           { path: 'tratos', element: <TratosListPage /> },
           { path: 'tratos/:id', element: <TratoDetailPage /> },
           { path: 'tareas', element: <TareasListPage /> },
           { path: 'tareas/:id', element: <TareaDetailPage /> },
-          { path: 'tableros', element: <TablerosPlaceholder /> },
+          { path: 'tableros', element: <KanbanListPage /> },
+          { path: 'tableros/:id', element: <KanbanPage /> },
           {
             element: <RoleGuard role="admin" />,
             children: [{ path: 'usuarios', element: <UsuariosListPage /> }],

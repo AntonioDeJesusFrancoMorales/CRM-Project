@@ -1,46 +1,19 @@
-// ADR-042 — useCreateTrato transforma el input del form antes de POST:
-// elimina `asociacion`, fuerza el campo opuesto al toggle a `null`,
-// y normaliza strings vacíos a null para campos opcionales.
+// useCreateTrato — POST /tratos/create con TratoCreatePayload.
+// Sin XOR ni toggle: contactoId es un campo directo requerido.
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
-import type { Trato } from '@/api/types';
-import type { TratoCreateInput } from '../schemas/trato.schema';
+import type { Trato, TratoCreatePayload } from '@/api/types';
 import { tratosKeys } from './useTratos';
 
-interface TratoCreatePayload {
-  cliente_id: string | null;
-  prospecto_id: string | null;
-  nombre: string;
-  responsable_id: string;
-  valor_estimado: number | null;
-  probabilidad: number | null;
-  fecha_cierre_esperada: string | null;
-  tipo_contrato: 'precio_fijo' | 'tiempo_materiales' | 'retainer' | null;
-}
-
-function toPayload(input: TratoCreateInput): TratoCreatePayload {
-  const isCliente = input.asociacion === 'cliente';
-  const fechaCierre = input.fecha_cierre_esperada?.trim();
-  return {
-    cliente_id: isCliente ? (input.cliente_id ?? '') || null : null,
-    prospecto_id: !isCliente ? (input.prospecto_id ?? '') || null : null,
-    nombre: input.nombre,
-    responsable_id: input.responsable_id,
-    valor_estimado: input.valor_estimado ?? null,
-    probabilidad: input.probabilidad ?? null,
-    fecha_cierre_esperada: fechaCierre ? fechaCierre : null,
-    tipo_contrato: input.tipo_contrato ?? null,
-  };
-}
-
-export function useCreateTrato(): UseMutationResult<Trato, Error, TratoCreateInput> {
+export function useCreateTrato(): UseMutationResult<Trato, Error, TratoCreatePayload> {
   const queryClient = useQueryClient();
 
-  return useMutation<Trato, Error, TratoCreateInput>({
-    mutationFn: (input) => apiClient.post<Trato>('/tratos', toPayload(input)),
+  return useMutation<Trato, Error, TratoCreatePayload>({
+    mutationFn: (payload) => apiClient.post<Trato>(endpoints.tratos.create(), payload),
     onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: tratosKeys.all });
       toast.success(`Trato "${created.nombre}" creado`);

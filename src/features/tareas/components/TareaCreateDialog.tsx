@@ -47,7 +47,7 @@ export function TareaCreateDialog({
 
   const initial: Partial<TareaCreateInput> = {
     ...TAREA_EMPTY_DEFAULTS,
-    ...(tratoIdFijo ? { trato_id: tratoIdFijo } : {}),
+    ...(tratoIdFijo ? { tratoId: tratoIdFijo } : {}),
     ...(defaultValues ?? {}),
   };
 

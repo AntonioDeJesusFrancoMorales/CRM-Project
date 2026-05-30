@@ -1,0 +1,60 @@
+// Fuente única de verdad de rutas RPC del back.
+// El prefijo /api vive en BASE_URL del cliente; estas rutas son relativas.
+
+export const endpoints = {
+  empresas: {
+    getAll: () => '/empresas/get-all',
+    create: () => '/empresas/create',
+    edit: (id: string) => `/empresas/edit?id=${id}`,
+    delete: (id: string) => `/empresas/delete?id=${id}`,
+  },
+  tareas: {
+    getAll: () => '/tareas/get-all',
+    getById: (id: string) => `/tareas/get-by-id?id=${id}`,
+    create: () => '/tareas/create',
+    edit: (id: string) => `/tareas/edit?id=${id}`,
+    delete: (id: string) => `/tareas/delete?id=${id}`,
+  },
+  contactos: {
+    getAll: () => '/contactos/get-all',
+    getById: (id: string) => `/contactos/get-by-id?id=${id}`,
+    create: () => '/contactos/create',
+    edit: (id: string) => `/contactos/edit?id=${id}`,
+    delete: (id: string) => `/contactos/delete?id=${id}`,
+  },
+  tratos: {
+    getAll: () => '/tratos/get-all',
+    getById: (id: string) => `/tratos/get-by-id?id=${id}`,
+    create: () => '/tratos/create',
+    edit: (id: string) => `/tratos/edit?id=${id}`,
+    delete: (id: string) => `/tratos/delete?id=${id}`,
+  },
+  tableros: {
+    getAll: () => '/tableros/get-all',
+    getById: (id: string) => `/tableros/get-by-id?id=${id}`,
+    asignarColumna: (tableroId: string, columnaId: string) =>
+      `/tableros/asignar-columna?id=${tableroId}&columnaId=${columnaId}`,
+    eliminarColumna: (tableroId: string, columnaId: string) =>
+      `/tableros/eliminar-columna?id=${tableroId}&columnaId=${columnaId}`,
+    reordenarColumnas: (tableroId: string) => `/tableros/reordenar-columnas?id=${tableroId}`,
+  },
+  columnas: {
+    getAll: () => '/columnas/get-all',
+  },
+  fichas: {
+    getAll: () => '/fichas/get-all',
+    create: () => '/fichas/create',
+    edit: (id: string) => `/fichas/edit?id=${id}`,
+    delete: (id: string) => `/fichas/delete?id=${id}`,
+  },
+  usuarios: {
+    getAll: () => '/usuarios/get-all',
+    getById: (id: string) => `/usuarios/get-by-id?id=${id}`,
+    create: () => '/usuarios/create',
+    edit: (id: string) => `/usuarios/edit?id=${id}`,
+    delete: (id: string) => `/usuarios/delete?id=${id}`,
+  },
+  roles: {
+    getAll: () => '/roles/get-all',
+  },
+} as const;

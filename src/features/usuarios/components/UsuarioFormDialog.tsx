@@ -7,10 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { nullsToStrings } from '@/lib/form-utils';
-import type { UsuarioCreateInput } from '../schemas/usuario.schema';
+import type { UsuarioCreateInput, UsuarioUpdateInput } from '../schemas/usuario.schema';
 import { useCreateUsuario } from '../hooks/useCreateUsuario';
-import { useUpdateUsuario } from '../hooks/useUpdateUsuario';
+import { useEditUsuario } from '../hooks/useEditUsuario';
 import { UsuarioForm } from './UsuarioForm';
 
 type CreateProps = {
@@ -18,7 +17,6 @@ type CreateProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   usuario?: never;
-  isOwnAccount?: never;
 };
 
 type EditProps = {
@@ -26,7 +24,6 @@ type EditProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   usuario: Usuario;
-  isOwnAccount: boolean;
 };
 
 export type UsuarioFormDialogProps = CreateProps | EditProps;
@@ -77,9 +74,8 @@ function EditDialog({
   open,
   onOpenChange,
   usuario,
-  isOwnAccount,
-}: Pick<EditProps, 'open' | 'onOpenChange' | 'usuario' | 'isOwnAccount'>) {
-  const mutation = useUpdateUsuario(usuario.id);
+}: Pick<EditProps, 'open' | 'onOpenChange' | 'usuario'>) {
+  const mutation = useEditUsuario(usuario.id);
 
   const serverErrors =
     isHttpError(mutation.error) &&
@@ -88,14 +84,13 @@ function EditDialog({
       ? mutation.error.details
       : undefined;
 
-  const defaultValues = nullsToStrings({
+  const defaultValues: Partial<UsuarioUpdateInput> = {
     nombre: usuario.nombre,
     correo: usuario.correo,
-    rol_sistema: usuario.rol_sistema,
-    rol_empresa: usuario.rol_empresa ?? '',
-  } as Record<string, unknown>) as Partial<UsuarioCreateInput>;
+    rolId: usuario.rolId,
+  };
 
-  function handleSubmit(values: UsuarioCreateInput) {
+  function handleSubmit(values: UsuarioUpdateInput) {
     mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
   }
 
@@ -115,7 +110,6 @@ function EditDialog({
           onCancel={() => onOpenChange(false)}
           isSubmitting={mutation.isPending}
           serverErrors={serverErrors}
-          isOwnAccount={isOwnAccount}
         />
       </DialogContent>
     </Dialog>
@@ -133,7 +127,6 @@ export function UsuarioFormDialog(props: UsuarioFormDialogProps) {
       open={props.open}
       onOpenChange={props.onOpenChange}
       usuario={props.usuario}
-      isOwnAccount={props.isOwnAccount}
     />
   );
 }

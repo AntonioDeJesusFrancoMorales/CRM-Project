@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
 import { tareasKeys } from '../hooks/useTareas';
+import { setTareaEstado, getTareaEstado } from '../hooks/useTareaEstado';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
@@ -11,9 +12,13 @@ const TAREA_ID = 'e1111111-eeee-1111-eeee-111111111111';
 const TAREA_ID_INEXISTENTE = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 
 describe('useDeleteTarea', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('(a) DELETE 204 — elimina la entrada del cache de detalle e invalida la lista', async () => {
     server.use(
-      http.delete(`/api/v1/tareas/${TAREA_ID}`, () =>
+      http.delete('/api/tareas/delete', () =>
         new HttpResponse(null, { status: 204 }),
       ),
     );
@@ -34,7 +39,7 @@ describe('useDeleteTarea', () => {
 
   it('(b) DELETE 404 — expone error con el status del backend', async () => {
     server.use(
-      http.delete(`/api/v1/tareas/${TAREA_ID_INEXISTENTE}`, () =>
+      http.delete('/api/tareas/delete', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Tarea no encontrada' },
           { status: 404 },
@@ -51,5 +56,27 @@ describe('useDeleteTarea', () => {
 
     const error = result.current.error as Error & { status?: number };
     expect(error.status).toBe(404);
+  });
+
+  it('(c) DELETE 204 — clearTareaEstado limpia el estado de localStorage en onSuccess', async () => {
+    server.use(
+      http.delete('/api/tareas/delete', () =>
+        new HttpResponse(null, { status: 204 }),
+      ),
+    );
+
+    // Pre-cargar estado en localStorage
+    setTareaEstado(TAREA_ID, 'completada');
+    expect(getTareaEstado(TAREA_ID)).toBe('completada');
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useDeleteTarea(), { wrapper: Wrapper });
+
+    result.current.mutate(TAREA_ID);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // clearTareaEstado fue llamado en onSuccess, el estado vuelve al default
+    expect(getTareaEstado(TAREA_ID)).toBe('pendiente');
   });
 });

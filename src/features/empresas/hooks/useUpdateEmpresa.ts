@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { stringsToNulls } from '@/lib/form-utils';
 import type { Empresa } from '@/api/types';
@@ -12,7 +13,7 @@ export function useUpdateEmpresa(id: string): UseMutationResult<Empresa, Error, 
 
   return useMutation<Empresa, Error, EmpresaUpdateInput>({
     mutationFn: (input) =>
-      apiClient.patch<Empresa>(`/empresas/${id}`, stringsToNulls(input as Record<string, unknown>)),
+      apiClient.put<Empresa>(endpoints.empresas.edit(id), stringsToNulls(input as Record<string, unknown>)),
     onSuccess: (updated) => {
       void queryClient.invalidateQueries({ queryKey: empresasKeys.list() });
       void queryClient.invalidateQueries({ queryKey: empresasKeys.detail(id) });

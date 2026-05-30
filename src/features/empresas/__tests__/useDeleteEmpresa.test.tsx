@@ -26,7 +26,7 @@ describe('useDeleteEmpresa', () => {
 
   it('maneja 404 graciosamente cuando la empresa ya fue eliminada', async () => {
     server.use(
-      http.delete('/api/v1/empresas/:id', () =>
+      http.delete('/api/empresas/delete', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'No existe' },
           { status: 404 },

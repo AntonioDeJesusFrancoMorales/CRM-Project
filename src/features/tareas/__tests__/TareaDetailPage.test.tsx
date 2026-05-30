@@ -71,22 +71,23 @@ describe('TareaDetailPage — render de datos', () => {
 
   it('(b2) fecha_completada SÍ visible cuando estado === completada', async () => {
     server.use(
-      http.get(`/api/v1/tareas/${TAREA_ID}`, () =>
-        HttpResponse.json({
+      http.get('/api/tareas/get-by-id', ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('id') !== TAREA_ID) return;
+        return HttpResponse.json({
           id: TAREA_ID,
-          trato_id: TRATO_ID,
-          responsable_id: '22222222-2222-2222-2222-222222222222',
+          tratoId: TRATO_ID,
+          responsableId: '22222222-2222-2222-2222-222222222222',
           titulo: 'Demo presencial con CTO',
           descripcion: null,
-          tipo: 'demo',
-          estado: 'completada',
-          prioridad: 3,
-          fecha_limite: null,
-          fecha_completada: '2026-05-24T12:00:00.000Z',
-          creado_en: '2026-05-01T10:00:00.000Z',
-          actualizado_en: '2026-05-24T12:00:00.000Z',
-        }),
-      ),
+          tipo: 'CIERRE',
+          prioridad: 'ALTA',
+          fechaLimite: null,
+          fechaCompletada: '2026-05-24T12:00:00.000Z',
+          creadoEn: '2026-05-01T10:00:00.000Z',
+          actualizadoEn: '2026-05-24T12:00:00.000Z',
+        });
+      }),
     );
 
     renderPage(`/tareas/${TAREA_ID}`);
@@ -113,7 +114,7 @@ describe('TareaDetailPage — loading y 404', () => {
 
   it('(d) 404 muestra mensaje "no existe"', async () => {
     server.use(
-      http.get('/api/v1/tareas/id-inexistente', () =>
+      http.get('/api/tareas/get-by-id', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Tarea no encontrada' },
           { status: 404 },
@@ -170,7 +171,7 @@ describe('TareaDetailPage — acciones', () => {
     const deleteSpy = vi.fn();
 
     server.use(
-      http.delete(`/api/v1/tareas/${TAREA_ID}`, () => {
+      http.delete('/api/tareas/delete', () => {
         deleteSpy();
         return new HttpResponse(null, { status: 204 });
       }),

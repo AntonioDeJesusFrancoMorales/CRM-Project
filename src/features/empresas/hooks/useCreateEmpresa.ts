@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { stringsToNulls } from '@/lib/form-utils';
 import type { Empresa } from '@/api/types';
@@ -11,7 +12,7 @@ export function useCreateEmpresa(): UseMutationResult<Empresa, Error, EmpresaCre
   const queryClient = useQueryClient();
 
   return useMutation<Empresa, Error, EmpresaCreateInput>({
-    mutationFn: (input) => apiClient.post<Empresa>('/empresas', stringsToNulls(input)),
+    mutationFn: (input) => apiClient.post<Empresa>(endpoints.empresas.create(), stringsToNulls(input)),
     onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: empresasKeys.list() });
       toast.success(`Empresa "${created.nombre}" creada`);

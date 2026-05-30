@@ -10,11 +10,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import type { ReactNode } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/store/authStore';
+import { server } from '@/test/server';
 
 import { UsuariosListPage } from '../pages/UsuariosListPage';
 
@@ -87,7 +89,7 @@ describe('UsuariosListPage', () => {
     expect(screen.queryByText('María González')).not.toBeInTheDocument();
   });
 
-  it('filtra por rol al cambiar el select de filtro a "admin"', async () => {
+  it('filtra por rol al cambiar el select de filtro a "Administrador"', async () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
@@ -97,18 +99,18 @@ describe('UsuariosListPage', () => {
 
     // El Select de Radix no soporta userEvent.click en jsdom (hasPointerCapture no disponible).
     // Disparamos el evento de cambio directamente sobre el botón del select usando fireEvent.
-    // Alternativa más robusta: dispara el change via el valor del atributo data-value del trigger.
     const selectTrigger = screen.getByRole('combobox', { name: /filtrar por rol/i });
 
     // Usamos fireEvent.keyDown para abrir el select y luego seleccionamos la opción vía aria
     // Esta es la forma recomendada para Radix Select en jsdom
     fireEvent.keyDown(selectTrigger, { key: 'ArrowDown' });
 
-    // El select debería abrirse y mostrar las opciones
-    const adminOption = await screen.findByRole('option', { name: /^admin$/i });
+    // El select muestra las opciones con nombres reales del fixture de roles:
+    //   'Administrador' (rolId de Antonio) y 'Usuario' (rolId de María)
+    const adminOption = await screen.findByRole('option', { name: /^administrador$/i });
     fireEvent.click(adminOption);
 
-    // Solo debe quedar Antonio (admin); María (usuario) debe desaparecer
+    // Solo debe quedar Antonio (Administrador); María (Usuario) debe desaparecer
     await waitFor(() =>
       expect(screen.queryByText('María González')).not.toBeInTheDocument(),
     );
@@ -161,7 +163,7 @@ describe('UsuariosListPage', () => {
     expect(nombreInput).toHaveValue('María González');
   });
 
-  it('bloquea "Desactivar" y "Eliminar" en la fila de la cuenta propia', async () => {
+  it('bloquea "Eliminar" en la fila de la cuenta propia (no hay Desactivar/Reactivar)', async () => {
     const user = userEvent.setup();
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
@@ -174,12 +176,54 @@ describe('UsuariosListPage', () => {
     const actionButtons = screen.getAllByRole('button', { name: /acciones/i });
     await user.click(actionButtons[0]!);
 
-    // Verificar que "Desactivar" está deshabilitado (Radix pone data-disabled="")
-    const desactivarItem = await screen.findByRole('menuitem', { name: /desactivar/i });
-    expect(desactivarItem).toHaveAttribute('data-disabled');
-
-    // Verificar que "Eliminar" también está deshabilitado
-    const eliminarItem = screen.getByRole('menuitem', { name: /^eliminar$/i });
+    // Verificar que "Eliminar" está deshabilitado (Radix pone data-disabled="")
+    const eliminarItem = await screen.findByRole('menuitem', { name: /^eliminar$/i });
     expect(eliminarItem).toHaveAttribute('data-disabled');
+
+    // No debe existir "Desactivar" ni "Reactivar" (eliminados del contrato RPC)
+    expect(screen.queryByRole('menuitem', { name: /desactivar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /reactivar/i })).not.toBeInTheDocument();
+  });
+
+  // W1 — empty state: handler retorna [] → muestra texto real del componente
+  it('muestra empty state cuando el listado está vacío', async () => {
+    server.use(
+      http.get('/api/usuarios/get-all', () => HttpResponse.json([], { status: 200 })),
+    );
+
+    const Wrapper = makeWrapper();
+    render(<UsuariosListPage />, { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Aún no hay usuarios registrados.'),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: /crear primer usuario/i }),
+    ).toBeInTheDocument();
+  });
+
+  // W2 — error 500: muestra estado de error con botón "Reintentar"
+  it('muestra error y botón "Reintentar" cuando el endpoint responde 500', async () => {
+    server.use(
+      http.get('/api/usuarios/get-all', () =>
+        HttpResponse.json(
+          { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
+          { status: 500 },
+        ),
+      ),
+    );
+
+    const Wrapper = makeWrapper();
+    render(<UsuariosListPage />, { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /reintentar/i }),
+      ).toBeInTheDocument(),
+    );
+    // La tabla NO debe renderizarse en estado de error
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });

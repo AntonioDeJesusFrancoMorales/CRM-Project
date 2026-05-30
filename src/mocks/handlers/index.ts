@@ -1,8 +1,8 @@
 import { authHandlers } from './auth';
 import { empresasHandlers } from './empresas';
 import { usuariosHandlers } from './usuarios';
-import { prospectosHandlers } from './prospectos';
-import { clientesHandlers } from './clientes';
+import { rolesHandlers } from './roles';
+import { contactosHandlers } from './contactos';
 import { tratosHandlers } from './tratos';
 import { tareasHandlers } from './tareas';
 import { tablerosHandlers } from './tableros';
@@ -12,8 +12,8 @@ export const handlers = [
   ...authHandlers,
   ...empresasHandlers,
   ...usuariosHandlers,
-  ...prospectosHandlers,
-  ...clientesHandlers,
+  ...rolesHandlers,
+  ...contactosHandlers,
   ...tratosHandlers,
   ...tareasHandlers,
   ...tablerosHandlers,

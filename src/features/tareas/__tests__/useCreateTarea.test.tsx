@@ -11,28 +11,25 @@ import type { TareaCreateInput } from '../schemas/tarea.schema';
 const TRATO_ID = 'd1111111-dddd-1111-dddd-111111111111';
 
 describe('useCreateTarea', () => {
-  it('POST a /tratos/:trato_id/tareas (trato_id en PATH) e invalida tareasKeys.all', async () => {
-    let endpointCalled: string | null = null;
+  it('POST a /tareas/create con enums del back (tratoId en body) e invalida tareasKeys.all', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
-      http.post(`/api/v1/tratos/${TRATO_ID}/tareas`, async ({ request }) => {
-        endpointCalled = request.url;
+      http.post('/api/tareas/create', async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(
           {
             id: 'nueva-tarea-id',
-            trato_id: TRATO_ID,
-            responsable_id: capturedBody['responsable_id'],
+            tratoId: capturedBody['tratoId'],
+            responsableId: capturedBody['responsableId'],
             titulo: capturedBody['titulo'],
             descripcion: null,
-            tipo: 'llamada',
-            estado: 'pendiente',
-            prioridad: 2,
-            fecha_limite: null,
-            fecha_completada: null,
-            creado_en: '2026-05-24T00:00:00.000Z',
-            actualizado_en: '2026-05-24T00:00:00.000Z',
+            tipo: 'GENERAL',
+            prioridad: 'MEDIA',
+            fechaLimite: '2026-06-01T00:00:00.000Z',
+            fechaCompletada: null,
+            creadoEn: '2026-05-24T00:00:00.000Z',
+            actualizadoEn: '2026-05-24T00:00:00.000Z',
           },
           { status: 201 },
         );
@@ -45,23 +42,73 @@ describe('useCreateTarea', () => {
     const { result } = renderHook(() => useCreateTarea(), { wrapper: Wrapper });
 
     const input: TareaCreateInput = {
-      trato_id: TRATO_ID,
-      responsable_id: '11111111-1111-1111-1111-111111111111',
+      tratoId: TRATO_ID,
+      responsableId: '11111111-1111-1111-1111-111111111111',
       titulo: 'Demo con CTO',
-      tipo: 'llamada',
-      prioridad: 2,
+      tipo: 'GENERAL',
+      prioridad: 'MEDIA',
       descripcion: null,
-      fecha_limite: null,
+      fechaLimite: '2026-06-01T00:00:00.000Z',
     };
 
     result.current.mutate(input);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // trato_id va en el PATH, no en el body
-    expect(endpointCalled).toContain(`/tratos/${TRATO_ID}/tareas`);
-    expect(capturedBody).not.toHaveProperty('trato_id');
+    // tratoId va en el body (no en el path), con enums del back
+    expect(capturedBody).toHaveProperty('tratoId', TRATO_ID);
     expect(capturedBody!['titulo']).toBe('Demo con CTO');
+    expect(capturedBody!['tipo']).toBe('GENERAL');
+    expect(capturedBody!['prioridad']).toBe('MEDIA');
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tareasKeys.all });
+  });
+
+  it('el body NO incluye trato_id (snake_case) ni valores numéricos de prioridad', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post('/api/tareas/create', async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            id: 'otra-tarea-id',
+            tratoId: capturedBody['tratoId'],
+            responsableId: capturedBody['responsableId'],
+            titulo: capturedBody['titulo'],
+            descripcion: null,
+            tipo: 'SEGUIMIENTO',
+            prioridad: 'ALTA',
+            fechaLimite: '2026-06-15T00:00:00.000Z',
+            fechaCompletada: null,
+            creadoEn: '2026-05-24T00:00:00.000Z',
+            actualizadoEn: '2026-05-24T00:00:00.000Z',
+          },
+          { status: 201 },
+        );
+      }),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useCreateTarea(), { wrapper: Wrapper });
+
+    const input: TareaCreateInput = {
+      tratoId: TRATO_ID,
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      titulo: 'Seguimiento post-demo',
+      tipo: 'SEGUIMIENTO',
+      prioridad: 'ALTA',
+      descripcion: null,
+      fechaLimite: '2026-06-15T00:00:00.000Z',
+    };
+
+    result.current.mutate(input);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // NO debe haber campos snake_case ni numéricos
+    expect(capturedBody).not.toHaveProperty('trato_id');
+    expect(capturedBody).not.toHaveProperty('responsable_id');
+    expect(capturedBody).not.toHaveProperty('fecha_limite');
+    expect(typeof capturedBody!['prioridad']).toBe('string');
   });
 });

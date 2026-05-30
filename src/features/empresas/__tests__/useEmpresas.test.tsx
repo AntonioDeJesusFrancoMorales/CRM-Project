@@ -21,7 +21,7 @@ describe('useEmpresas', () => {
 
   it('reporta error cuando el endpoint responde 500', async () => {
     server.use(
-      http.get('/api/v1/empresas', () =>
+      http.get('/api/empresas/get-all', () =>
         HttpResponse.json(
           { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Boom' },
           { status: 500 },

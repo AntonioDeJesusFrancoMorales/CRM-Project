@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router';
-import { useState } from 'react';
-import type { Cliente, Prospecto, TipoContrato, Trato } from '@/api/types';
+import type { Contacto, TipoContrato, Trato, Usuario } from '@/api/types';
 import {
   Table,
   TableBody,
@@ -10,14 +9,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
-import { TratoEstadoBadge } from './TratoEstadoBadge';
-import { TratoEstadoMenu } from './TratoEstadoMenu';
-import { TratoPerderDialog } from './TratoPerderDialog';
 
 const tipoContratoLabels: Record<TipoContrato, string> = {
-  precio_fijo: 'Precio fijo',
-  tiempo_materiales: 'Tiempo y materiales',
-  retainer: 'Retainer',
+  SERVICIO: 'Servicio',
+  LICENCIA: 'Licencia',
+  SUSCRIPCION: 'Suscripción',
+  PERMANENTE: 'Permanente',
+  OTRO: 'Otro',
 };
 
 function formatCurrency(value: number | null): string {
@@ -31,22 +29,22 @@ function formatCurrency(value: number | null): string {
 
 interface TratosTableProps {
   tratos: Trato[];
-  clientes?: Cliente[];
-  prospectos?: Prospecto[];
+  contactos?: Contacto[];
+  usuarios?: Usuario[];
   searchTerm?: string;
 }
 
 export function TratosTable({
   tratos,
-  clientes = [],
-  prospectos = [],
+  contactos = [],
+  usuarios = [],
   searchTerm,
 }: TratosTableProps) {
   const navigate = useNavigate();
-  const [perderTrato, setPerderTrato] = useState<Trato | null>(null);
 
-  const clientesById = Object.fromEntries(clientes.map((c) => [c.id, c]));
-  const prospectosById = Object.fromEntries(prospectos.map((p) => [p.id, p]));
+  // Lookup Maps para resolución client-side
+  const contactosById = new Map(contactos.map((c) => [c.id, c]));
+  const usuariosById = new Map(usuarios.map((u) => [u.id, u]));
 
   const filtered = searchTerm
     ? tratos.filter((t) =>
@@ -55,78 +53,51 @@ export function TratosTable({
     : tratos;
 
   return (
-    <>
-      <Table>
-        <TableHeader>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nombre</TableHead>
+          <TableHead>Valor estimado</TableHead>
+          <TableHead>Tipo de contrato</TableHead>
+          <TableHead>Contacto</TableHead>
+          <TableHead>Responsable</TableHead>
+          <TableHead>Cierre esperado</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {filtered.length === 0 ? (
           <TableRow>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead>Valor estimado</TableHead>
-            <TableHead>Tipo de contrato</TableHead>
-            <TableHead>Vinculado a</TableHead>
-            <TableHead>Cierre esperado</TableHead>
-            <TableHead className="w-12"></TableHead>
+            <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+              {searchTerm
+                ? `No se encontraron tratos con "${searchTerm}"`
+                : 'No hay tratos registrados'}
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                {searchTerm
-                  ? `No se encontraron tratos con "${searchTerm}"`
-                  : 'No hay tratos registrados'}
-              </TableCell>
-            </TableRow>
-          ) : (
-            filtered.map((trato) => {
-              const vinculado = trato.cliente_id
-                ? clientesById[trato.cliente_id]?.nombre_contacto
-                : trato.prospecto_id
-                  ? prospectosById[trato.prospecto_id]?.nombre_contacto
-                  : null;
-              return (
-                <TableRow key={trato.id}>
-                  <TableCell className="font-medium">
-                    <button
-                      type="button"
-                      onClick={() => void navigate(`/tratos/${trato.id}`)}
-                      className="text-left text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
-                    >
-                      {trato.nombre}
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    <TratoEstadoBadge estado={trato.estado} />
-                  </TableCell>
-                  <TableCell>{formatCurrency(trato.valor_estimado)}</TableCell>
-                  <TableCell>
-                    {trato.tipo_contrato ? tipoContratoLabels[trato.tipo_contrato] : '—'}
-                  </TableCell>
-                  <TableCell>{vinculado ?? '—'}</TableCell>
-                  <TableCell>{formatDate(trato.fecha_cierre_esperada)}</TableCell>
-                  <TableCell>
-                    <TratoEstadoMenu
-                      trato={trato}
-                      onPerder={() => setPerderTrato(trato)}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-
-      {perderTrato && (
-        <TratoPerderDialog
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) setPerderTrato(null);
-          }}
-          tratoId={perderTrato.id}
-          nombre={perderTrato.nombre}
-        />
-      )}
-    </>
+        ) : (
+          filtered.map((trato) => {
+            const contacto = contactosById.get(trato.contactoId);
+            const responsable = usuariosById.get(trato.responsableId);
+            return (
+              <TableRow key={trato.id}>
+                <TableCell className="font-medium">
+                  <button
+                    type="button"
+                    onClick={() => void navigate(`/tratos/${trato.id}`)}
+                    className="text-left text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                  >
+                    {trato.nombre}
+                  </button>
+                </TableCell>
+                <TableCell>{formatCurrency(trato.valorEstimado)}</TableCell>
+                <TableCell>{tipoContratoLabels[trato.tipoContrato]}</TableCell>
+                <TableCell>{contacto?.nombre ?? '—'}</TableCell>
+                <TableCell>{responsable?.nombre ?? '—'}</TableCell>
+                <TableCell>{formatDate(trato.fechaCierreEsperada)}</TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </TableBody>
+    </Table>
   );
 }

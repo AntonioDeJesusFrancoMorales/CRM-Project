@@ -1,40 +1,31 @@
-// ADR-048 — Hook paramétrico para listar tareas con filtros server-side.
-// Filtros embebidos en queryKey para que TanStack refetchee al cambiar.
-// byTrato(tratoId) es alias de list({ trato_id: tratoId }) para mayor legibilidad.
+// ADR-048 — Hook para listar tareas (filtros client-side).
+// queryKey: ['tareas'] plano — NO embebe filtros (B1 fix, W-01).
+// Filtros se aplican en los componentes consumidores (useMemo sobre el array completo).
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
-import type { EstadoTarea, TipoTarea, Tarea } from '@/api/types';
+import { endpoints } from '@/api/endpoints';
+import type { EstadoTareaLocal, PrioridadTarea, TipoTarea, Tarea } from '@/api/types';
 
 export interface UseTareasFilters {
   trato_id?: string;
   responsable_id?: string;
-  estado?: EstadoTarea;
-  prioridad?: 1 | 2 | 3;
+  estado?: EstadoTareaLocal;
+  prioridad?: PrioridadTarea;
   vencimiento?: 'vencidas' | 'proximas' | 'todas';
   tipo?: TipoTarea;
 }
 
 export const tareasKeys = {
   all: ['tareas'] as const,
-  list: (filters?: UseTareasFilters) => ['tareas', filters ?? {}] as const,
+  list: () => ['tareas'] as const,
   detail: (id: string) => ['tareas', id] as const,
-  byTrato: (tratoId: string) => ['tareas', { trato_id: tratoId }] as const,
+  byTrato: (_tratoId: string) => ['tareas'] as const,
 };
 
-export function useTareas(filters?: UseTareasFilters): UseQueryResult<Tarea[]> {
+export function useTareas(): UseQueryResult<Tarea[]> {
   return useQuery<Tarea[]>({
-    queryKey: tareasKeys.list(filters),
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (filters?.trato_id) params.set('trato_id', filters.trato_id);
-      if (filters?.responsable_id) params.set('responsable_id', filters.responsable_id);
-      if (filters?.estado) params.set('estado', filters.estado);
-      if (filters?.prioridad) params.set('prioridad', String(filters.prioridad));
-      if (filters?.vencimiento) params.set('vencimiento', filters.vencimiento);
-      if (filters?.tipo) params.set('tipo', filters.tipo);
-      const qs = params.toString();
-      return apiClient.get<Tarea[]>(qs ? `/tareas?${qs}` : '/tareas');
-    },
+    queryKey: tareasKeys.all,
+    queryFn: () => apiClient.get<Tarea[]>(endpoints.tareas.getAll()),
   });
 }

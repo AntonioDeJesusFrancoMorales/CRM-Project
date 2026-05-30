@@ -1,102 +1,45 @@
-// ADR-042 — Schema Zod para Trato con XOR cliente_id/prospecto_id.
-// `superRefine` valida exactamente uno según el toggle `asociacion` y
-// emite el issue con `path` al campo concreto para que el form lo muestre inline.
+// Schema Zod para Trato — modelo unificado al contrato del back.
+// Sin XOR, sin campo estado, sin superRefine.
+// tratoEditSchema es tratoSchema sin contactoId (contactoId es inmutable en el back).
 
 import { z } from 'zod';
 
-export const tratoCreateSchema = z
-  .object({
-    asociacion: z.enum(['cliente', 'prospecto']),
-    cliente_id: z.string().optional().or(z.literal('')),
-    prospecto_id: z.string().optional().or(z.literal('')),
-    nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(200),
-    responsable_id: z.string().min(1, { message: 'El responsable es requerido' }),
-    valor_estimado: z
-      .number()
-      .nonnegative({ message: 'El valor estimado debe ser positivo' })
-      .nullable()
-      .optional(),
-    probabilidad: z
-      .number()
-      .min(0, { message: 'Probabilidad mínima 0' })
-      .max(100, { message: 'Probabilidad máxima 100' })
-      .nullable()
-      .optional(),
-    fecha_cierre_esperada: z.string().nullable().optional().or(z.literal('')),
-    tipo_contrato: z
-      .enum(['precio_fijo', 'tiempo_materiales', 'retainer'])
-      .nullable()
-      .optional(),
-  })
-  .superRefine((data, ctx) => {
-    const cliente = data.cliente_id?.trim() ?? '';
-    const prospecto = data.prospecto_id?.trim() ?? '';
-
-    if (data.asociacion === 'cliente') {
-      if (!cliente) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['cliente_id'],
-          message: 'Selecciona un cliente',
-        });
-      }
-      if (prospecto) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['prospecto_id'],
-          message: 'No puede tener prospecto si la asociación es cliente',
-        });
-      }
-    } else {
-      if (!prospecto) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['prospecto_id'],
-          message: 'Selecciona un prospecto',
-        });
-      }
-      if (cliente) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['cliente_id'],
-          message: 'No puede tener cliente si la asociación es prospecto',
-        });
-      }
-    }
-  });
-
-// El schema de update incluye `estado` y `motivo_perdida` (que el form NO expone).
-// Esto permite que `useUpdateTrato` valide payloads usados por acciones
-// programáticas como "Reabrir" (TratoEstadoMenu → PATCH con estado='abierto').
-export const tratoUpdateSchema = z.object({
-  asociacion: z.enum(['cliente', 'prospecto']).optional(),
-  cliente_id: z.string().optional().or(z.literal('')),
-  prospecto_id: z.string().optional().or(z.literal('')),
-  nombre: z.string().min(1).max(200).optional(),
-  responsable_id: z.string().min(1).optional(),
-  valor_estimado: z.number().nonnegative().nullable().optional(),
-  probabilidad: z.number().min(0).max(100).nullable().optional(),
-  fecha_cierre_esperada: z.string().nullable().optional().or(z.literal('')),
-  tipo_contrato: z
-    .enum(['precio_fijo', 'tiempo_materiales', 'retainer'])
+export const tratoSchema = z.object({
+  contactoId: z.string().min(1, { message: 'El contacto es requerido' }),
+  responsableId: z.string().min(1, { message: 'El responsable es requerido' }),
+  nombre: z
+    .string()
+    .min(1, { message: 'El nombre es requerido' })
+    .max(200, { message: 'El nombre no puede superar 200 caracteres' }),
+  tipoContrato: z.enum(['SERVICIO', 'LICENCIA', 'SUSCRIPCION', 'PERMANENTE', 'OTRO'], {
+    message: 'Selecciona un tipo de contrato válido',
+  }),
+  valorEstimado: z
+    .number()
+    .nonnegative({ message: 'El valor estimado debe ser positivo' })
     .nullable()
     .optional(),
-  estado: z.enum(['abierto', 'ganado', 'perdido']).optional(),
-  motivo_perdida: z.string().nullable().optional(),
+  probabilidad: z
+    .number()
+    .min(0, { message: 'Probabilidad mínima 0' })
+    .max(100, { message: 'Probabilidad máxima 100' })
+    .nullable()
+    .optional(),
+  fechaCierreEsperada: z.string().nullable().optional().or(z.literal('')),
 });
 
-export type TratoCreateInput = z.infer<typeof tratoCreateSchema>;
-export type TratoUpdateInput = z.infer<typeof tratoUpdateSchema>;
+export const tratoEditSchema = tratoSchema.omit({ contactoId: true });
 
-// Valores por defecto para `TratoForm` en modo `create`.
+export type TratoCreateInput = z.infer<typeof tratoSchema>;
+export type TratoEditInput = z.infer<typeof tratoEditSchema>;
+
+// Valores por defecto para TratoForm en modo create.
 export const TRATO_EMPTY_DEFAULTS: TratoCreateInput = {
-  asociacion: 'cliente',
-  cliente_id: '',
-  prospecto_id: '',
+  contactoId: '',
+  responsableId: '',
   nombre: '',
-  responsable_id: '',
-  valor_estimado: null,
+  tipoContrato: 'SERVICIO',
+  valorEstimado: null,
   probabilidad: null,
-  fecha_cierre_esperada: '',
-  tipo_contrato: null,
+  fechaCierreEsperada: '',
 };

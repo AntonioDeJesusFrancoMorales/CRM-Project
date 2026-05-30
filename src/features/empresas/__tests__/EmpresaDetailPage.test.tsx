@@ -29,18 +29,20 @@ function renderWithRouter(initialPath: string) {
 }
 
 describe('EmpresaDetailPage', () => {
-  it('renderiza el nombre y los tabs con un id válido', async () => {
+  it('renderiza el nombre y el tab Contactos con un id válido', async () => {
     renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
 
     await waitFor(() =>
       expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
     );
     expect(screen.getByRole('tab', { name: /información/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /prospectos/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /clientes/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /contactos/i })).toBeInTheDocument();
+    // Tabs legacy eliminados
+    expect(screen.queryByRole('tab', { name: /prospectos/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /clientes/i })).not.toBeInTheDocument();
   });
 
-  it('muestra badge "Convertido" en tab Prospectos para prospecto con estado convertido', async () => {
+  it('muestra contactos de la empresa en el tab Contactos', async () => {
     const user = userEvent.setup();
     renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
 
@@ -49,26 +51,21 @@ describe('EmpresaDetailPage', () => {
       expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
     );
 
-    // Activar el tab Prospectos
-    await user.click(screen.getByRole('tab', { name: /prospectos/i }));
+    // Activar el tab Contactos
+    await user.click(screen.getByRole('tab', { name: /contactos/i }));
 
-    // Valentina Cruz está en empresa a1111111 con estado 'convertido'
+    // Lucía y Sofía son de Innovatech (contactosFixture — sin apellido)
     await waitFor(() =>
-      expect(screen.getByText('Valentina Cruz')).toBeInTheDocument(),
+      expect(screen.getByText('Lucía')).toBeInTheDocument(),
     );
-
-    // El badge "Convertido" debe aparecer en la fila de Valentina Cruz
-    expect(screen.getByText('Convertido')).toBeInTheDocument();
+    expect(screen.getByText('Sofía')).toBeInTheDocument();
   });
 
   it('redirige a /empresas cuando el id devuelve 404', async () => {
+    // Con useEmpresa resuelto desde cache del get-all, un id inexistente
+    // devuelve undefined → el componente redirige a /empresas.
     server.use(
-      http.get('/api/v1/empresas/:id', () =>
-        HttpResponse.json(
-          { status: 404, error: 'NOT_FOUND', message: 'Empresa no encontrada' },
-          { status: 404 },
-        ),
-      ),
+      http.get('/api/empresas/get-all', () => HttpResponse.json([])),
     );
 
     renderWithRouter('/empresas/inexistente');

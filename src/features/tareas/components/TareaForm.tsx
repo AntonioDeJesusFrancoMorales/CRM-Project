@@ -2,6 +2,7 @@
 // Prop tratoIdFijo?: cuando viene, el Select de trato viene PRECARGADO y disabled.
 // Cuando no viene (creación global desde /tareas), el Select de trato es requerido y editable.
 // Campo estado ausente: el estado se modifica solo con TareaEstadoMenu.
+// Las opciones de tipo/prioridad usan enums del back (GENERAL/SEGUIMIENTO/… y BAJA/MEDIA/…).
 // Homologa TratoForm (ADR-042).
 
 import { useEffect } from 'react';
@@ -29,22 +30,10 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import {
   tareaCreateSchema,
   TAREA_EMPTY_DEFAULTS,
+  TIPO_TAREA_OPTIONS,
+  PRIORIDAD_OPTIONS,
   type TareaCreateInput,
 } from '../schemas/tarea.schema';
-
-const TIPO_TAREA_OPTIONS: Array<{ value: TareaCreateInput['tipo']; label: string }> = [
-  { value: 'llamada', label: 'Llamada' },
-  { value: 'reunion', label: 'Reunión' },
-  { value: 'email', label: 'Email' },
-  { value: 'demo', label: 'Demo' },
-  { value: 'seguimiento', label: 'Seguimiento' },
-];
-
-const PRIORIDAD_OPTIONS: Array<{ value: 1 | 2 | 3; label: string }> = [
-  { value: 1, label: 'Alta' },
-  { value: 2, label: 'Media' },
-  { value: 3, label: 'Baja' },
-];
 
 interface TareaFormProps {
   mode: 'create' | 'edit';
@@ -72,7 +61,7 @@ export function TareaForm({
     ...TAREA_EMPTY_DEFAULTS,
     ...(defaultValues ?? {}),
     // Si viene tratoIdFijo, lo fuerza en defaultValues
-    ...(tratoIdFijo ? { trato_id: tratoIdFijo } : {}),
+    ...(tratoIdFijo ? { tratoId: tratoIdFijo } : {}),
   };
 
   const form = useForm<TareaCreateInput>({
@@ -90,11 +79,11 @@ export function TareaForm({
   // Si tratoIdFijo viene fijo, asegura que el valor en el form esté seteado
   useEffect(() => {
     if (tratoIdFijo) {
-      form.setValue('trato_id', tratoIdFijo);
+      form.setValue('tratoId', tratoIdFijo);
     }
   }, [tratoIdFijo, form]);
 
-  const tratoSeleccionado = tratos?.find((t) => t.id === (tratoIdFijo ?? form.watch('trato_id')));
+  const tratoSeleccionado = tratos?.find((t) => t.id === (tratoIdFijo ?? form.watch('tratoId')));
 
   return (
     <Form {...form}>
@@ -103,7 +92,7 @@ export function TareaForm({
         {/* Select de Trato */}
         <FormField
           control={form.control}
-          name="trato_id"
+          name="tratoId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>
@@ -241,8 +230,8 @@ export function TareaForm({
                 <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
               <Select
-                onValueChange={(v) => field.onChange(Number(v) as 1 | 2 | 3)}
-                value={String(field.value)}
+                onValueChange={field.onChange}
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger aria-label="Prioridad">
@@ -251,7 +240,7 @@ export function TareaForm({
                 </FormControl>
                 <SelectContent>
                   {PRIORIDAD_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>
+                    <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -265,7 +254,7 @@ export function TareaForm({
         {/* Responsable */}
         <FormField
           control={form.control}
-          name="responsable_id"
+          name="responsableId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>
@@ -302,16 +291,18 @@ export function TareaForm({
         {/* Fecha límite */}
         <FormField
           control={form.control}
-          name="fecha_limite"
+          name="fechaLimite"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Fecha límite</FormLabel>
+              <FormLabel>
+                Fecha límite{' '}
+                <span aria-hidden="true" className="text-destructive">*</span>
+              </FormLabel>
               <FormControl>
                 <Input
                   type="date"
                   {...field}
                   value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.value || null)}
                 />
               </FormControl>
               <FormMessage />

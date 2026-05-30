@@ -24,24 +24,19 @@ import { TareaDeleteDialog } from './TareaDeleteDialog';
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
 
 const tipoLabels: Record<TipoTarea, string> = {
-  llamada: 'Llamada',
-  reunion: 'Reunión',
-  email: 'Email',
-  demo: 'Demo',
-  seguimiento: 'Seguimiento',
+  GENERAL: 'General',
+  SEGUIMIENTO: 'Seguimiento',
+  NEGOCIACION: 'Negociación',
+  CIERRE: 'Cierre',
 };
 
-const prioridadLabels: Record<1 | 2 | 3, string> = {
-  1: 'Alta',
-  2: 'Media',
-  3: 'Baja',
+const prioridadLabels: Record<string, string> = {
+  BAJA: 'Baja',
+  MEDIA: 'Media',
+  ALTA: 'Alta',
+  URGENTE: 'Urgente',
 };
 
-const estadoLabels: Record<string, string> = {
-  pendiente: 'Pendiente',
-  en_progreso: 'En progreso',
-  completada: 'Completada',
-};
 
 interface TareasTableProps {
   tareas: Tarea[];
@@ -118,11 +113,11 @@ export function TareasTable({
                   <Badge variant="outline">{prioridadLabels[tarea.prioridad]}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{estadoLabels[tarea.estado] ?? tarea.estado}</Badge>
+                  <TareaEstadoMenu tarea={tarea} />
                 </TableCell>
-                <TableCell>{usuariosById[tarea.responsable_id] ?? '—'}</TableCell>
-                <TableCell>{tratosById[tarea.trato_id] ?? '—'}</TableCell>
-                <TableCell>{formatDate(tarea.fecha_limite)}</TableCell>
+                <TableCell>{usuariosById[tarea.responsableId] ?? '—'}</TableCell>
+                <TableCell>{tratosById[tarea.tratoId] ?? '—'}</TableCell>
+                <TableCell>{formatDate(tarea.fechaLimite)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Button
@@ -142,7 +137,6 @@ export function TareasTable({
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <TareaEstadoMenu tarea={tarea} />
                   </div>
                 </TableCell>
               </TableRow>

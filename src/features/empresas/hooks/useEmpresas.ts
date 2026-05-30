@@ -1,5 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import type { Empresa } from '@/api/types';
 
 export const empresasKeys = {
@@ -13,6 +14,6 @@ export const empresasKeys = {
 export function useEmpresas(): UseQueryResult<Empresa[]> {
   return useQuery<Empresa[]>({
     queryKey: empresasKeys.list(),
-    queryFn: () => apiClient.get<Empresa[]>('/empresas'),
+    queryFn: () => apiClient.get<Empresa[]>(endpoints.empresas.getAll()),
   });
 }

@@ -10,12 +10,28 @@ import { server } from '@/test/server';
 const EXISTING_ID = '11111111-1111-1111-1111-111111111111';
 
 describe('useDeleteUsuario', () => {
-  it('elimina y limpia el cache del detalle + invalida la lista', async () => {
-    // Sobreescribe el handler DELETE para que retorne 204 exitoso.
+  it('envia DELETE /api/usuarios/delete?id= (id como query param, no path)', async () => {
+    let capturedUrl: string | null = null;
+
     server.use(
-      http.delete('/api/v1/usuarios/:id', () => new HttpResponse(null, { status: 204 })),
+      http.delete('/api/usuarios/delete', ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      }),
     );
 
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useDeleteUsuario(), { wrapper: Wrapper });
+
+    result.current.mutate(EXISTING_ID);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(capturedUrl).toContain(`id=${EXISTING_ID}`);
+    expect(capturedUrl).not.toContain(`/usuarios/${EXISTING_ID}`);
+  });
+
+  it('elimina y limpia el cache del detalle + invalida la lista', async () => {
     const { Wrapper, queryClient } = setupTestWrapper();
     const { result } = renderHook(() => useDeleteUsuario(), { wrapper: Wrapper });
 
@@ -29,9 +45,23 @@ describe('useDeleteUsuario', () => {
     expect(queryClient.getQueryData(usuariosKeys.detail(EXISTING_ID))).toBeUndefined();
   });
 
+  it('muestra toast "Usuario eliminado" en éxito', async () => {
+    // Forzamos 204 para que el test no dependa del estado mutable del fixture.
+    server.use(
+      http.delete('/api/usuarios/delete', () => new HttpResponse(null, { status: 204 })),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useDeleteUsuario(), { wrapper: Wrapper });
+
+    result.current.mutate(EXISTING_ID);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
   it('maneja 404 graciosamente cuando el usuario ya fue eliminado', async () => {
     server.use(
-      http.delete('/api/v1/usuarios/:id', () =>
+      http.delete('/api/usuarios/delete', () =>
         HttpResponse.json(
           { status: 404, error: 'NOT_FOUND', message: 'Usuario no encontrado' },
           { status: 404 },

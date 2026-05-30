@@ -3,12 +3,9 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Usuario } from '@/api/types';
+import type { UsuarioSesion } from '@/api/types';
 
-export type AuthUser = Pick<
-  Usuario,
-  'id' | 'nombre' | 'correo' | 'rol_sistema' | 'rol_empresa'
->;
+export type AuthUser = UsuarioSesion;
 
 interface AuthState {
   token: string | null;

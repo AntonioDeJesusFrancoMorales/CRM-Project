@@ -1,5 +1,5 @@
 import { isHttpError } from '@/api/http-error';
-import type { Trato } from '@/api/types';
+import type { Trato, TratoUpdatePayload } from '@/api/types';
 import {
   Dialog,
   DialogContent,
@@ -27,34 +27,32 @@ export function TratoEditDialog({ open, onOpenChange, trato }: TratoEditDialogPr
       ? mutation.error.details
       : undefined;
 
-  // Inicializa el toggle según el campo poblado del trato (cliente_id XOR prospecto_id).
+  // defaultValues para el form (incluye contactoId para pre-fill, aunque no va en el payload edit)
   const defaultValues: Partial<TratoCreateInput> = {
-    asociacion: trato.cliente_id ? 'cliente' : 'prospecto',
-    cliente_id: trato.cliente_id ?? '',
-    prospecto_id: trato.prospecto_id ?? '',
+    contactoId: trato.contactoId,
     nombre: trato.nombre,
-    responsable_id: trato.responsable_id,
-    valor_estimado: trato.valor_estimado,
+    responsableId: trato.responsableId,
+    valorEstimado: trato.valorEstimado,
     probabilidad: trato.probabilidad,
-    fecha_cierre_esperada: trato.fecha_cierre_esperada ?? '',
-    tipo_contrato: trato.tipo_contrato,
+    fechaCierreEsperada: trato.fechaCierreEsperada ?? '',
+    tipoContrato: trato.tipoContrato,
   };
 
   function handleSubmit(values: TratoCreateInput) {
-    // Transformar payload del form (igual que useCreateTrato): quitar asociacion, forzar opuesto a null.
-    const isCliente = values.asociacion === 'cliente';
-    const data = {
-      cliente_id: isCliente ? (values.cliente_id ?? '') || null : null,
-      prospecto_id: !isCliente ? (values.prospecto_id ?? '') || null : null,
-      nombre: values.nombre,
-      responsable_id: values.responsable_id,
-      valor_estimado: values.valor_estimado ?? null,
-      probabilidad: values.probabilidad ?? null,
-      fecha_cierre_esperada: values.fecha_cierre_esperada?.trim() ? values.fecha_cierre_esperada : null,
-      tipo_contrato: values.tipo_contrato ?? null,
+    // contactoId es inmutable — se omite del payload de edición (TratoUpdatePayload)
+    const { contactoId: _contactoId, ...editData }: TratoCreateInput = values;
+    const data: TratoUpdatePayload = {
+      nombre: editData.nombre,
+      responsableId: editData.responsableId,
+      tipoContrato: editData.tipoContrato,
+      valorEstimado: editData.valorEstimado ?? null,
+      probabilidad: editData.probabilidad ?? null,
+      fechaCierreEsperada: editData.fechaCierreEsperada?.trim()
+        ? editData.fechaCierreEsperada
+        : null,
     };
     mutation.mutate(
-      { id: trato.id, data: data as never },
+      { id: trato.id, data },
       { onSuccess: () => onOpenChange(false) },
     );
   }

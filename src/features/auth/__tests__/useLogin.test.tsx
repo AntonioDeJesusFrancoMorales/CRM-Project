@@ -42,7 +42,7 @@ describe('useLogin', () => {
   it('reporta error de validación 422 con detalles por campo', async () => {
     // Override: el backend responde 422 con un detalle por campo.
     server.use(
-      http.post('/api/v1/auth/login', () =>
+      http.post('/api/auth/login', () =>
         HttpResponse.json(
           {
             status: 422,
@@ -67,3 +67,4 @@ describe('useLogin', () => {
     expect(error.details?.[0]?.field).toBe('email');
   });
 });
+

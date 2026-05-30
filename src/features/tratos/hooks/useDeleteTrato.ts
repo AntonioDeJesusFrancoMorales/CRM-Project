@@ -1,9 +1,11 @@
-// ADR-046 — useDeleteTrato maneja 204 (remove + invalidate + toast) y 409 (no invalida, propaga err.message).
-// Pattern verbatim de useDeleteCliente (ADR-031 de Change 5).
+// useDeleteTrato — DELETE /tratos/delete?id=
+// 204 → removeQueries detail + invalidate list + toast.
+// 409 → no invalida (el trato sigue existiendo); el componente host lee err.message.
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { tratosKeys } from './useTratos';
 
@@ -11,7 +13,7 @@ export function useDeleteTrato(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, string>({
-    mutationFn: (id) => apiClient.delete<void>(`/tratos/${id}`),
+    mutationFn: (id) => apiClient.delete<void>(endpoints.tratos.delete(id)),
     onSuccess: (_void, id) => {
       queryClient.removeQueries({ queryKey: tratosKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: tratosKeys.all });
@@ -21,7 +23,6 @@ export function useDeleteTrato(): UseMutationResult<void, Error, string> {
       if (isHttpError(error)) {
         if (error.status === 409) {
           // 409 → NO invalida (el trato sigue existiendo).
-          // El componente host lee `err.message` del useMutation result para el toast.
           return;
         }
         toast.error(error.message);
