@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
+import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
 import { getTareaEstado, setTareaEstado } from '../hooks/useTareaEstado';
 import type { Tarea } from '@/api/types';
 
@@ -151,5 +152,58 @@ describe('TareaEstadoMenu — persistencia en localStorage', () => {
     await user.click(screen.getByRole('menuitem', { name: /reabrir/i }));
 
     expect(getTareaEstado(TAREA_COMPLETADA.id)).toBe('pendiente');
+  });
+});
+
+// Regresión del bug "le toco y no pasa nada": el clic debe reflejarse en la UI
+// (badge reactivo) sin re-montar el componente, no solo persistir en localStorage.
+describe('TareaEstadoMenu — reactividad visible (regresión)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function renderBadgeYMenu(tarea: Tarea) {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+        mutations: { retry: false },
+      },
+    });
+
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <TareaEstadoBadge tareaId={tarea.id} />
+        <TareaEstadoMenu tarea={tarea} />
+      </QueryClientProvider>,
+    );
+  }
+
+  it('(g) clic "Iniciar" actualiza el badge a "En progreso" sin re-montar', async () => {
+    const user = userEvent.setup();
+    renderBadgeYMenu(TAREA_PENDIENTE);
+
+    // Estado inicial visible
+    expect(screen.getByText('Pendiente')).toBeInTheDocument();
+
+    await openMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: /iniciar/i }));
+
+    // El badge refleja el nuevo estado en el mismo render
+    await waitFor(() => {
+      expect(screen.getByText('En progreso')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
+  });
+
+  it('(h) clic "Completar" actualiza el badge a "Completada"', async () => {
+    const user = userEvent.setup();
+    renderBadgeYMenu(TAREA_PENDIENTE);
+
+    await openMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: /completar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Completada')).toBeInTheDocument();
+    });
   });
 });

@@ -19,15 +19,9 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TareaEditDialog } from '../components/TareaEditDialog';
 import { TareaDeleteDialog } from '../components/TareaDeleteDialog';
 import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
-import { getTareaEstado } from '../hooks/useTareaEstado';
+import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
-
-const estadoLabels: Record<string, string> = {
-  pendiente: 'Pendiente',
-  en_progreso: 'En progreso',
-  completada: 'Completada',
-};
 
 const tipoLabels: Record<TipoTarea, string> = {
   GENERAL: 'General',
@@ -125,7 +119,6 @@ export function TareaDetailPage() {
   }
 
   const responsable = usuarios.find((u) => u.id === tarea.responsableId);
-  const estadoLocal = getTareaEstado(tarea.id);
 
   return (
     <div className="space-y-6">
@@ -142,9 +135,7 @@ export function TareaDetailPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{tarea.titulo}</h1>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">
-                {estadoLabels[estadoLocal]}
-              </Badge>
+              <TareaEstadoBadge tareaId={tarea.id} />
               <Badge variant="outline">
                 {prioridadLabels[tarea.prioridad]}
               </Badge>

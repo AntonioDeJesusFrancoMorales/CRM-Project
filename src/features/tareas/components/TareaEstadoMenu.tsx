@@ -1,6 +1,9 @@
-// TareaEstadoMenu: DropdownMenu con 3 ítems para cambiar estado de tarea.
-// Estado es client-only (localStorage). No emite calls al back para estado.
-// ADR-050 (actualizado): estado via localStorage, no via campo del back.
+// TareaEstadoMenu: DropdownMenu (3 puntos) con ítems para cambiar el estado de una tarea.
+// Estado es client-only (localStorage, ADR-050). No emite calls al back para estado.
+//
+// Usa el hook reactivo useTareaEstado: al cambiar el estado, persiste en localStorage y
+// notifica a todas las instancias suscritas (badge en tabla, badge en detalle, este menú),
+// que re-renderizan. La visualización del estado vive en TareaEstadoBadge, no acá.
 
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,38 +14,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Tarea } from '@/api/types';
-
-const STORAGE_KEY = (id: string) => `tarea-estado-${id}`;
-
-type EstadoLocal = 'pendiente' | 'en_progreso' | 'completada';
-
-function getEstadoLocal(id: string): EstadoLocal {
-  return (localStorage.getItem(STORAGE_KEY(id)) as EstadoLocal | null) ?? 'pendiente';
-}
-
-function setEstadoLocal(id: string, estado: EstadoLocal): void {
-  localStorage.setItem(STORAGE_KEY(id), estado);
-}
+import { useTareaEstado } from '../hooks/useTareaEstado';
 
 interface TareaEstadoMenuProps {
   tarea: Tarea;
 }
 
 export function TareaEstadoMenu({ tarea }: TareaEstadoMenuProps) {
-  const estado = getEstadoLocal(tarea.id);
-
-  function handleIniciar() {
-    setEstadoLocal(tarea.id, 'en_progreso');
-    // Forzar re-render no es necesario en este lote; el estado se lee al re-montar
-  }
-
-  function handleCompletar() {
-    setEstadoLocal(tarea.id, 'completada');
-  }
-
-  function handleReabrir() {
-    setEstadoLocal(tarea.id, 'pendiente');
-  }
+  const [estado, setEstado] = useTareaEstado(tarea.id);
 
   return (
     <DropdownMenu>
@@ -58,19 +37,19 @@ export function TareaEstadoMenu({ tarea }: TareaEstadoMenuProps) {
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           disabled={estado !== 'pendiente'}
-          onClick={handleIniciar}
+          onClick={() => setEstado('en_progreso')}
         >
           Iniciar
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={estado === 'completada'}
-          onClick={handleCompletar}
+          onClick={() => setEstado('completada')}
         >
           Completar
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={estado !== 'completada'}
-          onClick={handleReabrir}
+          onClick={() => setEstado('pendiente')}
         >
           Reabrir
         </DropdownMenuItem>
