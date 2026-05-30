@@ -161,14 +161,19 @@ describe('buildDragEndHandler — lógica pura de onDragEnd', () => {
 
 const TABLERO_ID = 'f1111111-ffff-1111-ffff-111111111111';
 
-function renderBoard(columnas: ColumnaTablero[], fichas: Ficha[], tableroId = TABLERO_ID) {
+function renderBoard(
+  columnas: ColumnaTablero[],
+  fichas: Ficha[],
+  tableroId = TABLERO_ID,
+  tipoFicha?: 'TRATO' | 'TAREA',
+) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <KanbanBoard columnas={columnas} fichas={fichas} tableroId={tableroId} />
+        <KanbanBoard columnas={columnas} fichas={fichas} tableroId={tableroId} tipoFicha={tipoFicha} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -211,6 +216,51 @@ describe('KanbanBoard — render', () => {
     // d1111111 aparece (TRATO), la tarea no debería aparecer
     expect(screen.getByText(/d1111111/)).toBeInTheDocument();
     // Solo hay 1 kanban-card (el TRATO), el de TAREA no se renderiza
+    const cards = screen.getAllByTestId('kanban-card');
+    expect(cards).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Batch 5 — prop tipoFicha: filtro por tipo
+// ---------------------------------------------------------------------------
+
+describe('KanbanBoard — Batch 5: prop tipoFicha filtra fichas por tipo', () => {
+  it("(j) con tipoFicha='TAREA' solo muestra fichas de tipo TAREA", () => {
+    const fichasTarea: Ficha[] = [
+      {
+        id: 'ficha-tarea-1',
+        columnaId: 'col-a',
+        tipoFicha: 'TAREA',
+        tratoId: null,
+        tareaId: 'ta-abc',
+        responsableId: 'usr1',
+        creadoPor: 'usr1',
+        creadoEn: '2026-04-10T08:00:00Z',
+        actualizadoEn: '2026-04-10T08:00:00Z',
+      },
+    ];
+
+    // FICHA_1 es tipo TRATO; fichasTarea[0] es tipo TAREA
+    // Con tipoFicha='TAREA', solo debe aparecer la tarea (1 card), no el TRATO
+    renderBoard([COLUMNA_A, COLUMNA_B], [FICHA_1, fichasTarea[0]!], TABLERO_ID, 'TAREA');
+
+    const cards = screen.getAllByTestId('kanban-card');
+    expect(cards).toHaveLength(1);
+    // El card es el de tipo TAREA (no muestra d1111111 que es el tratoId de FICHA_1)
+    expect(screen.queryByText(/d1111111/)).not.toBeInTheDocument();
+  });
+
+  it("(k) el test (h) sigue verde: con tipoFicha='TRATO' (default) fichas TAREA no aparecen", () => {
+    const fichaTarea: Ficha = {
+      ...FICHA_1,
+      id: 'ficha-tarea',
+      tipoFicha: 'TAREA',
+      tratoId: null,
+      tareaId: 'e1234',
+    };
+    renderBoard([COLUMNA_A], [FICHA_1, fichaTarea], TABLERO_ID, 'TRATO');
+    expect(screen.getByText(/d1111111/)).toBeInTheDocument();
     const cards = screen.getAllByTestId('kanban-card');
     expect(cards).toHaveLength(1);
   });

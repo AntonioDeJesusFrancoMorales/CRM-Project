@@ -1,7 +1,7 @@
 // KanbanBoard — tablero Kanban completo con DnD entre columnas.
 // Envuelve todo en <DndContext onDragEnd={handler}>.
 // Drag SOLO entre columnas (no intra-columna).
-// Agrupar fichas por columnaId, filtrar solo tipoFicha === 'TRATO'.
+// Agrupar fichas por columnaId, filtrar por tipoFicha (prop, default 'TRATO').
 // Orden dentro de cada columna: creadoEn ASC (estable, no reordenable).
 //
 // buildDragEndHandler es una función pura exportada para poder testearla
@@ -16,7 +16,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
-import type { Ficha, FichaEditInput } from '@/features/kanban/schemas/ficha.schema';
+import type { Ficha, FichaEditInput, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useUpdateFicha } from '@/features/kanban/hooks/useUpdateFicha';
 import { KanbanColumn } from './KanbanColumn';
 
@@ -71,31 +71,32 @@ interface KanbanBoardProps {
   columnas: ColumnaTablero[];
   fichas: Ficha[];
   tableroId: string;
+  tipoFicha?: TipoFicha; // default 'TRATO' (backward-compatible)
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function KanbanBoard({ columnas, fichas, tableroId }: KanbanBoardProps) {
+export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }: KanbanBoardProps) {
   const { mutate } = useUpdateFicha();
 
-  // Solo mostrar fichas de tipo TRATO
-  const fichasTrato = fichas.filter((f) => f.tipoFicha === 'TRATO');
+  // Filtrar fichas por tipo (no hardcodear 'TRATO')
+  const fichasFiltradas = fichas.filter((f) => f.tipoFicha === tipoFicha);
 
   // Agrupar fichas por columnaId
   const fichasPorColumna = new Map<string, Ficha[]>();
   for (const columna of columnas) {
     fichasPorColumna.set(columna.id, []);
   }
-  for (const ficha of fichasTrato) {
+  for (const ficha of fichasFiltradas) {
     const lista = fichasPorColumna.get(ficha.columnaId);
     if (lista) {
       lista.push(ficha);
     }
   }
 
-  const handleDragEnd = buildDragEndHandler({ fichas: fichasTrato, mutate });
+  const handleDragEnd = buildDragEndHandler({ fichas: fichasFiltradas, mutate });
 
   // Sensor con tolerancia de 5px para evitar drags accidentales en clicks
   const sensors = useSensors(
@@ -113,6 +114,7 @@ export function KanbanBoard({ columnas, fichas, tableroId }: KanbanBoardProps) {
             columna={columna}
             fichas={fichasPorColumna.get(columna.id) ?? []}
             tableroId={tableroId}
+            tipoFicha={tipoFicha}
           />
         ))}
       </div>

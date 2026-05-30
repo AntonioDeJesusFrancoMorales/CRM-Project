@@ -21,7 +21,10 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 import { KanbanListPage } from '../pages/KanbanListPage';
 import { KanbanPage } from '../pages/KanbanPage';
 import { server } from '@/test/server';
-import { tableroTratosFixture } from '@/mocks/fixtures/tableros';
+import {
+  tableroTratosFixture,
+  tableroTareasFixture,
+} from '@/mocks/fixtures/tableros';
 import { asignarColumnaSchema } from '../schemas/columna.schema';
 
 // ---------------------------------------------------------------------------
@@ -72,7 +75,7 @@ function renderDetailPage(initialPath: string) {
 // KanbanListPage
 // ---------------------------------------------------------------------------
 
-describe('KanbanListPage — solo tableros TRATOS', () => {
+describe('KanbanListPage — lista unificada TRATOS + TAREAS', () => {
   it('(a) muestra el tablero de tipo TRATOS del fixture', async () => {
     renderListPage();
 
@@ -81,18 +84,13 @@ describe('KanbanListPage — solo tableros TRATOS', () => {
     });
   });
 
-  it('(b) NO muestra tableros de tipo TAREAS', async () => {
-    // Override: devolver un tablero TAREAS además del TRATOS
+  it('(b) AHORA muestra tableros de tipo TAREAS junto a los de TRATOS', async () => {
+    // Batch 7: invertido — antes esperaba que TAREAS NO aparecieran, ahora SI deben aparecer
     server.use(
       http.get('/api/tableros/get-all', () =>
         HttpResponse.json([
           tableroTratosFixture,
-          {
-            ...tableroTratosFixture,
-            id: 'tareas-tablero-id',
-            nombre: 'Tablero de Tareas',
-            tipoTablero: 'TAREAS',
-          },
+          tableroTareasFixture,
         ]),
       ),
     );
@@ -103,11 +101,40 @@ describe('KanbanListPage — solo tableros TRATOS', () => {
       expect(screen.getByText('Pipeline de Tratos')).toBeInTheDocument();
     });
 
-    // El tablero TAREAS no debe aparecer
-    expect(screen.queryByText('Tablero de Tareas')).not.toBeInTheDocument();
+    // El tablero TAREAS AHORA debe aparecer (lista unificada)
+    expect(screen.getByText('Pipeline de Tareas')).toBeInTheDocument();
   });
 
-  it('(c) empty state cuando no hay tableros TRATOS', async () => {
+  it('(b2) badge TRATOS visible en card de tipo TRATOS', async () => {
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Pipeline de Tratos')).toBeInTheDocument();
+    });
+
+    // Badge de tipo debe ser visible
+    expect(screen.getByText('TRATOS')).toBeInTheDocument();
+  });
+
+  it('(b3) badge TAREAS visible en card de tipo TAREAS', async () => {
+    server.use(
+      http.get('/api/tableros/get-all', () =>
+        HttpResponse.json([tableroTratosFixture, tableroTareasFixture]),
+      ),
+    );
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Pipeline de Tareas')).toBeInTheDocument();
+    });
+
+    // Badge TAREAS y TRATOS ambos visibles
+    expect(screen.getByText('TAREAS')).toBeInTheDocument();
+    expect(screen.getByText('TRATOS')).toBeInTheDocument();
+  });
+
+  it('(c) empty state cuando no hay tableros', async () => {
     server.use(
       http.get('/api/tableros/get-all', () => HttpResponse.json([])),
     );
@@ -115,7 +142,7 @@ describe('KanbanListPage — solo tableros TRATOS', () => {
     renderListPage();
 
     await waitFor(() => {
-      expect(screen.getByText(/no hay tableros de tratos/i)).toBeInTheDocument();
+      expect(screen.getByText(/no hay tableros/i)).toBeInTheDocument();
     });
   });
 
@@ -225,6 +252,103 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(errors!.limiteWip![0]).toMatch(/el límite wip debe ser al menos 1/i);
   });
 
+  it('(k) tablero TAREAS muestra selector estadoTarea (no estadoTrato)', async () => {
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json(tableroTareasFixture),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderDetailPage(`/tableros/${tableroTareasFixture.id}`);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pipeline de Tareas')).toBeInTheDocument();
+    });
+
+    // Abrir el form de asignar columna
+    const asignarBtn = screen.getByRole('button', { name: /asignar columna/i });
+    await user.click(asignarBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Selector estadoTarea debe estar visible
+    expect(screen.getByRole('combobox', { name: /estado de tarea/i })).toBeInTheDocument();
+
+    // Selector estadoTrato NO debe estar visible
+    expect(screen.queryByRole('combobox', { name: /estado de trato/i })).not.toBeInTheDocument();
+  });
+
+  it('(l) tablero TAREAS oculta el campo totalValorEstimado', async () => {
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json(tableroTareasFixture),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderDetailPage(`/tableros/${tableroTareasFixture.id}`);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pipeline de Tareas')).toBeInTheDocument();
+    });
+
+    const asignarBtn = screen.getByRole('button', { name: /asignar columna/i });
+    await user.click(asignarBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // El label "Total valor estimado" NO debe aparecer para tableros TAREAS
+    expect(screen.queryByLabelText(/total valor estimado/i)).not.toBeInTheDocument();
+  });
+
+  it('(m) asignarColumnaSchema para TAREAS requiere estadoTarea y totalValorEstimado=0', () => {
+    // El schema enforza los invariantes del back para tableros TAREAS.
+    // La lógica de submit en KanbanPage usa esTareas para construir el body sin tipoTablero.
+    // Aquí verificamos el contrato del schema (mismo patrón que el test (i) para TRATOS).
+    const result = asignarColumnaSchema.safeParse({
+      tipoTablero: 'TAREAS',
+      limiteWip: 2,
+      estadoTarea: 'PENDIENTE',
+      totalValorEstimado: 0,
+    });
+    expect(result.success).toBe(true);
+
+    // Sin estadoTarea falla
+    const sinEstado = asignarColumnaSchema.safeParse({
+      tipoTablero: 'TAREAS',
+      limiteWip: 2,
+      totalValorEstimado: 0,
+    });
+    expect(sinEstado.success).toBe(false);
+    expect(sinEstado.error?.flatten().fieldErrors.estadoTarea).toBeDefined();
+
+    // Con totalValorEstimado != 0 falla
+    const conValor = asignarColumnaSchema.safeParse({
+      tipoTablero: 'TAREAS',
+      limiteWip: 2,
+      estadoTarea: 'PENDIENTE',
+      totalValorEstimado: 1000,
+    });
+    expect(conValor.success).toBe(false);
+    expect(conValor.error?.flatten().fieldErrors.totalValorEstimado).toBeDefined();
+
+    // Con estadoTrato también falla (excluyente)
+    const conTrato = asignarColumnaSchema.safeParse({
+      tipoTablero: 'TAREAS',
+      limiteWip: 2,
+      estadoTarea: 'PENDIENTE',
+      estadoTrato: 'ABIERTO',
+      totalValorEstimado: 0,
+    });
+    expect(conTrato.success).toBe(false);
+    expect(conTrato.error?.flatten().fieldErrors.estadoTrato).toBeDefined();
+  });
+
   it('(j) asignar columna success invoca POST asignar-columna y cierra el form', async () => {
     const user = userEvent.setup();
     let postCalled = false;
@@ -283,6 +407,16 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     const limiteWipInputs = screen.getAllByRole('spinbutton');
     await user.clear(limiteWipInputs[0]!);
     await user.type(limiteWipInputs[0]!, '3');
+
+    // Seleccionar estado de trato (requerido para tableros TRATOS por invariante del back)
+    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
+    await user.click(estadoTrigger);
+    await waitFor(() => {
+      const estadoOptions = screen.getAllByRole('option');
+      expect(estadoOptions.length).toBeGreaterThan(0);
+    });
+    const estadoOptions = screen.getAllByRole('option');
+    await user.click(estadoOptions[0]!);
 
     // Enviar
     const dialog = screen.getByRole('dialog');

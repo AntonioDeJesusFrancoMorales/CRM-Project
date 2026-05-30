@@ -5,6 +5,7 @@ import {
   tipoTablero,
   tipoColumna,
   estadoTrato,
+  estadoTarea,
   tableroSchema,
   columnaTableroSchema,
 } from '../schemas/tablero.schema';
@@ -270,18 +271,52 @@ describe('columnaSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// asignarColumnaSchema (input form para asignar columna a tablero)
-// Tasks 1.1 (RED) + 1.2 (GREEN)
+// estadoTarea enum — Task 1.1 (RED) + 1.2 (GREEN)
+// ---------------------------------------------------------------------------
+
+describe('estadoTarea enum', () => {
+  it('acepta PENDIENTE', () => {
+    expect(estadoTarea.safeParse('PENDIENTE').success).toBe(true);
+  });
+
+  it('acepta EN_CURSO', () => {
+    expect(estadoTarea.safeParse('EN_CURSO').success).toBe(true);
+  });
+
+  it('acepta FINALIZADA', () => {
+    expect(estadoTarea.safeParse('FINALIZADA').success).toBe(true);
+  });
+
+  it('rechaza valores fuera del enum', () => {
+    expect(estadoTarea.safeParse('pendiente').success).toBe(false);
+    expect(estadoTarea.safeParse('EN_PROGRESO').success).toBe(false);
+    expect(estadoTarea.safeParse('CERRADA').success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// asignarColumnaSchema con tipoTablero + superRefine — Task 1.1 RED + 1.3 GREEN
 // ---------------------------------------------------------------------------
 
 describe('asignarColumnaSchema', () => {
-  const ASIGNAR_VALIDO = {
+  // Base válida para tablero TRATOS
+  const ASIGNAR_TRATOS = {
+    tipoTablero: 'TRATOS',
     limiteWip: 3,
+    estadoTrato: 'ABIERTO',
+    totalValorEstimado: 5000,
+  };
+
+  // Base válida para tablero TAREAS
+  const ASIGNAR_TAREAS = {
+    tipoTablero: 'TAREAS',
+    limiteWip: 2,
+    estadoTarea: 'PENDIENTE',
     totalValorEstimado: 0,
   };
 
-  it('acepta limiteWip: 1 (mínimo válido)', () => {
-    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, limiteWip: 1 });
+  it('acepta limiteWip: 1 (mínimo válido) en tablero TRATOS', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_TRATOS, limiteWip: 1 });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.limiteWip).toBe(1);
@@ -289,52 +324,123 @@ describe('asignarColumnaSchema', () => {
   });
 
   it('rechaza limiteWip: 0', () => {
-    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, limiteWip: 0 });
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_TRATOS, limiteWip: 0 });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('El límite WIP debe ser al menos 1');
+      const wip = result.error.issues.find((i) => i.path.includes('limiteWip'));
+      expect(wip?.message).toBe('El límite WIP debe ser al menos 1');
     }
   });
 
   it('rechaza limiteWip: -1', () => {
-    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, limiteWip: -1 });
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_TRATOS, limiteWip: -1 });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('El límite WIP debe ser al menos 1');
-    }
   });
 
-  it('acepta estadoTrato opcional — omitido no falla', () => {
-    const result = asignarColumnaSchema.safeParse(ASIGNAR_VALIDO);
-    expect(result.success).toBe(true);
-  });
-
-  it('acepta estadoTrato: ABIERTO cuando se incluye', () => {
-    const result = asignarColumnaSchema.safeParse({
-      ...ASIGNAR_VALIDO,
-      estadoTrato: 'ABIERTO',
-    });
+  it('TRATOS: acepta estadoTrato ABIERTO sin estadoTarea', () => {
+    const result = asignarColumnaSchema.safeParse(ASIGNAR_TRATOS);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.estadoTrato).toBe('ABIERTO');
     }
   });
 
-  it('rechaza estadoTrato inválido', () => {
+  it('TRATOS: rechaza si estadoTrato está ausente', () => {
+    const { estadoTrato: _, ...sinEstado } = ASIGNAR_TRATOS;
+    const result = asignarColumnaSchema.safeParse(sinEstado);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('estadoTrato'));
+      expect(issue).toBeDefined();
+    }
+  });
+
+  it('TRATOS: rechaza si estadoTarea está presente (exclusividad)', () => {
     const result = asignarColumnaSchema.safeParse({
-      ...ASIGNAR_VALIDO,
+      ...ASIGNAR_TRATOS,
+      estadoTarea: 'PENDIENTE',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('estadoTarea'));
+      expect(issue).toBeDefined();
+    }
+  });
+
+  it('TRATOS: rechaza estadoTrato inválido', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_TRATOS,
       estadoTrato: 'CERRADO',
     });
     expect(result.success).toBe(false);
   });
 
+  it('TAREAS: acepta estadoTarea PENDIENTE con totalValorEstimado=0', () => {
+    const result = asignarColumnaSchema.safeParse(ASIGNAR_TAREAS);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.estadoTarea).toBe('PENDIENTE');
+      expect(result.data.totalValorEstimado).toBe(0);
+    }
+  });
+
+  it('TAREAS: acepta estadoTarea EN_CURSO', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_TAREAS,
+      estadoTarea: 'EN_CURSO',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('TAREAS: acepta estadoTarea FINALIZADA', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_TAREAS,
+      estadoTarea: 'FINALIZADA',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('TAREAS: rechaza si estadoTarea está ausente', () => {
+    const { estadoTarea: _, ...sinEstado } = ASIGNAR_TAREAS;
+    const result = asignarColumnaSchema.safeParse(sinEstado);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('estadoTarea'));
+      expect(issue).toBeDefined();
+    }
+  });
+
+  it('TAREAS: rechaza si estadoTrato está presente (exclusividad)', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_TAREAS,
+      estadoTrato: 'ABIERTO',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('estadoTrato'));
+      expect(issue).toBeDefined();
+    }
+  });
+
+  it('TAREAS: rechaza totalValorEstimado distinto de 0', () => {
+    const result = asignarColumnaSchema.safeParse({
+      ...ASIGNAR_TAREAS,
+      totalValorEstimado: 100,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('totalValorEstimado'));
+      expect(issue).toBeDefined();
+    }
+  });
+
   it('rechaza totalValorEstimado negativo', () => {
-    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, totalValorEstimado: -1 });
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_TRATOS, totalValorEstimado: -1 });
     expect(result.success).toBe(false);
   });
 
-  it('acepta totalValorEstimado: 0', () => {
-    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_VALIDO, totalValorEstimado: 0 });
+  it('acepta totalValorEstimado: 0 en TRATOS', () => {
+    const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_TRATOS, totalValorEstimado: 0 });
     expect(result.success).toBe(true);
   });
 });

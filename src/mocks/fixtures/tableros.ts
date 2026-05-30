@@ -75,6 +75,68 @@ export const tableroTratosFixture: Tablero = {
 export const tablerosFixture: Tablero[] = [tableroTratosFixture];
 
 // ---------------------------------------------------------------------------
+// Fixture de tablero TAREAS — 3 columnas: PENDIENTE, EN_CURSO, FINALIZADA
+// ---------------------------------------------------------------------------
+
+export const columnasTablTareasIds = {
+  pendiente: 'b1111111-bbbb-1111-bbbb-111111111111',
+  enCurso: 'b2222222-bbbb-2222-bbbb-222222222222',
+  finalizada: 'b3333333-bbbb-3333-bbbb-333333333333',
+} as const;
+
+const COLUMNAS_TABLERO_TAREAS: ColumnaTablero[] = [
+  {
+    id: columnasTablTareasIds.pendiente,
+    nombre: 'Pendiente',
+    color: '#94a3b8',
+    limiteWip: null,
+    nota: null,
+    estadoTarea: 'PENDIENTE',
+    estadoTrato: null,
+    totalValorEstimado: 0,
+  },
+  {
+    id: columnasTablTareasIds.enCurso,
+    nombre: 'En Curso',
+    color: '#fbbf24',
+    limiteWip: 3,
+    nota: null,
+    estadoTarea: 'EN_CURSO',
+    estadoTrato: null,
+    totalValorEstimado: 0,
+  },
+  {
+    id: columnasTablTareasIds.finalizada,
+    nombre: 'Finalizada',
+    color: '#34d399',
+    limiteWip: null,
+    nota: null,
+    estadoTarea: 'FINALIZADA',
+    estadoTrato: null,
+    totalValorEstimado: 0,
+  },
+];
+
+export const tableroTareasFixture: Tablero = {
+  id: 'e1111111-eeee-1111-eeee-111111111111',
+  nombre: 'Pipeline de Tareas',
+  descripcion: 'Tablero de gestión de tareas.',
+  tipoTablero: 'TAREAS',
+  columnas: COLUMNAS_TABLERO_TAREAS,
+  creadoEn: '2026-04-01T08:00:00',
+};
+
+export const columnasFixtureTareas: Columna[] = [
+  {
+    id: columnasTablTareasIds.pendiente,
+    nombre: 'Pendiente',
+    color: '#94a3b8',
+    tipoTablero: 'TAREAS',
+    tipoColumna: 'PREDETERMINADA',
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Catálogo de columnas (ColumnaResponse)
 // ---------------------------------------------------------------------------
 

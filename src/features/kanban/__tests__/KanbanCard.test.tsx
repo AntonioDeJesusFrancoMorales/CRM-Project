@@ -139,18 +139,9 @@ const TRATO_T2: Trato = {
   actualizadoEn: '2026-05-05T09:30:00.000Z',
 };
 
-// t2 has a ficha; t1 does not
-const FICHA_T2: Ficha = {
-  id: 'h3333333-hhhh-3333-hhhh-333333333333',
-  columnaId: 'a1111111-aaaa-1111-aaaa-111111111111',
-  tipoFicha: 'TRATO',
-  tratoId: 'd2222222-dddd-2222-dddd-222222222222',
-  tareaId: null,
-  responsableId: '22222222-2222-2222-2222-222222222222',
-  creadoPor: '22222222-2222-2222-2222-222222222222',
-  creadoEn: '2026-04-10T08:00:00Z',
-  actualizadoEn: '2026-04-10T08:00:00Z',
-};
+// t2 has a ficha — kept for fixture completeness (previously used in integration tests with useTratosSinFicha)
+// FICHA_T2 is no longer needed since FichaForm doesn't fetch tratos internally anymore (Batch 4 refactor).
+// The comment is kept for historical context; the variable is removed to avoid unused-variable TS error.
 
 function buildQueryClient() {
   return new QueryClient({
@@ -161,10 +152,21 @@ function buildQueryClient() {
   });
 }
 
+// Migrado en Batch 4.1: FichaForm ahora recibe tipoFicha + items como props (no fetches internamente).
+// renderFichaForm pasa tipoFicha='TRATO' + items mapeados desde tratos.
+
 function renderFichaForm(props: Partial<Parameters<typeof FichaForm>[0]> = {}) {
   const queryClient = buildQueryClient();
+  // Stub usuarios para el selector de responsable
+  server.use(http.get('/api/usuarios/get-all', () => HttpResponse.json([])));
+
   const defaults: Parameters<typeof FichaForm>[0] = {
     columnaId: 'a1111111-aaaa-1111-aaaa-111111111111',
+    tipoFicha: 'TRATO',
+    items: [
+      { id: TRATO_T1.id, label: TRATO_T1.nombre },
+      { id: TRATO_T2.id, label: TRATO_T2.nombre },
+    ],
     onSubmit: vi.fn(),
     isSubmitting: false,
     ...props,
@@ -176,75 +178,52 @@ function renderFichaForm(props: Partial<Parameters<typeof FichaForm>[0]> = {}) {
   );
 }
 
-describe('FichaForm — selector de tratos', () => {
-  it('(a) muestra solo tratos sin ficha en el selector de trato', async () => {
-    // MSW: tratos = [t1, t2]; fichas = [ficha de t2] → solo t1 debe aparecer
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1, TRATO_T2])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([FICHA_T2])),
-      http.get('/api/usuarios', () => HttpResponse.json([])),
-    );
+describe('FichaForm — selector de tratos (migrado Batch 4.1)', () => {
+  it('(a) muestra solo tratos sin ficha en el selector: items precargados por el padre', async () => {
+    // FichaForm ya no fetches tratos — el padre pasa items ya filtrados.
+    // Aquí pasamos solo t1 como item disponible (t2 ya tiene ficha, el padre lo filtraría).
+    renderFichaForm({
+      tipoFicha: 'TRATO',
+      items: [{ id: TRATO_T1.id, label: TRATO_T1.nombre }],
+    });
 
-    renderFichaForm();
-
-    // Open trato selector
+    // Open selector (field se llama ahora 'entidadId', label 'Trato')
     const tratoTrigger = await screen.findByRole('combobox', { name: /trato/i });
     await userEvent.click(tratoTrigger);
 
-    // Wait for the listbox (dropdown) to open with items
-    const listbox = await screen.findByRole('listbox');
-    await waitFor(() => {
-      // t1 (without ficha) must appear in the dropdown
-      const options = Array.from(listbox.querySelectorAll('[role="option"]'));
-      const labels = options.map((o) => o.textContent);
-      expect(labels).toContain('Implementación CRM Innovatech');
-      // t2 (with ficha) must NOT appear in the dropdown
-      expect(labels).not.toContain('Renovación licencia anual');
-    });
+    // t1 must appear
+    const option = await screen.findByRole('option', { name: 'Implementación CRM Innovatech' });
+    expect(option).toBeInTheDocument();
   });
 
-  it('(b) cuando ambos tratos no tienen ficha, ambos aparecen en el selector', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1, TRATO_T2])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () => HttpResponse.json([])),
-    );
-
-    renderFichaForm();
+  it('(b) cuando ambos tratos están en items, ambos aparecen en el selector', async () => {
+    renderFichaForm({
+      tipoFicha: 'TRATO',
+      items: [
+        { id: TRATO_T1.id, label: TRATO_T1.nombre },
+        { id: TRATO_T2.id, label: TRATO_T2.nombre },
+      ],
+    });
 
     const tratoTrigger = await screen.findByRole('combobox', { name: /trato/i });
     await userEvent.click(tratoTrigger);
 
-    const listbox = await screen.findByRole('listbox');
-    await waitFor(() => {
-      const options = Array.from(listbox.querySelectorAll('[role="option"]'));
-      const labels = options.map((o) => o.textContent);
-      expect(labels).toContain('Implementación CRM Innovatech');
-      expect(labels).toContain('Renovación licencia anual');
-    });
+    expect(await screen.findByRole('option', { name: 'Implementación CRM Innovatech' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Renovación licencia anual' })).toBeInTheDocument();
   });
 });
 
-describe('FichaForm — validación tratoId requerido', () => {
-  it('(c) muestra error de validación si se envía sin seleccionar trato', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () => HttpResponse.json([])),
-    );
-
+describe('FichaForm — validación entidadId requerido (migrado Batch 4.1)', () => {
+  it('(c) muestra error de validación si se envía sin seleccionar entidad', async () => {
     const onSubmit = vi.fn();
-    renderFichaForm({ onSubmit });
+    renderFichaForm({ onSubmit, items: [] });
 
     const submitBtn = await screen.findByRole('button', { name: /crear ficha/i });
     await userEvent.click(submitBtn);
 
-    // The validation error message appears in the FormMessage <p> element
-    // (distinct from the select placeholder which also says "Selecciona un trato")
     await waitFor(() => {
-      // FormMessage renders with role "alert" or as a <p> — use getAllByText and verify at least one is the error
+      // FormMessage renders a <p> with error text
       const allTexts = screen.getAllByText(/selecciona un trato/i);
-      // At minimum one must be the error message (<p> with class text-destructive)
       const errorParagraph = allTexts.find(
         (el) => el.tagName === 'P' && el.className.includes('destructive'),
       );
@@ -256,20 +235,12 @@ describe('FichaForm — validación tratoId requerido', () => {
 
 describe('FichaForm — columnaId read-only display', () => {
   it('(d) muestra el columnaId precargado como texto no editable', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () => HttpResponse.json([])),
-    );
-
     const COLUMNA_ID = 'a1111111-aaaa-1111-aaaa-111111111111';
-    renderFichaForm({ columnaId: COLUMNA_ID });
+    renderFichaForm({ columnaId: COLUMNA_ID, items: [] });
 
-    // columnaId must be visible but not an editable input
     await waitFor(() => {
       expect(screen.getByText(COLUMNA_ID)).toBeInTheDocument();
     });
-    // It must not be an editable input
     const editableInputs = screen.queryAllByRole('textbox');
     const editableWithValue = editableInputs.filter(
       (el) => (el as HTMLInputElement).value === COLUMNA_ID,
@@ -278,16 +249,12 @@ describe('FichaForm — columnaId read-only display', () => {
   });
 });
 
-describe('FichaForm — serverErrors 422', () => {
-  it('(e) muestra el mensaje de serverError en el campo tratoId', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios', () => HttpResponse.json([])),
-    );
-
+describe('FichaForm — serverErrors 422 (migrado Batch 4.1)', () => {
+  it('(e) muestra el mensaje de serverError en el campo entidadId', async () => {
+    // El campo se renombró de tratoId a entidadId — server errors deben usar 'entidadId'
     renderFichaForm({
-      serverErrors: [{ field: 'tratoId', message: 'El trato ya tiene una ficha asignada' }],
+      items: [],
+      serverErrors: [{ field: 'entidadId', message: 'El trato ya tiene una ficha asignada' }],
     });
 
     await waitFor(() => {
@@ -437,7 +404,8 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
 });
 
 describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
-  it('(d) muestra serverError en campo tratoId cuando back responde 422 y mantiene dialog abierto', async () => {
+  it('(d) muestra serverError cuando back responde 422 con tratoId (remapeado a entidadId) y mantiene dialog abierto', async () => {
+    // FichaCreateDialog remapea 'tratoId' → 'entidadId' antes de pasar a FichaForm
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
@@ -451,6 +419,7 @@ describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
           {
             status: 422,
             error: 'UNPROCESSABLE_ENTITY',
+            // El back sigue devolviendo 'tratoId' — FichaCreateDialog lo remapea a 'entidadId'
             details: [{ field: 'tratoId', message: 'El trato ya tiene una ficha asignada' }],
           },
           { status: 422 },
@@ -554,6 +523,62 @@ describe('KanbanCard — muestra trato.nombre si está disponible', () => {
 
     // Before tratos load — falls back to tratoId
     expect(screen.getByText(/d1111111/)).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// KanbanCard — prop `label` opcional (Batch 3 RED — Change 6)
+// ---------------------------------------------------------------------------
+
+describe('KanbanCard — prop label opcional', () => {
+  it('(g) muestra el label explícito cuando se pasa la prop label', () => {
+    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])));
+    const qc = buildQueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <KanbanCard ficha={FICHA_BASE} label="Tarea de seguimiento importante" />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Tarea de seguimiento importante')).toBeInTheDocument();
+  });
+
+  it('(h) cuando label es explícito NO muestra el tratoId ni el nombre del trato del cache', async () => {
+    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])));
+    const qc = buildQueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <KanbanCard ficha={FICHA_BASE} label="Mi tarea personalizada" />
+      </QueryClientProvider>,
+    );
+    // Label explícito debe aparecer
+    expect(screen.getByText('Mi tarea personalizada')).toBeInTheDocument();
+    // El nombre del trato NO debe aparecer (el label lo reemplaza)
+    expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument();
+  });
+
+  it('(i) sin prop label cae al fallback interno (tratoId o nombre del trato)', async () => {
+    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])));
+    const qc = buildQueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <KanbanCard ficha={FICHA_BASE} />
+      </QueryClientProvider>,
+    );
+    // Sin label, debe mostrar algo — el tratoId UUID al menos
+    expect(screen.getByText(/d1111111/)).toBeInTheDocument();
+  });
+
+  it('(j) con label="Sin tarea" y ficha TAREA muestra el label pasado', () => {
+    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([])));
+    const qc = buildQueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <KanbanCard ficha={FICHA_SIN_TRATO} label="Revisión de contrato" />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Revisión de contrato')).toBeInTheDocument();
+    // El fallback "Sin trato" NO debe aparecer cuando hay label
+    expect(screen.queryByText(/sin trato/i)).not.toBeInTheDocument();
   });
 });
 

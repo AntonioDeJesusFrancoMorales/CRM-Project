@@ -19,6 +19,10 @@ export type TipoColumna = z.infer<typeof tipoColumna>;
 export const estadoTrato = z.enum(['ABIERTO', 'GANADO', 'PERDIDO']);
 export type EstadoTrato = z.infer<typeof estadoTrato>;
 
+// TipoEstadoColumnaTableroTarea: domain/.../enums/TipoEstadoColumnaTableroTarea.java
+export const estadoTarea = z.enum(['PENDIENTE', 'EN_CURSO', 'FINALIZADA']);
+export type EstadoTarea = z.infer<typeof estadoTarea>;
+
 // ---------------------------------------------------------------------------
 // ColumnaTableroDto — columna en contexto de tablero (embedded en TableroResponse)
 // Campos: id (= columnaId del catálogo), nombre, color, limiteWip, nota,
@@ -32,7 +36,7 @@ export const columnaTableroSchema = z.object({
   color: z.string().nullable(),
   limiteWip: z.number().int().nullable(),
   nota: z.string().nullable(),
-  estadoTarea: z.string().nullable(),
+  estadoTarea: estadoTarea.nullable(),
   estadoTrato: estadoTrato.nullable(),
   totalValorEstimado: z.number(),
 });

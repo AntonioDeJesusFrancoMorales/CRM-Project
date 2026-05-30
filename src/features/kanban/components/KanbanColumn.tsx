@@ -1,8 +1,11 @@
 // KanbanColumn — columna droppable del tablero Kanban.
 // Usa @dnd-kit/core useDroppable; el id del droppable es columna.id.
-// Muestra: nombre (fallback 'Sin nombre'), badge estadoTrato, contador fichas,
-//          indicador limiteWip (si no null), indicador WIP superado (data-testid="wip-exceeded").
+// Muestra: nombre (fallback 'Sin nombre'), badge estado (dual: estadoTarea o estadoTrato),
+//          contador fichas, indicador limiteWip, indicador WIP superado.
 // Orden de fichas: creadoEn ASC (orden estable derivado del back).
+// Prop tipoFicha: discrimina badge dual y label de KanbanCard.
+//   - 'TRATO' (default): badge estadoTrato; KanbanCard.label = trato.nombre (fallback interno)
+//   - 'TAREA': badge estadoTarea; KanbanCard.label = tarea.titulo
 // Batch 5: prop tableroId + botón "+" (FichaCreateDialog) + botón "Quitar columna".
 // Tailwind + Radix Badge (via componentes del proyecto).
 
@@ -12,7 +15,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import type { TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useQuitarColumna } from '@/features/kanban/hooks/useQuitarColumna';
+import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { FichaCreateDialog } from './FichaCreateDialog';
 import { KanbanCard } from './KanbanCard';
 
@@ -20,18 +25,39 @@ interface KanbanColumnProps {
   columna: ColumnaTablero;
   fichas: Ficha[];
   tableroId: string;
+  tipoFicha?: TipoFicha; // default 'TRATO' (backward-compatible)
 }
 
-const estadoBadgeClasses: Record<string, string> = {
+// ---------------------------------------------------------------------------
+// Badge maps — TRATOS
+// ---------------------------------------------------------------------------
+
+const estadoTratoBadgeClasses: Record<string, string> = {
   ABIERTO: 'bg-blue-100 text-blue-800',
   GANADO: 'bg-green-100 text-green-800',
   PERDIDO: 'bg-red-100 text-red-800',
 };
 
-const estadoLabel: Record<string, string> = {
+const estadoTratoLabel: Record<string, string> = {
   ABIERTO: 'Abierto',
   GANADO: 'Ganado',
   PERDIDO: 'Perdido',
+};
+
+// ---------------------------------------------------------------------------
+// Badge maps — TAREAS
+// ---------------------------------------------------------------------------
+
+const estadoTareaBadgeClasses: Record<string, string> = {
+  PENDIENTE: 'bg-yellow-100 text-yellow-800',
+  EN_CURSO: 'bg-blue-100 text-blue-800',
+  FINALIZADA: 'bg-green-100 text-green-800',
+};
+
+const estadoTareaLabel: Record<string, string> = {
+  PENDIENTE: 'Pendiente',
+  EN_CURSO: 'En curso',
+  FINALIZADA: 'Finalizada',
 };
 
 // Color de fondo para el header de la columna — usa el color del fixture (puede ser null)
@@ -43,10 +69,13 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
   );
 }
 
-export function KanbanColumn({ columna, fichas, tableroId }: KanbanColumnProps) {
+export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: columna.id });
   const [createOpen, setCreateOpen] = useState(false);
   const { mutate: quitarColumna, isPending: isQuitando } = useQuitarColumna();
+
+  // Para tableros TAREA: resolver label de cada ficha desde tarea.titulo
+  const { data: tareas } = useTareas();
 
   const nombre = columna.nombre ?? 'Sin nombre';
   const color = columna.color ?? DEFAULT_COLUMN_COLOR;
@@ -58,6 +87,25 @@ export function KanbanColumn({ columna, fichas, tableroId }: KanbanColumnProps) 
   function handleQuitarColumna() {
     quitarColumna({ tableroId, columnaId: columna.id });
   }
+
+  // Resolver label por tipo: para TAREA busca tarea.titulo; para TRATO lo maneja KanbanCard internamente
+  function resolveLabel(ficha: Ficha): string | undefined {
+    if (tipoFicha === 'TAREA' && ficha.tareaId) {
+      const tarea = tareas?.find((t) => t.id === ficha.tareaId);
+      return tarea?.titulo;
+    }
+    return undefined; // KanbanCard usa su fallback interno (trato.nombre)
+  }
+
+  // Badge dual según tipoFicha
+  const badge =
+    tipoFicha === 'TAREA'
+      ? columna.estadoTarea
+        ? { text: estadoTareaLabel[columna.estadoTarea] ?? columna.estadoTarea, classes: estadoTareaBadgeClasses[columna.estadoTarea] ?? 'bg-gray-100 text-gray-800' }
+        : null
+      : columna.estadoTrato
+        ? { text: estadoTratoLabel[columna.estadoTrato] ?? columna.estadoTrato, classes: estadoTratoBadgeClasses[columna.estadoTrato] ?? 'bg-gray-100 text-gray-800' }
+        : null;
 
   return (
     <div className="flex w-72 flex-shrink-0 flex-col gap-2">
@@ -77,15 +125,15 @@ export function KanbanColumn({ columna, fichas, tableroId }: KanbanColumnProps) 
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Badge estadoTrato */}
-          {columna.estadoTrato && (
+          {/* Badge de estado (dual: estadoTrato o estadoTarea según tipoFicha) */}
+          {badge && (
             <span
               className={[
                 'rounded-full px-2 py-0.5 text-xs font-medium',
-                estadoBadgeClasses[columna.estadoTrato] ?? 'bg-gray-100 text-gray-800',
+                badge.classes,
               ].join(' ')}
             >
-              {estadoLabel[columna.estadoTrato] ?? columna.estadoTrato}
+              {badge.text}
             </span>
           )}
 
@@ -146,7 +194,7 @@ export function KanbanColumn({ columna, fichas, tableroId }: KanbanColumnProps) 
         ].join(' ')}
       >
         {sortedFichas.map((ficha) => (
-          <KanbanCard key={ficha.id} ficha={ficha} />
+          <KanbanCard key={ficha.id} ficha={ficha} label={resolveLabel(ficha)} />
         ))}
       </div>
 
@@ -155,6 +203,7 @@ export function KanbanColumn({ columna, fichas, tableroId }: KanbanColumnProps) 
         open={createOpen}
         onOpenChange={setCreateOpen}
         columnaId={columna.id}
+        tipoFicha={tipoFicha}
       />
     </div>
   );

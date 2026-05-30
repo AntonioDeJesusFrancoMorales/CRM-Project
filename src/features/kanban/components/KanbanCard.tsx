@@ -24,9 +24,12 @@ import { FichaDeleteDialog } from './FichaDeleteDialog';
 
 interface KanbanCardProps {
   ficha: Ficha;
+  /** Label pre-resuelto por el padre (p. ej. tarea.titulo en tableros TAREAS).
+   * Si undefined, cae al fallback interno: trato.nombre → tratoId UUID → 'Sin trato'. */
+  label?: string;
 }
 
-export function KanbanCard({ ficha }: KanbanCardProps) {
+export function KanbanCard({ ficha, label }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
     data: { ficha },
@@ -41,9 +44,12 @@ export function KanbanCard({ ficha }: KanbanCardProps) {
     ? { transform: CSS.Translate.toString(transform) }
     : undefined;
 
-  // Resolve trato name: look up in cache if available, fall back to tratoId UUID or 'Sin trato'
+  // Fallback interno: trato.nombre → tratoId UUID → 'Sin trato'
   const tratoNombre = tratos?.find((t) => t.id === ficha.tratoId)?.nombre;
   const tratoLabel = tratoNombre ?? ficha.tratoId ?? 'Sin trato';
+
+  // El label final: usa el prop explícito si está presente; si no, cae al fallback interno.
+  const displayLabel = label ?? tratoLabel;
 
   function handleConfirmDelete() {
     deleteMutation.mutate(ficha.id, {
@@ -67,7 +73,7 @@ export function KanbanCard({ ficha }: KanbanCardProps) {
         {...listeners}
       >
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-medium text-card-foreground">{tratoLabel}</p>
+          <p className="truncate text-sm font-medium text-card-foreground">{displayLabel}</p>
 
           {/* Dropdown de acciones — stopPropagation evita que el drag intercepte el click */}
           <div

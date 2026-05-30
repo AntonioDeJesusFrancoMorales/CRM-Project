@@ -1,7 +1,9 @@
-// FichaForm — formulario presentacional para crear una ficha de tipo TRATO.
-// Expone solo los campos editables por el usuario: tratoId (selector de tratos sin ficha)
-// y responsableId (selector de usuarios activos). El columnaId se muestra como dato
-// read-only (lo inyecta el dialog — no es editable por el usuario).
+// FichaForm — formulario presentacional para crear una ficha (TRATO o TAREA).
+// Generalizado en Batch 4: tipoFicha discrimina el label/placeholder del selector.
+// El campo se llama 'entidadId' (genérico); el padre (FichaCreateDialog) mapea
+// entidadId → tratoId / tareaId según tipoFicha al enviar al back.
+// Items (tratos o tareas sin ficha, ya mapeados a {id,label}) son pasados por el padre.
+// FichaForm ya NO importa useTratosSinFicha directamente.
 // Homologa el patrón de TratoForm: rhf + zodResolver + serverErrors 422 via setError.
 
 import { useEffect } from 'react';
@@ -24,16 +26,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useTratosSinFicha } from '../lib/useTratosSinFicha';
-import type { Trato } from '@/api/types';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+import type { TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 
 // ---------------------------------------------------------------------------
-// Schema — solo campos que el usuario ingresa
+// Tipos
+// ---------------------------------------------------------------------------
+
+export type ItemSinFicha = { id: string; label: string };
+
+// ---------------------------------------------------------------------------
+// Schema — campo genérico 'entidadId' (tratoId o tareaId según tipoFicha)
 // ---------------------------------------------------------------------------
 
 export const fichaFormSchema = z.object({
-  tratoId: z.string().min(1, 'Selecciona un trato'),
+  entidadId: z.string().min(1, 'Selecciona un trato'),
   responsableId: z.string().min(1, 'Selecciona un responsable'),
 });
 
@@ -45,10 +52,35 @@ export type FichaFormValues = z.infer<typeof fichaFormSchema>;
 
 interface FichaFormProps {
   columnaId: string;
+  tipoFicha: TipoFicha;
+  items: ItemSinFicha[];
+  itemsLoading?: boolean;
   onSubmit: (values: FichaFormValues) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
   serverErrors?: Array<{ field: string; message: string }>;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers — label y placeholder dinámicos por tipoFicha
+// ---------------------------------------------------------------------------
+
+function resolveEntityLabel(tipoFicha: TipoFicha): string {
+  return tipoFicha === 'TAREA' ? 'Tarea' : 'Trato';
+}
+
+function resolveEntityPlaceholder(tipoFicha: TipoFicha, loading: boolean): string {
+  if (loading) return tipoFicha === 'TAREA' ? 'Cargando tareas...' : 'Cargando tratos...';
+  return tipoFicha === 'TAREA' ? 'Selecciona una tarea' : 'Selecciona un trato';
+}
+
+// Error message for the entidadId field also needs to reflect the type
+function resolveEntitySchema(tipoFicha: TipoFicha) {
+  const msg = tipoFicha === 'TAREA' ? 'Selecciona una tarea' : 'Selecciona un trato';
+  return z.object({
+    entidadId: z.string().min(1, msg),
+    responsableId: z.string().min(1, 'Selecciona un responsable'),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -57,19 +89,22 @@ interface FichaFormProps {
 
 export function FichaForm({
   columnaId,
+  tipoFicha,
+  items,
+  itemsLoading = false,
   onSubmit,
   onCancel,
   isSubmitting = false,
   serverErrors,
 }: FichaFormProps) {
-  const { data: tratosSinFichaRaw, isLoading: tratosLoading } = useTratosSinFicha();
-  const tratosSinFicha: Trato[] = tratosSinFichaRaw ?? [];
   const { data: usuarios = [], isLoading: usuariosLoading } = useUsuarios();
 
+  const schema = resolveEntitySchema(tipoFicha);
+
   const form = useForm<FichaFormValues>({
-    resolver: zodResolver(fichaFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
-      tratoId: '',
+      entidadId: '',
       responsableId: '',
     },
   });
@@ -82,6 +117,9 @@ export function FichaForm({
     }
   }, [serverErrors, form]);
 
+  const entityLabel = resolveEntityLabel(tipoFicha);
+  const entityPlaceholder = resolveEntityPlaceholder(tipoFicha, itemsLoading);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -91,32 +129,30 @@ export function FichaForm({
           <p className="text-sm">{columnaId}</p>
         </div>
 
-        {/* Trato — selector de tratos sin ficha */}
+        {/* entidadId — selector de tratos o tareas sin ficha */}
         <FormField
           control={form.control}
-          name="tratoId"
+          name="entidadId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Trato{' '}
+                {entityLabel}{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
               <Select
                 onValueChange={field.onChange}
                 value={field.value ?? ''}
-                disabled={tratosLoading}
+                disabled={itemsLoading}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue
-                      placeholder={tratosLoading ? 'Cargando tratos...' : 'Selecciona un trato'}
-                    />
+                    <SelectValue placeholder={entityPlaceholder} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {tratosSinFicha.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nombre}
+                  {items.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

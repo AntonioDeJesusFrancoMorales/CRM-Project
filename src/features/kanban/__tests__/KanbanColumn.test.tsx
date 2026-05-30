@@ -75,13 +75,23 @@ function makeFixhas(columnaId: string, count: number): Ficha[] {
 
 const TABLERO_ID = 'f1111111-ffff-1111-ffff-111111111111';
 
-function renderColumn(columna: ColumnaTablero, fichas: Ficha[] = [], tableroId = TABLERO_ID) {
+function renderColumn(
+  columna: ColumnaTablero,
+  fichas: Ficha[] = [],
+  tableroId = TABLERO_ID,
+  tipoFicha?: 'TRATO' | 'TAREA',
+) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   return render(
     <QueryClientProvider client={qc}>
-      <KanbanColumn columna={columna} fichas={fichas} tableroId={tableroId} />
+      <KanbanColumn
+        columna={columna}
+        fichas={fichas}
+        tableroId={tableroId}
+        tipoFicha={tipoFicha}
+      />
     </QueryClientProvider>,
   );
 }
@@ -280,6 +290,103 @@ describe('KanbanColumn — botón "Quitar columna"', () => {
     // y el botón queda habilitado (no en estado de carga permanente)
     await waitFor(() => {
       expect(quitarBtn).not.toBeDisabled();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Batch 5 — prop tipoFicha: badge dual + label por tipo
+// ---------------------------------------------------------------------------
+
+const COL_TAREA_PENDIENTE: ColumnaTablero = {
+  ...COL_BASE,
+  id: 'a5555555-aaaa-5555-aaaa-555555555555',
+  nombre: 'Columna Alpha', // nombre neutro para no confundir con el badge
+  estadoTrato: null,
+  estadoTarea: 'PENDIENTE',
+};
+
+const COL_TAREA_EN_CURSO: ColumnaTablero = {
+  ...COL_BASE,
+  id: 'a6666666-aaaa-6666-aaaa-666666666666',
+  nombre: 'Columna Beta',
+  estadoTrato: null,
+  estadoTarea: 'EN_CURSO',
+};
+
+const COL_TAREA_FINALIZADA: ColumnaTablero = {
+  ...COL_BASE,
+  id: 'a7777777-aaaa-7777-aaaa-777777777777',
+  nombre: 'Columna Gamma',
+  estadoTrato: null,
+  estadoTarea: 'FINALIZADA',
+};
+
+describe('KanbanColumn — Batch 5: tipoFicha="TAREA" badge dual', () => {
+  it('(r) con tipoFicha="TAREA" y estadoTarea=PENDIENTE muestra badge PENDIENTE', () => {
+    renderColumn(COL_TAREA_PENDIENTE, [], TABLERO_ID, 'TAREA');
+    expect(screen.getByText(/pendiente/i)).toBeInTheDocument();
+  });
+
+  it('(s) con tipoFicha="TAREA" y estadoTarea=EN_CURSO muestra badge EN_CURSO', () => {
+    renderColumn(COL_TAREA_EN_CURSO, [], TABLERO_ID, 'TAREA');
+    expect(screen.getByText(/en.curso/i)).toBeInTheDocument();
+  });
+
+  it('(t) con tipoFicha="TAREA" y estadoTarea=FINALIZADA muestra badge FINALIZADA', () => {
+    renderColumn(COL_TAREA_FINALIZADA, [], TABLERO_ID, 'TAREA');
+    expect(screen.getByText(/finalizada/i)).toBeInTheDocument();
+  });
+
+  it('(u) con tipoFicha="TRATO" (default) sigue mostrando badge estadoTrato (backward-compat)', () => {
+    // COL_BASE tiene estadoTrato=ABIERTO
+    renderColumn(COL_BASE, [], TABLERO_ID, 'TRATO');
+    expect(screen.getByText(/abierto/i)).toBeInTheDocument();
+  });
+});
+
+describe('KanbanColumn — Batch 5: tipoFicha=TAREA pasa label=titulo a KanbanCard', () => {
+  it('(v) con tipoFicha="TAREA" y ficha TAREA, KanbanCard muestra el titulo de la tarea', async () => {
+    const { http: httpFn, HttpResponse: HR } = await import('msw');
+    server.use(
+      httpFn.get('/api/tareas/get-all', () =>
+        HR.json([
+          {
+            id: 'ta-abc',
+            tratoId: 'd1',
+            responsableId: 'usr1',
+            titulo: 'Mi tarea del tablero',
+            descripcion: null,
+            tipo: 'GENERAL',
+            prioridad: 'MEDIA',
+            fechaLimite: '2026-12-31T00:00:00Z',
+            fechaCompletada: null,
+            creadoEn: '2026-01-01T00:00:00Z',
+            actualizadoEn: '2026-01-01T00:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    const fichasTarea: Ficha[] = [
+      {
+        id: 'h-tarea-1',
+        columnaId: COL_TAREA_PENDIENTE.id,
+        tipoFicha: 'TAREA',
+        tratoId: null,
+        tareaId: 'ta-abc',
+        responsableId: 'usr1',
+        creadoPor: 'usr1',
+        creadoEn: '2026-04-10T08:00:00Z',
+        actualizadoEn: '2026-04-10T08:00:00Z',
+      },
+    ];
+
+    renderColumn(COL_TAREA_PENDIENTE, fichasTarea, TABLERO_ID, 'TAREA');
+
+    // KanbanCard should display the tarea titulo
+    await waitFor(() => {
+      expect(screen.getByText('Mi tarea del tablero')).toBeInTheDocument();
     });
   });
 });
