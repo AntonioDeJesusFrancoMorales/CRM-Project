@@ -426,3 +426,224 @@ describe('fichas MSW handler — DELETE /api/fichas/delete?id=', () => {
     expect(res.status).toBe(404);
   });
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/tableros/create — sintetiza 4 columnas por defecto según tipo
+// ---------------------------------------------------------------------------
+
+describe('tableros MSW handler — POST /api/tableros/create', () => {
+  it('crea un tablero TRATOS con 201, id generado y 4 columnas de estadoTrato', async () => {
+    const res = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Pipeline nuevo', descripcion: 'Demo', tipoTablero: 'TRATOS' }),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as {
+      id: string;
+      tipoTablero: string;
+      columnas: { estadoTrato: string | null; estadoTarea: string | null }[];
+      creadoEn: string;
+    };
+    expect(data.id).toBeTruthy();
+    expect(data.tipoTablero).toBe('TRATOS');
+    expect(data.columnas).toHaveLength(4);
+    expect(data.creadoEn).toBeTruthy();
+    data.columnas.forEach((c) => {
+      expect(c.estadoTrato).not.toBeNull();
+      expect(c.estadoTarea).toBeNull();
+    });
+  });
+
+  it('crea un tablero TAREAS con 4 columnas de estadoTarea (incluye Cancelada)', async () => {
+    const res = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Tareas Q2', descripcion: 'Demo', tipoTablero: 'TAREAS' }),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as {
+      tipoTablero: string;
+      columnas: { nombre: string | null; estadoTarea: string | null; estadoTrato: string | null }[];
+    };
+    expect(data.tipoTablero).toBe('TAREAS');
+    expect(data.columnas).toHaveLength(4);
+    data.columnas.forEach((c) => {
+      expect(c.estadoTarea).not.toBeNull();
+      expect(c.estadoTrato).toBeNull();
+    });
+    expect(data.columnas.map((c) => c.nombre)).toContain('Cancelada');
+  });
+
+  it('el tablero creado queda disponible en get-all', async () => {
+    const createRes = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Persistido', descripcion: 'Demo', tipoTablero: 'TRATOS' }),
+    });
+    const created = (await createRes.json()) as { id: string };
+    const allRes = await fetch('/api/tableros/get-all');
+    const all = (await allRes.json()) as { id: string }[];
+    expect(all.find((t) => t.id === created.id)).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/tableros/edit?id= — nombre y descripcion
+// ---------------------------------------------------------------------------
+
+describe('tableros MSW handler — PUT /api/tableros/edit?id=', () => {
+  it('actualiza nombre y descripcion preservando tipoTablero', async () => {
+    const createRes = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Original', descripcion: 'Vieja', tipoTablero: 'TRATOS' }),
+    });
+    const created = (await createRes.json()) as { id: string };
+
+    const res = await fetch(`/api/tableros/edit?id=${created.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Renombrado', descripcion: 'Nueva' }),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { nombre: string; descripcion: string; tipoTablero: string };
+    expect(data.nombre).toBe('Renombrado');
+    expect(data.descripcion).toBe('Nueva');
+    expect(data.tipoTablero).toBe('TRATOS');
+  });
+
+  it('retorna 404 cuando el tablero no existe', async () => {
+    const res = await fetch(`/api/tableros/edit?id=${TABLERO_NONEXISTENT}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'X' }),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/tableros/delete?id=
+// ---------------------------------------------------------------------------
+
+describe('tableros MSW handler — DELETE /api/tableros/delete?id=', () => {
+  it('elimina un tablero recién creado y retorna 204', async () => {
+    const createRes = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Borrable', descripcion: 'Demo', tipoTablero: 'TRATOS' }),
+    });
+    const created = (await createRes.json()) as { id: string };
+
+    const res = await fetch(`/api/tableros/delete?id=${created.id}`, { method: 'DELETE' });
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe('');
+
+    const getRes = await fetch(`/api/tableros/get-by-id?id=${created.id}`);
+    expect(getRes.status).toBe(404);
+  });
+
+  it('retorna 404 cuando el tablero no existe', async () => {
+    const res = await fetch(`/api/tableros/delete?id=${TABLERO_NONEXISTENT}`, { method: 'DELETE' });
+    expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Columnas catálogo — CRUD RPC ?id=
+// ---------------------------------------------------------------------------
+
+describe('columnas MSW handler — POST /api/columnas/create', () => {
+  it('crea una columna del catálogo con 201 e id generado', async () => {
+    const res = await fetch('/api/columnas/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: 'Bloqueado',
+        color: '#f87171',
+        tipoTablero: 'TRATOS',
+        tipoColumna: 'PERSONALIZADA',
+      }),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as { id: string; nombre: string; tipoColumna: string };
+    expect(data.id).toBeTruthy();
+    expect(data.nombre).toBe('Bloqueado');
+    expect(data.tipoColumna).toBe('PERSONALIZADA');
+  });
+});
+
+describe('columnas MSW handler — GET /api/columnas/get-by-id?id=', () => {
+  it('retorna la columna del catálogo cuando el id existe', async () => {
+    const res = await fetch(`/api/columnas/get-by-id?id=${COLUMNA_ID_1}`);
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { id: string };
+    expect(data.id).toBe(COLUMNA_ID_1);
+  });
+
+  it('retorna 404 cuando el id no existe', async () => {
+    const res = await fetch(`/api/columnas/get-by-id?id=${TABLERO_NONEXISTENT}`);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('columnas MSW handler — PUT /api/columnas/edit?id=', () => {
+  it('edita parcialmente una columna recién creada', async () => {
+    const createRes = await fetch('/api/columnas/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: 'Temporal',
+        color: '#000000',
+        tipoTablero: 'TRATOS',
+        tipoColumna: 'PERSONALIZADA',
+      }),
+    });
+    const created = (await createRes.json()) as { id: string };
+
+    const res = await fetch(`/api/columnas/edit?id=${created.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Renombrada' }),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { nombre: string; color: string };
+    expect(data.nombre).toBe('Renombrada');
+    expect(data.color).toBe('#000000'); // se preserva lo no enviado
+  });
+
+  it('retorna 404 cuando la columna no existe', async () => {
+    const res = await fetch(`/api/columnas/edit?id=${TABLERO_NONEXISTENT}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'X' }),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('columnas MSW handler — DELETE /api/columnas/delete?id=', () => {
+  it('elimina una columna recién creada y retorna 204', async () => {
+    const createRes = await fetch('/api/columnas/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: 'Borrable',
+        color: '#000000',
+        tipoTablero: 'TRATOS',
+        tipoColumna: 'PERSONALIZADA',
+      }),
+    });
+    const created = (await createRes.json()) as { id: string };
+
+    const res = await fetch(`/api/columnas/delete?id=${created.id}`, { method: 'DELETE' });
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe('');
+  });
+
+  it('retorna 404 cuando la columna no existe', async () => {
+    const res = await fetch(`/api/columnas/delete?id=${TABLERO_NONEXISTENT}`, { method: 'DELETE' });
+    expect(res.status).toBe(404);
+  });
+});

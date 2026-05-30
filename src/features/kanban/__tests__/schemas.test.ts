@@ -8,9 +8,16 @@ import {
   estadoTarea,
   tableroSchema,
   columnaTableroSchema,
+  tableroCreateSchema,
+  tableroEditSchema,
 } from '../schemas/tablero.schema';
 import { tipoFicha, fichaSchema, fichaCreateSchema, fichaEditSchema } from '../schemas/ficha.schema';
-import { columnaSchema, asignarColumnaSchema } from '../schemas/columna.schema';
+import {
+  columnaSchema,
+  asignarColumnaSchema,
+  columnaCreateSchema,
+  columnaEditSchema,
+} from '../schemas/columna.schema';
 import { MOCK_USER_ID } from '../lib/mockUser';
 
 // ---------------------------------------------------------------------------
@@ -442,6 +449,131 @@ describe('asignarColumnaSchema', () => {
   it('acepta totalValorEstimado: 0 en TRATOS', () => {
     const result = asignarColumnaSchema.safeParse({ ...ASIGNAR_TRATOS, totalValorEstimado: 0 });
     expect(result.success).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tableroCreateSchema (CreateTableroRequest)
+// ---------------------------------------------------------------------------
+
+const TABLERO_CREATE_VALIDO = {
+  nombre: 'Nuevo pipeline',
+  descripcion: 'Tablero de prueba',
+  tipoTablero: 'TRATOS',
+};
+
+describe('tableroCreateSchema', () => {
+  it('parsea un payload de creación válido', () => {
+    expect(tableroCreateSchema.safeParse(TABLERO_CREATE_VALIDO).success).toBe(true);
+  });
+
+  it('acepta columnasPredeterminadas opcional', () => {
+    const result = tableroCreateSchema.safeParse({
+      ...TABLERO_CREATE_VALIDO,
+      columnasPredeterminadas: true,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('requiere nombre no vacío', () => {
+    expect(tableroCreateSchema.safeParse({ ...TABLERO_CREATE_VALIDO, nombre: '' }).success).toBe(
+      false,
+    );
+  });
+
+  it('rechaza nombre de más de 100 caracteres', () => {
+    expect(
+      tableroCreateSchema.safeParse({ ...TABLERO_CREATE_VALIDO, nombre: 'x'.repeat(101) }).success,
+    ).toBe(false);
+  });
+
+  it('requiere descripcion no vacía (back: @NotBlank)', () => {
+    expect(tableroCreateSchema.safeParse({ ...TABLERO_CREATE_VALIDO, descripcion: '' }).success).toBe(
+      false,
+    );
+  });
+
+  it('requiere tipoTablero válido', () => {
+    const { tipoTablero: _t, ...sinTipo } = TABLERO_CREATE_VALIDO;
+    expect(tableroCreateSchema.safeParse(sinTipo).success).toBe(false);
+    expect(tableroCreateSchema.safeParse({ ...TABLERO_CREATE_VALIDO, tipoTablero: 'OTRO' }).success).toBe(
+      false,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tableroEditSchema (EditTableroRequest)
+// ---------------------------------------------------------------------------
+
+describe('tableroEditSchema', () => {
+  it('parsea con solo nombre', () => {
+    expect(tableroEditSchema.safeParse({ nombre: 'Editado' }).success).toBe(true);
+  });
+
+  it('acepta descripcion opcional/null', () => {
+    expect(tableroEditSchema.safeParse({ nombre: 'Editado', descripcion: null }).success).toBe(true);
+    expect(tableroEditSchema.safeParse({ nombre: 'Editado', descripcion: 'Nueva' }).success).toBe(
+      true,
+    );
+  });
+
+  it('requiere nombre no vacío', () => {
+    expect(tableroEditSchema.safeParse({ nombre: '' }).success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// columnaCreateSchema (CreateColumnaRequest)
+// ---------------------------------------------------------------------------
+
+const COLUMNA_CREATE_VALIDA = {
+  nombre: 'Bloqueado',
+  color: '#f87171',
+  tipoTablero: 'TRATOS',
+  tipoColumna: 'PERSONALIZADA',
+};
+
+describe('columnaCreateSchema', () => {
+  it('parsea un payload de creación válido', () => {
+    expect(columnaCreateSchema.safeParse(COLUMNA_CREATE_VALIDA).success).toBe(true);
+  });
+
+  it('requiere nombre y color no vacíos', () => {
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, nombre: '' }).success).toBe(
+      false,
+    );
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, color: '' }).success).toBe(
+      false,
+    );
+  });
+
+  it('rechaza tipoTablero/tipoColumna inválidos', () => {
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, tipoTablero: 'X' }).success).toBe(
+      false,
+    );
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, tipoColumna: 'X' }).success).toBe(
+      false,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// columnaEditSchema (EditColumnaRequest — edición parcial)
+// ---------------------------------------------------------------------------
+
+describe('columnaEditSchema', () => {
+  it('acepta payload vacío (todos los campos opcionales)', () => {
+    expect(columnaEditSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('acepta edición parcial de un solo campo', () => {
+    expect(columnaEditSchema.safeParse({ nombre: 'Renombrada' }).success).toBe(true);
+    expect(columnaEditSchema.safeParse({ color: '#000000' }).success).toBe(true);
+  });
+
+  it('rechaza enums inválidos cuando se proveen', () => {
+    expect(columnaEditSchema.safeParse({ tipoColumna: 'X' }).success).toBe(false);
   });
 });
 

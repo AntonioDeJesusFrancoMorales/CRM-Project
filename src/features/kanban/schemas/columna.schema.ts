@@ -20,6 +20,37 @@ export const columnaSchema = z.object({
 export type Columna = z.infer<typeof columnaSchema>;
 
 // ---------------------------------------------------------------------------
+// CreateColumnaRequest — payload para POST /columnas/create
+// Fuente: CreateColumnaRequest.java. El back no declara @NotNull en el DTO
+// (la validación vive en el dominio Columna.create); modelamos los campos
+// significativos como requeridos. superUsuarioId se OMITE (opcional, derivado).
+// ---------------------------------------------------------------------------
+
+export const columnaCreateSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es obligatorio'),
+  color: z.string().min(1, 'El color es obligatorio'),
+  tipoTablero,
+  tipoColumna,
+});
+
+export type ColumnaCreateInput = z.infer<typeof columnaCreateSchema>;
+
+// ---------------------------------------------------------------------------
+// EditColumnaRequest — payload para PUT /columnas/edit?id=
+// Fuente: EditColumnaRequest.java. Todos los campos son opcionales (edición
+// parcial); el back no impone restricciones de anotación.
+// ---------------------------------------------------------------------------
+
+export const columnaEditSchema = z.object({
+  nombre: z.string().min(1).optional(),
+  color: z.string().min(1).optional(),
+  tipoTablero: tipoTablero.optional(),
+  tipoColumna: tipoColumna.optional(),
+});
+
+export type ColumnaEditInput = z.infer<typeof columnaEditSchema>;
+
+// ---------------------------------------------------------------------------
 // asignarColumnaSchema — input del form para asignar columna a tablero.
 // Refleja AsignarColumnaRequest.java con invariantes de exclusividad:
 //   - TRATOS: estadoTrato requerido, estadoTarea prohibido

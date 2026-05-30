@@ -58,3 +58,34 @@ export const tableroSchema = z.object({
 });
 
 export type Tablero = z.infer<typeof tableroSchema>;
+
+// ---------------------------------------------------------------------------
+// CreateTableroRequest — payload para POST /tableros/create
+// Fuente: CreateTableroRequest.java. nombre (@NotBlank, 1-100), descripcion
+// (@NotBlank), tipoTablero (@NotNull) son obligatorios. El back sintetiza las
+// 4 columnas por defecto; el cliente no las envía.
+// superUsuarioId se OMITE: el back lo ignora (lo deriva del JWT del actor).
+// columnasPredeterminadas es opcional (existe en el contrato del back).
+// ---------------------------------------------------------------------------
+
+export const tableroCreateSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
+  descripcion: z.string().min(1, 'La descripción es obligatoria'),
+  tipoTablero,
+  columnasPredeterminadas: z.boolean().optional(),
+});
+
+export type TableroCreateInput = z.infer<typeof tableroCreateSchema>;
+
+// ---------------------------------------------------------------------------
+// EditTableroRequest — payload para PUT /tableros/edit?id=
+// Fuente: EditTableroRequest.java. Solo nombre (@NotBlank, 1-100) y descripcion
+// (sin restricción) son editables; tipoTablero y creadoEn se preservan.
+// ---------------------------------------------------------------------------
+
+export const tableroEditSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
+  descripcion: z.string().nullable().optional(),
+});
+
+export type TableroEditInput = z.infer<typeof tableroEditSchema>;
