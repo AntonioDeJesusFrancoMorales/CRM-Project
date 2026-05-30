@@ -84,10 +84,12 @@ describe('TratoDetailPage', () => {
     );
 
     // d1111111 tiene contactoId=b1111111 (Carlos) y responsableId=22222222 (María González)
+    // Contacto y responsable resuelven en queries async distintas: ambas aserciones
+    // van dentro del MISMO waitFor para no depender de que resuelvan en el mismo tick.
     await waitFor(() => {
       expect(screen.getByText('Carlos')).toBeInTheDocument();
+      expect(screen.getByText('María González')).toBeInTheDocument();
     });
-    expect(screen.getByText('María González')).toBeInTheDocument();
   });
 
   // ── (d) motivoPerdida visible cuando no es null ────────────────────────────

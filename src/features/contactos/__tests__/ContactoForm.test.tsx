@@ -90,7 +90,9 @@ describe('ContactoForm', () => {
       expect(onSubmit).toHaveBeenCalledOnce();
     });
 
-    const submitted = onSubmit.mock.calls[0][0] as ContactoCreateInput;
+    const primeraLlamada = onSubmit.mock.calls[0];
+    if (!primeraLlamada) throw new Error('onSubmit no fue invocado');
+    const submitted = primeraLlamada[0] as ContactoCreateInput;
     expect(submitted.nombre).toBe('Ana');
     expect(submitted.empresaId).toBe('a1111111-aaaa-1111-aaaa-111111111111');
   });

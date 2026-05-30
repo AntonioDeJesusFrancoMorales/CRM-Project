@@ -76,11 +76,12 @@ describe('ContactosTable', () => {
 
   it('las acciones de editar y eliminar llaman los callbacks correctos', async () => {
     const user = userEvent.setup();
-    const { onEdit, onDelete } = renderTable();
+    const { onEdit } = renderTable();
 
     // Abrir el menú de acciones de la primera fila (Sofía)
-    const triggers = screen.getAllByRole('button', { name: /acciones/i });
-    await user.click(triggers[0]);
+    const [primerTrigger] = screen.getAllByRole('button', { name: /acciones/i });
+    if (!primerTrigger) throw new Error('no se encontró el botón de acciones de la primera fila');
+    await user.click(primerTrigger);
 
     const editarBtn = await screen.findByRole('menuitem', { name: /editar/i });
     await user.click(editarBtn);
