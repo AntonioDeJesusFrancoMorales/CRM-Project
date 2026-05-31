@@ -1,5 +1,4 @@
 import { isHttpError } from '@/api/http-error';
-import type { TratoCreatePayload } from '@/api/types';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +10,7 @@ import {
   TRATO_EMPTY_DEFAULTS,
   type TratoCreateInput,
 } from '../schemas/trato.schema';
-import { useCreateTrato } from '../hooks/useCreateTrato';
+import { useCrearTratoConFicha } from '../hooks/useCrearTratoConFicha';
 import { TratoForm } from './TratoForm';
 
 interface TratoCreateDialogProps {
@@ -25,31 +24,21 @@ export function TratoCreateDialog({
   onOpenChange,
   defaultValues,
 }: TratoCreateDialogProps) {
-  const mutation = useCreateTrato();
+  const { crear, isPending, error } = useCrearTratoConFicha();
 
   const serverErrors =
-    isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
-    mutation.error.details
-      ? mutation.error.details
+    isHttpError(error) &&
+    error.status === 422 &&
+    error.details
+      ? error.details
       : undefined;
 
   function handleSubmit(values: TratoCreateInput) {
-    // Normaliza opcionales del form (undefined) a null para el contrato del back.
-    const payload: TratoCreatePayload = {
-      contactoId: values.contactoId,
-      responsableId: values.responsableId,
-      nombre: values.nombre,
-      tipoContrato: values.tipoContrato,
-      valorEstimado: values.valorEstimado ?? null,
-      probabilidad: values.probabilidad ?? null,
-      fechaCierreEsperada: values.fechaCierreEsperada?.trim()
-        ? values.fechaCierreEsperada
-        : null,
-    };
-    mutation.mutate(payload, {
-      onSuccess: () => onOpenChange(false),
-    });
+    crear(values)
+      .then(() => onOpenChange(false))
+      .catch(() => {
+        // El error ya queda en `error` del hook; serverErrors lo mapea si es 422
+      });
   }
 
   const initial: Partial<TratoCreateInput> = {
@@ -71,7 +60,7 @@ export function TratoCreateDialog({
           defaultValues={initial}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          isSubmitting={isPending}
           serverErrors={serverErrors}
         />
       </DialogContent>

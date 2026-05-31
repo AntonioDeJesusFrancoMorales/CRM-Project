@@ -8,7 +8,7 @@
 //
 // Robustez:
 //   Si no hay tablero TAREAS, o el tablero no tiene columnas, la tarea se crea igual y
-//   la ficha se omite sin lanzar error (degradación elegante).
+//   la ficha se omite sin lanzar error (degradación elegante). Ver useAutoFicha.
 //
 // UX de toasts:
 //   useCreateTarea emite "Tarea creada" en su onSuccess.
@@ -17,16 +17,8 @@
 //   tarea. El flujo manual de crear ficha (FichaCreateDialog) sigue mostrando su toast.
 
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
-import { apiClient } from '@/api/client';
-import { endpoints } from '@/api/endpoints';
-import { tableroSchema, type Tablero } from '@/features/kanban/schemas/tablero.schema';
-import type { FichaCreateInput } from '@/features/kanban/schemas/ficha.schema';
-import { MOCK_USER_ID } from '@/features/kanban/lib/mockUser';
+import { useAutoFicha } from '@/features/kanban/hooks/useAutoFicha';
 import { useCreateTarea } from './useCreateTarea';
-import { useCreateFicha } from '@/features/kanban/hooks/useCreateFicha';
-import { tablerosKeys } from '@/features/kanban/hooks/useTableros';
 import type { TareaCreateInput } from '../schemas/tarea.schema';
 import type { Tarea } from '@/api/types';
 
@@ -38,9 +30,8 @@ export interface UseCrearTareaConFichaResult {
 }
 
 export function useCrearTareaConFicha(): UseCrearTareaConFichaResult {
-  const queryClient = useQueryClient();
   const createTareaMutation = useCreateTarea();
-  const createFichaMutation = useCreateFicha({ silentSuccess: true });
+  const { crearFichaPara } = useAutoFicha('TAREAS', 'TAREA');
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -57,58 +48,11 @@ export function useCrearTareaConFicha(): UseCrearTareaConFichaResult {
         });
       });
 
-      // Paso 2: resolver el tablero TAREAS (garantizando que los datos estén disponibles
-      // incluso si el Kanban no está montado — se usa fetchQuery para cachear o re-fetch)
-      let tableros: Tablero[] = [];
-      try {
-        const raw = await queryClient.fetchQuery<Tablero[]>({
-          queryKey: tablerosKeys.all,
-          queryFn: async () => {
-            const data = await apiClient.get<unknown[]>(endpoints.tableros.getAll());
-            return z.array(tableroSchema).parse(data);
-          },
-        });
-        tableros = raw;
-      } catch {
-        // Si la carga de tableros falla, degradar graciosamente: la tarea ya fue creada
-        return createdTarea;
-      }
-
-      const tableroTareas = tableros.find((t) => t.tipoTablero === 'TAREAS');
-
-      if (!tableroTareas) {
-        // Sin tablero TAREAS → omitir ficha, degradación elegante
-        return createdTarea;
-      }
-
-      const primeraColumna = tableroTareas.columnas[0];
-
-      if (!primeraColumna) {
-        // Tablero sin columnas → omitir ficha, degradación elegante
-        return createdTarea;
-      }
-
-      // Paso 3: crear la ficha TAREA en la primera columna
-      const fichaPayload: FichaCreateInput = {
-        columnaId: primeraColumna.id,
-        tipoFicha: 'TAREA',
-        tareaId: createdTarea.id,
-        tratoId: null,
-        responsableId: createdTarea.responsableId ?? MOCK_USER_ID,
-        creadoPor: MOCK_USER_ID,
-      };
-
-      // La creación de ficha es best-effort: si falla, la tarea ya fue creada y no se revierte
-      try {
-        await new Promise<void>((resolve, reject) => {
-          createFichaMutation.mutate(fichaPayload, {
-            onSuccess: () => resolve(),
-            onError: (err) => reject(err),
-          });
-        });
-      } catch {
-        // Ficha fallida: degradar graciosamente — la tarea ya existe
-      }
+      // Paso 2: crear la ficha automáticamente (best-effort, degradación elegante)
+      await crearFichaPara({
+        id: createdTarea.id,
+        responsableId: createdTarea.responsableId,
+      });
 
       return createdTarea;
     } catch (err) {
