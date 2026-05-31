@@ -580,21 +580,23 @@ describe('KanbanCard — dropdown Eliminar', () => {
     expect(await findByRole('alertdialog')).toBeInTheDocument();
   });
 
-  it('(e) confirmar invoca DELETE /api/fichas/delete?id=', async () => {
+  it('(e) confirmar invoca DELETE /api/fichas/delete?id= (usa FICHA_TAREA — nunca bloqueada)', async () => {
     let deleteCalled = false;
     server.use(
+      http.delete('/api/tareas/delete', () => new HttpResponse(null, { status: 204 })),
       http.delete('/api/fichas/delete', () => {
         deleteCalled = true;
         return new HttpResponse(null, { status: 204 });
       }),
     );
 
-    const { findByRole } = renderCard(FICHA_TRATO, { titulo: 'Trato borrable' });
+    // FICHA_TAREA: tipoFicha=TAREA → nunca bloqueada, el flujo borra tarea+ficha
+    const { findByRole } = renderCard(FICHA_TAREA, { titulo: 'Tarea borrable' });
 
     const menuBtn = await findByRole('button', { name: /acciones de ficha/i });
     await userEvent.click(menuBtn);
     await userEvent.click(await findByRole('menuitem', { name: /eliminar/i }));
-    await userEvent.click(await findByRole('button', { name: /^eliminar$/i }));
+    await userEvent.click(await findByRole('button', { name: /eliminar/i }));
 
     await waitFor(() => {
       expect(deleteCalled).toBe(true);
@@ -610,7 +612,8 @@ describe('KanbanCard — dropdown Eliminar', () => {
       }),
     );
 
-    const { findByRole } = renderCard(FICHA_TRATO, { titulo: 'Trato no borrar' });
+    // FICHA_TAREA: dialog no bloqueado, tiene botón Cancelar disponible
+    const { findByRole } = renderCard(FICHA_TAREA, { titulo: 'Tarea no borrar' });
 
     const menuBtn = await findByRole('button', { name: /acciones de ficha/i });
     await userEvent.click(menuBtn);

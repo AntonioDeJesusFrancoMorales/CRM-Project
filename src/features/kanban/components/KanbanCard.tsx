@@ -3,14 +3,14 @@
 // NO hace fetches internos. El container (KanbanColumn) es responsable de resolver
 // trato.nombre, probabilidad, valorEstimado, tarea.titulo, prioridad, etc.
 // Props:
-//   - ficha: para drag&drop (@dnd-kit) y FichaDeleteDialog
+//   - ficha: para drag&drop (@dnd-kit) y lógica de borrado
 //   - titulo: string resuelto por el container
 //   - detalles: lista de {label, value} para mostrar campos adicionales
 //   - badge?: {text, classes} para badge de prioridad (TAREA) u otro indicador de color
 //   - to?: ruta de detalle resuelta por el container (/tratos/:id o /tareas/:id)
 //          cuando se provee, el area de contenido es un Link que navega al detalle.
 //          sin to, la tarjeta no es navegable.
-// Dropdown Radix con opción "Eliminar" + FichaDeleteDialog + useDeleteFicha.
+// Dropdown Radix con opción "Eliminar" + FichaDeleteDialog + useEliminarTarjeta.
 
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
-import { useDeleteFicha } from '../hooks/useDeleteFicha';
+import { useEliminarTarjeta } from '../hooks/useEliminarTarjeta';
 import { FichaDeleteDialog } from './FichaDeleteDialog';
 
 export interface KanbanCardDetalle {
@@ -59,16 +59,15 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
   });
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const deleteMutation = useDeleteFicha();
+  const { eliminar, isPending, bloqueado, cantidadTareas } = useEliminarTarjeta(ficha);
 
   const style = transform
     ? { transform: CSS.Translate.toString(transform) }
     : undefined;
 
-  function handleConfirmDelete() {
-    deleteMutation.mutate(ficha.id, {
-      onSuccess: () => setDeleteOpen(false),
-    });
+  async function handleConfirmDelete() {
+    await eliminar();
+    setDeleteOpen(false);
   }
 
   return (
@@ -184,9 +183,12 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
 
       <FichaDeleteDialog
         open={deleteOpen}
-        onConfirm={handleConfirmDelete}
+        onConfirm={() => { void handleConfirmDelete(); }}
         onCancel={() => setDeleteOpen(false)}
-        isDeleting={deleteMutation.isPending}
+        isDeleting={isPending}
+        tipoFicha={ficha.tipoFicha}
+        bloqueado={bloqueado}
+        cantidadTareas={cantidadTareas}
       />
     </>
   );
