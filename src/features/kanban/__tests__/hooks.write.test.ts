@@ -138,6 +138,48 @@ describe('useCreateFicha', () => {
     expect(result.current.data?.id).toBe(FICHA_FIXTURE.id);
     expect(result.current.data?.columnaId).toBe(FICHA_FIXTURE.columnaId);
   });
+
+  it('por defecto muestra el toast "Ficha creada" en onSuccess (flujo manual)', async () => {
+    const { toast } = await import('sonner');
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+    server.use(
+      http.post('/api/fichas/create', () => HttpResponse.json(FICHA_FIXTURE, { status: 201 })),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useCreateFicha } = await import('../hooks/useCreateFicha');
+    const { result } = renderHook(() => useCreateFicha(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.mutate(CREATE_PAYLOAD);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(toastSuccessSpy).toHaveBeenCalledWith('Ficha creada');
+  });
+
+  it('con silentSuccess no muestra el toast "Ficha creada"', async () => {
+    const { toast } = await import('sonner');
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+    server.use(
+      http.post('/api/fichas/create', () => HttpResponse.json(FICHA_FIXTURE, { status: 201 })),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useCreateFicha } = await import('../hooks/useCreateFicha');
+    const { result } = renderHook(() => useCreateFicha({ silentSuccess: true }), {
+      wrapper: Wrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate(CREATE_PAYLOAD);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(toastSuccessSpy).not.toHaveBeenCalledWith('Ficha creada');
+  });
 });
 
 // ---------------------------------------------------------------------------

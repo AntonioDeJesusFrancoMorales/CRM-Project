@@ -11,11 +11,10 @@
 //   la ficha se omite sin lanzar error (degradación elegante).
 //
 // UX de toasts:
-//   useCreateTarea ya emite "Tarea creada" en su onSuccess.
-//   useCreateFicha emite "Ficha creada" en su onSuccess.
-//   Decisión: se mantienen ambos toasts. El toast de ficha actúa como confirmación de
-//   que la tarjeta ya aparecerá en el tablero. Si en el futuro se quiere suprimir el
-//   segundo, basta con crear una variante silenciosa de useCreateFicha.
+//   useCreateTarea emite "Tarea creada" en su onSuccess.
+//   La ficha se crea en silencio (useCreateFicha con silentSuccess) para NO mostrar un
+//   segundo toast "Ficha creada": al crear una tarea, la única confirmación es la de la
+//   tarea. El flujo manual de crear ficha (FichaCreateDialog) sigue mostrando su toast.
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -41,7 +40,7 @@ export interface UseCrearTareaConFichaResult {
 export function useCrearTareaConFicha(): UseCrearTareaConFichaResult {
   const queryClient = useQueryClient();
   const createTareaMutation = useCreateTarea();
-  const createFichaMutation = useCreateFicha();
+  const createFichaMutation = useCreateFicha({ silentSuccess: true });
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

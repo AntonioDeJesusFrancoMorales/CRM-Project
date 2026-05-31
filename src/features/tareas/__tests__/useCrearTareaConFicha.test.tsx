@@ -2,7 +2,7 @@
 // TDD: estos tests se escribieron ANTES de la implementación (ciclo RED → GREEN).
 // Cubre: flujo feliz, sin tablero TAREAS, tablero sin columnas.
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
@@ -346,5 +346,34 @@ describe('useCrearTareaConFicha', () => {
 
     // responsableId de la tarea debe propagarse a la ficha
     expect(capturedFichaBody!['responsableId']).toBe('99999999-9999-9999-9999-999999999999');
+  });
+
+  // -------------------------------------------------------------------------
+  // UX de toasts: al crear una tarea solo se confirma la tarea, NO la ficha.
+  // La ficha se crea en silencio para evitar un segundo toast.
+  // -------------------------------------------------------------------------
+  it('muestra el toast de tarea pero NO el de "Ficha creada"', async () => {
+    const { toast } = await import('sonner');
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+
+    server.use(
+      mockTareasCreate(),
+      mockTablerosGetAll([TABLERO_TAREAS]),
+      mockFichasCreate(),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useCrearTareaConFicha } = await import('../hooks/useCrearTareaConFicha');
+    const { result } = renderHook(() => useCrearTareaConFicha(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.crear(INPUT_TAREA);
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    // Se confirma la tarea, pero la ficha se crea en silencio
+    expect(toastSuccessSpy).toHaveBeenCalledWith(`Tarea "${TAREA_CREADA.titulo}" creada`);
+    expect(toastSuccessSpy).not.toHaveBeenCalledWith('Ficha creada');
   });
 });
