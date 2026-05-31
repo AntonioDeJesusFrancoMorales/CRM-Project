@@ -1,10 +1,13 @@
-// KanbanCard — tarjeta draggable de una ficha de tipo TRATO.
-// Usa @dnd-kit/core useDraggable; el id del draggable es ficha.id.
-// Muestra trato.nombre si está disponible en cache (React Query deduplica la query —
-// no es N+1: todos los cards comparten el mismo cache hit de ['tratos']).
-// Fallback: tratoId UUID, o 'Sin trato' si tratoId es null.
-// Dropdown Radix con opción "Eliminar" que abre FichaDeleteDialog + useDeleteFicha.
-// Tailwind + clases semánticas del design system.
+// KanbanCard — tarjeta draggable PURAMENTE PRESENTACIONAL.
+// Recibe titulo, detalles y badge ya resueltos por el container (KanbanColumn).
+// NO hace fetches internos. El container (KanbanColumn) es responsable de resolver
+// trato.nombre, probabilidad, valorEstimado, tarea.titulo, prioridad, etc.
+// Props:
+//   - ficha: para drag&drop (@dnd-kit) y FichaDeleteDialog
+//   - titulo: string resuelto por el container
+//   - detalles: lista de {label, value} para mostrar campos adicionales
+//   - badge?: {text, classes} para badge de prioridad (TAREA) u otro indicador de color
+// Dropdown Radix con opción "Eliminar" + FichaDeleteDialog + useDeleteFicha.
 
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
@@ -18,38 +21,41 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
-import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useDeleteFicha } from '../hooks/useDeleteFicha';
 import { FichaDeleteDialog } from './FichaDeleteDialog';
 
-interface KanbanCardProps {
-  ficha: Ficha;
-  /** Label pre-resuelto por el padre (p. ej. tarea.titulo en tableros TAREAS).
-   * Si undefined, cae al fallback interno: trato.nombre → tratoId UUID → 'Sin trato'. */
-  label?: string;
+export interface KanbanCardDetalle {
+  label: string;
+  value: string;
 }
 
-export function KanbanCard({ ficha, label }: KanbanCardProps) {
+export interface KanbanCardBadge {
+  text: string;
+  classes: string;
+}
+
+interface KanbanCardProps {
+  ficha: Ficha;
+  /** Título principal de la tarjeta — resuelto por KanbanColumn (trato.nombre o tarea.titulo). */
+  titulo: string;
+  /** Lista de campos adicionales a mostrar debajo del título. */
+  detalles?: KanbanCardDetalle[];
+  /** Badge opcional (prioridad de tarea u otro indicador con color). */
+  badge?: KanbanCardBadge;
+}
+
+export function KanbanCard({ ficha, titulo, detalles = [], badge }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
     data: { ficha },
   });
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const { data: tratos } = useTratos();
   const deleteMutation = useDeleteFicha();
 
   const style = transform
     ? { transform: CSS.Translate.toString(transform) }
     : undefined;
-
-  // Fallback interno: trato.nombre → tratoId UUID → 'Sin trato'
-  const tratoNombre = tratos?.find((t) => t.id === ficha.tratoId)?.nombre;
-  const tratoLabel = tratoNombre ?? ficha.tratoId ?? 'Sin trato';
-
-  // El label final: usa el prop explícito si está presente; si no, cae al fallback interno.
-  const displayLabel = label ?? tratoLabel;
 
   function handleConfirmDelete() {
     deleteMutation.mutate(ficha.id, {
@@ -73,7 +79,34 @@ export function KanbanCard({ ficha, label }: KanbanCardProps) {
         {...listeners}
       >
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-medium text-card-foreground">{displayLabel}</p>
+          <div className="min-w-0 flex-1">
+            {/* Título principal */}
+            <p className="truncate text-sm font-medium text-card-foreground">{titulo}</p>
+
+            {/* Badge de prioridad u otro indicador */}
+            {badge && (
+              <span
+                className={[
+                  'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                  badge.classes,
+                ].join(' ')}
+              >
+                {badge.text}
+              </span>
+            )}
+
+            {/* Detalles adicionales (valor, probabilidad, fecha, tipo, etc.) */}
+            {detalles.length > 0 && (
+              <dl className="mt-1.5 space-y-0.5">
+                {detalles.map((d) => (
+                  <div key={d.label} className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <dt className="shrink-0 font-medium">{d.label}:</dt>
+                    <dd className="truncate">{d.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
 
           {/* Dropdown de acciones — stopPropagation evita que el drag intercepte el click */}
           <div

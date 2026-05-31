@@ -68,8 +68,8 @@ function renderPageWithLocation(initialEntry = '/tratos') {
 }
 
 describe('TratosListPage', () => {
-  it('renderiza la tabla con los tratos del fixture', async () => {
-    renderPage('/tratos');
+  it('renderiza la tabla con los tratos del fixture (en tab Lista)', async () => {
+    renderPage('/tratos?tab=lista');
 
     await waitFor(() =>
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
@@ -83,7 +83,7 @@ describe('TratosListPage', () => {
 
   it('nombre clickeable navega a /tratos/:id', async () => {
     const user = userEvent.setup();
-    renderPage('/tratos');
+    renderPage('/tratos?tab=lista');
 
     await waitFor(() =>
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
@@ -98,7 +98,7 @@ describe('TratosListPage', () => {
 
   it('búsqueda por nombre filtra client-side', async () => {
     const user = userEvent.setup();
-    renderPage('/tratos');
+    renderPage('/tratos?tab=lista');
 
     await waitFor(() =>
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
@@ -120,7 +120,7 @@ describe('TratosListPage', () => {
       ),
     );
 
-    renderPage('/tratos');
+    renderPage('/tratos?tab=lista');
 
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument(),
@@ -130,7 +130,7 @@ describe('TratosListPage', () => {
 
   it('botón "Nuevo trato" abre el dialog de creación', async () => {
     const user = userEvent.setup();
-    renderPage('/tratos');
+    renderPage('/tratos?tab=lista');
 
     await waitFor(() =>
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
@@ -145,10 +145,20 @@ describe('TratosListPage', () => {
   });
 
   it('no hay toggle kanban/tabla en la página', async () => {
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTratosFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
     renderPage('/tratos');
 
+    // Tab Kanban activo por defecto — esperar que cargue
     await waitFor(() =>
-      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
     );
 
     // Sin toggle de tipo button — el control de vista usa tabs (role="tab"), no buttons
@@ -160,29 +170,7 @@ describe('TratosListPage', () => {
 // ── Tabs Lista / Kanban ────────────────────────────────────────────────────────────────────
 
 describe('TratosListPage — tabs Lista/Kanban', () => {
-  it('(tab-a) render inicial sin ?tab= → tab "Lista" activo y tabla visible', async () => {
-    renderPage('/tratos');
-
-    await waitFor(() =>
-      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
-    );
-
-    // Tab Lista debe estar activo
-    const tabLista = screen.getByRole('tab', { name: /lista/i });
-    expect(tabLista.getAttribute('aria-selected')).toBe('true');
-
-    // La tabla de tratos debe ser visible
-    expect(screen.getByRole('table')).toBeInTheDocument();
-
-    // Tab Kanban presente pero no activo
-    const tabKanban = screen.getByRole('tab', { name: /kanban/i });
-    expect(tabKanban.getAttribute('aria-selected')).toBe('false');
-  });
-
-  it('(tab-b) click en tab "Kanban" → KanbanTabContent visible, tabla no visible', async () => {
-    const user = userEvent.setup();
-
-    // Hay 1 tablero TRATOS → KanbanTabContent muestra KanbanBoardEmbebido
+  it('(tab-a) render inicial sin ?tab= → tab "Kanban" activo por defecto', async () => {
     server.use(
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
       http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTratosFixture)),
@@ -192,24 +180,22 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
 
     renderPage('/tratos');
 
-    await waitFor(() =>
-      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
-    );
-
-    await user.click(screen.getByRole('tab', { name: /kanban/i }));
-
-    // Tab Kanban ahora activo
+    // Tab Kanban debe estar activo por defecto
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
       ).toBe('true'),
     );
 
-    // La tabla de tratos ya no es visible
+    // Tab Lista presente pero no activo
+    const tabLista = screen.getByRole('tab', { name: /lista/i });
+    expect(tabLista.getAttribute('aria-selected')).toBe('false');
+
+    // La tabla NO debe ser visible (estamos en Kanban)
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('(tab-c) click en tab "Lista" desde Kanban → tabla visible, URL limpia sin ?tab=', async () => {
+  it('(tab-b) click en tab "Lista" → tabla visible, URL con ?tab=lista', async () => {
     const user = userEvent.setup();
 
     server.use(
@@ -219,9 +205,9 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
       http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
     );
 
-    renderPageWithLocation('/tratos?tab=kanban');
+    renderPageWithLocation('/tratos');
 
-    // Inicialmente tab Kanban activo
+    // Esperar que cargue y esté en Kanban
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
@@ -237,16 +223,20 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
       ).toBe('true'),
     );
 
-    // URL debe quedar limpia (sin ?tab=)
-    await waitFor(() =>
-      expect(screen.getByTestId('location-search').textContent).toBe(''),
-    );
+    // URL debe tener ?tab=lista
+    await waitFor(() => {
+      const search = screen.getByTestId('location-search').textContent ?? '';
+      const params = new URLSearchParams(search);
+      expect(params.get('tab')).toBe('lista');
+    });
 
-    // La tabla vuelve a ser visible
+    // La tabla de tratos debe ser visible
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
   });
 
-  it('(tab-d) URL con ?tab=kanban al cargar → tab "Kanban" activo desde inicio', async () => {
+  it('(tab-c) click en tab "Kanban" desde Lista → tabla no visible, URL limpia sin ?tab=', async () => {
+    const user = userEvent.setup();
+
     server.use(
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
       http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTratosFixture)),
@@ -254,19 +244,46 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
       http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
     );
 
-    renderPage('/tratos?tab=kanban');
+    renderPageWithLocation('/tratos?tab=lista');
 
-    // Tab Kanban debe estar activo desde el inicio
+    // Inicialmente tab Lista activo
+    await waitFor(() =>
+      expect(screen.getByRole('table')).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /kanban/i }));
+
+    // Tab Kanban ahora activo
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
       ).toBe('true'),
     );
 
-    // Tab Lista no activo
-    expect(screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected')).toBe('false');
+    // URL debe quedar limpia (sin ?tab= — kanban es el fallback)
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search').textContent).toBe(''),
+    );
 
-    // Tabla de tratos no visible en tab Kanban
+    // La tabla ya no es visible
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('(tab-d) URL con ?tab=lista al cargar → tab "Lista" activo desde inicio', async () => {
+    renderPage('/tratos?tab=lista');
+
+    // Tab Lista debe estar activo desde el inicio
+    await waitFor(() =>
+      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+    );
+
+    const tabLista = screen.getByRole('tab', { name: /lista/i });
+    expect(tabLista.getAttribute('aria-selected')).toBe('true');
+
+    // Tabla visible
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    // Tab Kanban no activo
+    expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe('false');
   });
 });

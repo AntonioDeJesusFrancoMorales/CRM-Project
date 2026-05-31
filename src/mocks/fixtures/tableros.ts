@@ -212,12 +212,14 @@ export const fichasFixture: Ficha[] = [
     actualizadoEn: '2026-04-12T10:00:00Z',
   },
   // TAREA fichas — apuntan a columnas del tablero TAREAS
+  // tareaId referencia tareasFixture: e1111111 = "Demo presencial con CTO" (CIERRE, URGENTE)
+  //                                   e2222222 = "Llamada de seguimiento post-demo" (SEGUIMIENTO, MEDIA)
   {
     id: 'i1111111-iiii-1111-iiii-111111111111',
     columnaId: columnasTablTareasIds.pendiente,
     tipoFicha: 'TAREA',
     tratoId: null,
-    tareaId: 'k1111111-kkkk-1111-kkkk-111111111111',
+    tareaId: 'e1111111-eeee-1111-eeee-111111111111',
     responsableId: '22222222-2222-2222-2222-222222222222',
     creadoPor: '22222222-2222-2222-2222-222222222222',
     creadoEn: '2026-04-13T08:00:00Z',
@@ -228,7 +230,7 @@ export const fichasFixture: Ficha[] = [
     columnaId: columnasTablTareasIds.enCurso,
     tipoFicha: 'TAREA',
     tratoId: null,
-    tareaId: 'k2222222-kkkk-2222-kkkk-222222222222',
+    tareaId: 'e2222222-eeee-2222-eeee-222222222222',
     responsableId: '22222222-2222-2222-2222-222222222222',
     creadoPor: '22222222-2222-2222-2222-222222222222',
     creadoEn: '2026-04-14T09:00:00Z',

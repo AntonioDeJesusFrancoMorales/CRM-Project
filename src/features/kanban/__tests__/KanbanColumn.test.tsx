@@ -345,7 +345,7 @@ describe('KanbanColumn — Batch 5: tipoFicha="TAREA" badge dual', () => {
   });
 });
 
-describe('KanbanColumn — Batch 5: tipoFicha=TAREA pasa label=titulo a KanbanCard', () => {
+describe('KanbanColumn — Batch 5: tipoFicha=TAREA pasa titulo a KanbanCard', () => {
   it('(v) con tipoFicha="TAREA" y ficha TAREA, KanbanCard muestra el titulo de la tarea', async () => {
     const { http: httpFn, HttpResponse: HR } = await import('msw');
     server.use(
@@ -388,5 +388,287 @@ describe('KanbanColumn — Batch 5: tipoFicha=TAREA pasa label=titulo a KanbanCa
     await waitFor(() => {
       expect(screen.getByText('Mi tarea del tablero')).toBeInTheDocument();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cambio 2 — datos adicionales en tarjetas TRATO
+// ---------------------------------------------------------------------------
+
+describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TRATO', () => {
+  const fichasTrato: Ficha[] = [
+    {
+      id: 'h-trato-rich',
+      columnaId: COL_BASE.id,
+      tipoFicha: 'TRATO',
+      tratoId: 'trato-rich-id',
+      tareaId: null,
+      responsableId: 'usr1',
+      creadoPor: 'usr1',
+      creadoEn: '2026-04-10T08:00:00Z',
+      actualizadoEn: '2026-04-10T08:00:00Z',
+    },
+  ];
+
+  it('(w) tarjeta TRATO muestra valorEstimado formateado como moneda', async () => {
+    server.use(
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'trato-rich-id',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato con valor',
+            valorEstimado: 250000,
+            probabilidad: 70,
+            fechaCierreEsperada: '2026-06-30',
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-05T10:00:00Z',
+            actualizadoEn: '2026-04-05T10:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_BASE, fichasTrato, TABLERO_ID, 'TRATO');
+
+    // Debe mostrar el valor formateado como moneda (contiene el número)
+    await waitFor(() => {
+      expect(screen.getByText('Trato con valor')).toBeInTheDocument();
+    });
+    // El valor 250000 debe aparecer de alguna forma (formateado como moneda)
+    expect(screen.getByText(/250/)).toBeInTheDocument();
+  });
+
+  it('(x) tarjeta TRATO muestra probabilidad como porcentaje', async () => {
+    server.use(
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'trato-rich-id',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato con probabilidad',
+            valorEstimado: null,
+            probabilidad: 75,
+            fechaCierreEsperada: null,
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-05T10:00:00Z',
+            actualizadoEn: '2026-04-05T10:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_BASE, fichasTrato, TABLERO_ID, 'TRATO');
+
+    await waitFor(() => {
+      expect(screen.getByText('Trato con probabilidad')).toBeInTheDocument();
+    });
+    // Probabilidad 75 debe aparecer como "75%"
+    expect(screen.getByText('75%')).toBeInTheDocument();
+  });
+
+  it('(y) tarjeta TRATO muestra fechaCierreEsperada formateada cuando no es null', async () => {
+    server.use(
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'trato-rich-id',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato con fecha',
+            valorEstimado: null,
+            probabilidad: null,
+            fechaCierreEsperada: '2026-06-30',
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-05T10:00:00Z',
+            actualizadoEn: '2026-04-05T10:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_BASE, fichasTrato, TABLERO_ID, 'TRATO');
+
+    await waitFor(() => {
+      expect(screen.getByText('Trato con fecha')).toBeInTheDocument();
+    });
+    // La fecha 2026-06-30 debe estar formateada de alguna manera visible
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
+  });
+
+  it('(z1) tarjeta TRATO NO muestra valorEstimado cuando es null', async () => {
+    server.use(
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'trato-rich-id',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato sin valor',
+            valorEstimado: null,
+            probabilidad: null,
+            fechaCierreEsperada: null,
+            tipoContrato: 'OTRO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-05T10:00:00Z',
+            actualizadoEn: '2026-04-05T10:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_BASE, fichasTrato, TABLERO_ID, 'TRATO');
+
+    await waitFor(() => {
+      expect(screen.getByText('Trato sin valor')).toBeInTheDocument();
+    });
+    // No debe mostrar etiquetas de detalles si todos son null
+    expect(screen.queryByText(/^Valor:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Prob\./)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Cierre:/)).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cambio 2 — datos adicionales en tarjetas TAREA
+// ---------------------------------------------------------------------------
+
+describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TAREA', () => {
+  const fichasTarea: Ficha[] = [
+    {
+      id: 'h-tarea-rich',
+      columnaId: COL_TAREA_PENDIENTE.id,
+      tipoFicha: 'TAREA',
+      tratoId: null,
+      tareaId: 'tarea-rich-id',
+      responsableId: 'usr1',
+      creadoPor: 'usr1',
+      creadoEn: '2026-04-10T08:00:00Z',
+      actualizadoEn: '2026-04-10T08:00:00Z',
+    },
+  ];
+
+  it('(z2) tarjeta TAREA muestra badge de prioridad (ALTA)', async () => {
+    server.use(
+      http.get('/api/tareas/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'tarea-rich-id',
+            tratoId: 'd1',
+            responsableId: 'usr1',
+            titulo: 'Tarea con prioridad alta',
+            descripcion: null,
+            tipo: 'GENERAL',
+            prioridad: 'ALTA',
+            fechaLimite: '2026-07-15T00:00:00Z',
+            fechaCompletada: null,
+            creadoEn: '2026-04-10T08:00:00Z',
+            actualizadoEn: '2026-04-10T08:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_TAREA_PENDIENTE, fichasTarea, TABLERO_ID, 'TAREA');
+
+    await waitFor(() => {
+      expect(screen.getByText('Tarea con prioridad alta')).toBeInTheDocument();
+    });
+    // Badge de prioridad ALTA en español
+    expect(screen.getByText('Alta')).toBeInTheDocument();
+  });
+
+  it('(z3) tarjeta TAREA muestra badge de prioridad (URGENTE)', async () => {
+    server.use(
+      http.get('/api/tareas/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'tarea-rich-id',
+            tratoId: 'd1',
+            responsableId: 'usr1',
+            titulo: 'Tarea urgente',
+            descripcion: null,
+            tipo: 'CIERRE',
+            prioridad: 'URGENTE',
+            fechaLimite: '2026-06-01T00:00:00Z',
+            fechaCompletada: null,
+            creadoEn: '2026-04-10T08:00:00Z',
+            actualizadoEn: '2026-04-10T08:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_TAREA_PENDIENTE, fichasTarea, TABLERO_ID, 'TAREA');
+
+    await waitFor(() => {
+      expect(screen.getByText('Tarea urgente')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Urgente')).toBeInTheDocument();
+  });
+
+  it('(z4) tarjeta TAREA muestra fechaLimite formateada', async () => {
+    server.use(
+      http.get('/api/tareas/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'tarea-rich-id',
+            tratoId: 'd1',
+            responsableId: 'usr1',
+            titulo: 'Tarea con fecha',
+            descripcion: null,
+            tipo: 'SEGUIMIENTO',
+            prioridad: 'MEDIA',
+            fechaLimite: '2026-08-20T00:00:00Z',
+            fechaCompletada: null,
+            creadoEn: '2026-04-10T08:00:00Z',
+            actualizadoEn: '2026-04-10T08:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_TAREA_PENDIENTE, fichasTarea, TABLERO_ID, 'TAREA');
+
+    await waitFor(() => {
+      expect(screen.getByText('Tarea con fecha')).toBeInTheDocument();
+    });
+    // La fecha 2026-08-20 debe aparecer formateada
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
+  });
+
+  it('(z5) tarjeta TAREA muestra tipo en español (SEGUIMIENTO → "Seguimiento")', async () => {
+    server.use(
+      http.get('/api/tareas/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'tarea-rich-id',
+            tratoId: 'd1',
+            responsableId: 'usr1',
+            titulo: 'Tarea de seguimiento',
+            descripcion: null,
+            tipo: 'SEGUIMIENTO',
+            prioridad: 'BAJA',
+            fechaLimite: '2026-09-01T00:00:00Z',
+            fechaCompletada: null,
+            creadoEn: '2026-04-10T08:00:00Z',
+            actualizadoEn: '2026-04-10T08:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderColumn(COL_TAREA_PENDIENTE, fichasTarea, TABLERO_ID, 'TAREA');
+
+    await waitFor(() => {
+      expect(screen.getByText('Tarea de seguimiento')).toBeInTheDocument();
+    });
+    // Tipo "SEGUIMIENTO" debe aparecer en español como "Seguimiento"
+    expect(screen.getByText('Seguimiento')).toBeInTheDocument();
   });
 });

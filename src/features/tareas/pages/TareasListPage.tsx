@@ -42,7 +42,8 @@ export function TareasListPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   // Sincroniza el tab activo con ?tab= en la URL. Preserva otros params (?responsable_id=, etc.).
-  const [tab, setTab] = useTabSync(['lista', 'kanban'], 'lista');
+  // Kanban es el tab por defecto — URL limpia cuando activo = "kanban"; ?tab=lista cuando activo = "lista".
+  const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
   const { data: todasLasTareas, isLoading, isError, refetch } = useTareas();
   const { data: usuarios = [] } = useUsuarios();

@@ -1,7 +1,7 @@
-// Tests de componente para KanbanCard — Strict TDD B6.3 (RED).
-// Cubre: renderiza tratoId, accesibilidad draggable, data-testid.
-// DnD real (arrastre de browser) no es testeable en jsdom — se testea la estructura.
-// Batch 3: FichaForm + FichaCreateDialog tests.
+// Tests de componente para KanbanCard — contrato presentacional (Cambio 2 refactor).
+// KanbanCard es PURAMENTE presentacional: recibe titulo, detalles y badge ya resueltos.
+// No hace fetches internos. DnD real no testeable en jsdom — se testea la estructura.
+// Batch 3 & 4 mantienen FichaForm, FichaCreateDialog y FichaDeleteDialog tests.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -20,7 +20,7 @@ import { FichaCreateDialog } from '../components/FichaCreateDialog';
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const FICHA_BASE: Ficha = {
+const FICHA_TRATO: Ficha = {
   id: 'h1111111-hhhh-1111-hhhh-111111111111',
   columnaId: 'a1111111-aaaa-1111-aaaa-111111111111',
   tipoFicha: 'TRATO',
@@ -32,71 +32,117 @@ const FICHA_BASE: Ficha = {
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
-const FICHA_SIN_TRATO: Ficha = {
-  ...FICHA_BASE,
+const FICHA_TAREA: Ficha = {
+  ...FICHA_TRATO,
   id: 'h2222222-hhhh-2222-hhhh-222222222222',
   tratoId: null,
   tipoFicha: 'TAREA',
-  tareaId: 'e9999999-eeee-9999-eeee-999999999999',
+  tareaId: 'e1111111-eeee-1111-eeee-111111111111',
 };
 
+function buildQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+}
+
+function renderCard(
+  ficha: Ficha,
+  props?: {
+    titulo?: string;
+    detalles?: Array<{ label: string; value: string }>;
+    badge?: { text: string; classes: string };
+  },
+) {
+  const qc = buildQueryClient();
+  return render(
+    <QueryClientProvider client={qc}>
+      <KanbanCard
+        ficha={ficha}
+        titulo={props?.titulo ?? 'Título por defecto'}
+        detalles={props?.detalles ?? []}
+        badge={props?.badge}
+      />
+    </QueryClientProvider>,
+  );
+}
+
 // ---------------------------------------------------------------------------
-// Tests
+// Tests — nuevo contrato presentacional
 // ---------------------------------------------------------------------------
 
-// KanbanCard now uses useTratos() internally → wrap in QueryClientProvider.
-// We stub /api/tratos/get-all so the hook doesn't throw unmatched request errors.
-
-describe('KanbanCard — renderizado', () => {
-  it('(a) renderiza el tratoId como texto identificable', () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
-    // Before tratos load, falls back to tratoId UUID
-    expect(screen.getByText(/d1111111/)).toBeInTheDocument();
+describe('KanbanCard — contrato presentacional: titulo, detalles, badge', () => {
+  it('(a) renderiza el titulo recibido por prop', () => {
+    renderCard(FICHA_TRATO, { titulo: 'Implementación CRM Innovatech' });
+    expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument();
   });
 
   it('(b) tiene data-testid="kanban-card"', () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
+    renderCard(FICHA_TRATO, { titulo: 'Mi trato' });
     expect(screen.getByTestId('kanban-card')).toBeInTheDocument();
   });
 
-  it('(c) cuando tratoId es null muestra fallback "Sin trato"', () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_SIN_TRATO} />
-      </QueryClientProvider>,
+  it('(c) renderiza detalles label+value cuando se pasan', () => {
+    renderCard(FICHA_TRATO, {
+      titulo: 'Trato A',
+      detalles: [
+        { label: 'Valor', value: 'USD 250.000' },
+        { label: 'Prob.', value: '70%' },
+      ],
+    });
+    // Los labels se renderizan en <dt> con ":" concatenado — buscar por regex
+    expect(screen.getByText(/Valor/)).toBeInTheDocument();
+    expect(screen.getByText('USD 250.000')).toBeInTheDocument();
+    expect(screen.getByText(/Prob\./)).toBeInTheDocument();
+    expect(screen.getByText('70%')).toBeInTheDocument();
+  });
+
+  it('(d) sin detalles no muestra ningún label de detalle', () => {
+    renderCard(FICHA_TRATO, { titulo: 'Trato sin datos extras', detalles: [] });
+    // Solo el título, sin items adicionales
+    expect(screen.getByText('Trato sin datos extras')).toBeInTheDocument();
+    expect(screen.queryByText('Valor')).not.toBeInTheDocument();
+  });
+
+  it('(e) renderiza badge cuando se pasa', () => {
+    renderCard(FICHA_TAREA, {
+      titulo: 'Demo presencial con CTO',
+      badge: { text: 'Urgente', classes: 'bg-red-100 text-red-800' },
+    });
+    expect(screen.getByText('Urgente')).toBeInTheDocument();
+  });
+
+  it('(f) sin badge no muestra ningún elemento de badge', () => {
+    renderCard(FICHA_TRATO, { titulo: 'Trato', badge: undefined });
+    expect(screen.queryByText('Urgente')).not.toBeInTheDocument();
+    expect(screen.queryByText('Alta')).not.toBeInTheDocument();
+  });
+
+  it('(g) NO hace fetch de /api/tratos/get-all (es puramente presentacional)', async () => {
+    let tratosFetched = false;
+    server.use(
+      http.get('/api/tratos/get-all', () => {
+        tratosFetched = true;
+        return HttpResponse.json([]);
+      }),
     );
-    expect(screen.getByText(/sin trato/i)).toBeInTheDocument();
+
+    renderCard(FICHA_TRATO, { titulo: 'Trato X' });
+
+    // Dar tiempo para posibles fetches
+    await new Promise((r) => setTimeout(r, 50));
+    expect(tratosFetched).toBe(false);
   });
 });
 
 describe('KanbanCard — atributos de accesibilidad/DnD', () => {
-  it('(d) tiene role="button" o aria-grabbed para indicar que es draggable', () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
+  it('(h) tiene role="button" o aria-grabbed para indicar que es draggable', () => {
+    renderCard(FICHA_TRATO, { titulo: 'Trato drag' });
     const card = screen.getByTestId('kanban-card');
-    // @dnd-kit establece role="button" en el elemento draggable
     expect(card).toBeInTheDocument();
-    // Verifica que tenga algún atributo que indique interactividad de DnD
-    // (role button, data-draggable, o similar — exacto depende de @dnd-kit versión)
     const hasInteractiveRole =
       card.getAttribute('role') === 'button' ||
       card.hasAttribute('aria-grabbed') ||
@@ -110,7 +156,6 @@ describe('KanbanCard — atributos de accesibilidad/DnD', () => {
 // FichaForm — Batch 3 RED tests
 // ---------------------------------------------------------------------------
 
-// Tratos fixture: t1 sin ficha, t2 con ficha
 const TRATO_T1: Trato = {
   id: 'd1111111-dddd-1111-dddd-111111111111',
   contactoId: 'b1111111-bbbb-1111-bbbb-111111111111',
@@ -139,25 +184,8 @@ const TRATO_T2: Trato = {
   actualizadoEn: '2026-05-05T09:30:00.000Z',
 };
 
-// t2 has a ficha — kept for fixture completeness (previously used in integration tests with useTratosSinFicha)
-// FICHA_T2 is no longer needed since FichaForm doesn't fetch tratos internally anymore (Batch 4 refactor).
-// The comment is kept for historical context; the variable is removed to avoid unused-variable TS error.
-
-function buildQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
-
-// Migrado en Batch 4.1: FichaForm ahora recibe tipoFicha + items como props (no fetches internamente).
-// renderFichaForm pasa tipoFicha='TRATO' + items mapeados desde tratos.
-
 function renderFichaForm(props: Partial<Parameters<typeof FichaForm>[0]> = {}) {
   const queryClient = buildQueryClient();
-  // Stub usuarios para el selector de responsable
   server.use(http.get('/api/usuarios/get-all', () => HttpResponse.json([])));
 
   const defaults: Parameters<typeof FichaForm>[0] = {
@@ -180,18 +208,14 @@ function renderFichaForm(props: Partial<Parameters<typeof FichaForm>[0]> = {}) {
 
 describe('FichaForm — selector de tratos (migrado Batch 4.1)', () => {
   it('(a) muestra solo tratos sin ficha en el selector: items precargados por el padre', async () => {
-    // FichaForm ya no fetches tratos — el padre pasa items ya filtrados.
-    // Aquí pasamos solo t1 como item disponible (t2 ya tiene ficha, el padre lo filtraría).
     renderFichaForm({
       tipoFicha: 'TRATO',
       items: [{ id: TRATO_T1.id, label: TRATO_T1.nombre }],
     });
 
-    // Open selector (field se llama ahora 'entidadId', label 'Trato')
     const tratoTrigger = await screen.findByRole('combobox', { name: /trato/i });
     await userEvent.click(tratoTrigger);
 
-    // t1 must appear
     const option = await screen.findByRole('option', { name: 'Implementación CRM Innovatech' });
     expect(option).toBeInTheDocument();
   });
@@ -222,7 +246,6 @@ describe('FichaForm — validación entidadId requerido (migrado Batch 4.1)', ()
     await userEvent.click(submitBtn);
 
     await waitFor(() => {
-      // FormMessage renders a <p> with error text
       const allTexts = screen.getAllByText(/selecciona un trato/i);
       const errorParagraph = allTexts.find(
         (el) => el.tagName === 'P' && el.className.includes('destructive'),
@@ -251,7 +274,6 @@ describe('FichaForm — columnaId read-only display', () => {
 
 describe('FichaForm — serverErrors 422 (migrado Batch 4.1)', () => {
   it('(e) muestra el mensaje de serverError en el campo entidadId', async () => {
-    // El campo se renombró de tratoId a entidadId — server errors deben usar 'entidadId'
     renderFichaForm({
       items: [],
       serverErrors: [{ field: 'entidadId', message: 'El trato ya tiene una ficha asignada' }],
@@ -299,7 +321,6 @@ describe('FichaCreateDialog — columnaId precargado', () => {
   });
 });
 
-// Helper: open a Radix Select and click the option with given text in the listbox
 async function selectOption(triggerName: RegExp, optionText: string) {
   const trigger = await screen.findByRole('combobox', { name: triggerName });
   await userEvent.click(trigger);
@@ -405,7 +426,6 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
 
 describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
   it('(d) muestra serverError cuando back responde 422 con tratoId (remapeado a entidadId) y mantiene dialog abierto', async () => {
-    // FichaCreateDialog remapea 'tratoId' → 'entidadId' antes de pasar a FichaForm
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
@@ -419,7 +439,6 @@ describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
           {
             status: 422,
             error: 'UNPROCESSABLE_ENTITY',
-            // El back sigue devolviendo 'tratoId' — FichaCreateDialog lo remapea a 'entidadId'
             details: [{ field: 'tratoId', message: 'El trato ya tiene una ficha asignada' }],
           },
           { status: 422 },
@@ -438,7 +457,6 @@ describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
     await waitFor(() => {
       expect(screen.getByText('El trato ya tiene una ficha asignada')).toBeInTheDocument();
     });
-    // Dialog must remain open
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });
@@ -484,172 +502,53 @@ describe('FichaDeleteDialog — presentacional', () => {
   it('(b) cuando isDeleting=true el botón confirmar está deshabilitado', async () => {
     renderFichaDeleteDialog({ isDeleting: true });
 
-    // When isDeleting=true button text changes to "Eliminando..." — match both states
     const confirmBtn = await screen.findByRole('button', { name: /eliminando/i });
     expect(confirmBtn).toBeDisabled();
   });
 });
 
 // ---------------------------------------------------------------------------
-// KanbanCard con dropdown — Batch 4 RED tests (task 4.3)
+// KanbanCard — dropdown Eliminar (Batch 4)
 // ---------------------------------------------------------------------------
-
-describe('KanbanCard — muestra trato.nombre si está disponible', () => {
-  it('(a) muestra el nombre del trato cuando está cargado en cache', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-    );
-
-    const queryClient = buildQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument();
-    });
-  });
-
-  it('(b) muestra el tratoId como fallback cuando los tratos no están cargados', () => {
-    const queryClient = buildQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
-
-    // Before tratos load — falls back to tratoId
-    expect(screen.getByText(/d1111111/)).toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// KanbanCard — prop `label` opcional (Batch 3 RED — Change 6)
-// ---------------------------------------------------------------------------
-
-describe('KanbanCard — prop label opcional', () => {
-  it('(g) muestra el label explícito cuando se pasa la prop label', () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_BASE} label="Tarea de seguimiento importante" />
-      </QueryClientProvider>,
-    );
-    expect(screen.getByText('Tarea de seguimiento importante')).toBeInTheDocument();
-  });
-
-  it('(h) cuando label es explícito NO muestra el tratoId ni el nombre del trato del cache', async () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_BASE} label="Mi tarea personalizada" />
-      </QueryClientProvider>,
-    );
-    // Label explícito debe aparecer
-    expect(screen.getByText('Mi tarea personalizada')).toBeInTheDocument();
-    // El nombre del trato NO debe aparecer (el label lo reemplaza)
-    expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument();
-  });
-
-  it('(i) sin prop label cae al fallback interno (tratoId o nombre del trato)', async () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
-    // Sin label, debe mostrar algo — el tratoId UUID al menos
-    expect(screen.getByText(/d1111111/)).toBeInTheDocument();
-  });
-
-  it('(j) con label="Sin tarea" y ficha TAREA muestra el label pasado', () => {
-    server.use(http.get('/api/tratos/get-all', () => HttpResponse.json([])));
-    const qc = buildQueryClient();
-    render(
-      <QueryClientProvider client={qc}>
-        <KanbanCard ficha={FICHA_SIN_TRATO} label="Revisión de contrato" />
-      </QueryClientProvider>,
-    );
-    expect(screen.getByText('Revisión de contrato')).toBeInTheDocument();
-    // El fallback "Sin trato" NO debe aparecer cuando hay label
-    expect(screen.queryByText(/sin trato/i)).not.toBeInTheDocument();
-  });
-});
 
 describe('KanbanCard — dropdown Eliminar', () => {
   it('(c) abre el dropdown y muestra la opción "Eliminar"', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-    );
-
-    const queryClient = buildQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
+    const { findByRole } = renderCard(FICHA_TRATO, { titulo: 'Trato con dropdown' });
 
     // Open dropdown menu
-    const menuBtn = await screen.findByRole('button', { name: /acciones de ficha/i });
+    const menuBtn = await findByRole('button', { name: /acciones de ficha/i });
     await userEvent.click(menuBtn);
 
-    // "Eliminar" option must appear
-    expect(await screen.findByRole('menuitem', { name: /eliminar/i })).toBeInTheDocument();
+    expect(await findByRole('menuitem', { name: /eliminar/i })).toBeInTheDocument();
   });
 
   it('(d) seleccionar "Eliminar" abre el FichaDeleteDialog', async () => {
-    server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-    );
+    const { findByRole } = renderCard(FICHA_TRATO, { titulo: 'Trato para borrar' });
 
-    const queryClient = buildQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
-
-    const menuBtn = await screen.findByRole('button', { name: /acciones de ficha/i });
+    const menuBtn = await findByRole('button', { name: /acciones de ficha/i });
     await userEvent.click(menuBtn);
 
-    const eliminarItem = await screen.findByRole('menuitem', { name: /eliminar/i });
+    const eliminarItem = await findByRole('menuitem', { name: /eliminar/i });
     await userEvent.click(eliminarItem);
 
-    // AlertDialog should be open — look for its title
-    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(await findByRole('alertdialog')).toBeInTheDocument();
   });
 
   it('(e) confirmar invoca DELETE /api/fichas/delete?id=', async () => {
     let deleteCalled = false;
     server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
       http.delete('/api/fichas/delete', () => {
         deleteCalled = true;
         return new HttpResponse(null, { status: 204 });
       }),
     );
 
-    const queryClient = buildQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
+    const { findByRole } = renderCard(FICHA_TRATO, { titulo: 'Trato borrable' });
 
-    // Open dropdown → click Eliminar → open dialog → confirm
-    const menuBtn = await screen.findByRole('button', { name: /acciones de ficha/i });
+    const menuBtn = await findByRole('button', { name: /acciones de ficha/i });
     await userEvent.click(menuBtn);
-    await userEvent.click(await screen.findByRole('menuitem', { name: /eliminar/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /^eliminar$/i }));
+    await userEvent.click(await findByRole('menuitem', { name: /eliminar/i }));
+    await userEvent.click(await findByRole('button', { name: /^eliminar$/i }));
 
     await waitFor(() => {
       expect(deleteCalled).toBe(true);
@@ -659,28 +558,19 @@ describe('KanbanCard — dropdown Eliminar', () => {
   it('(f) cancelar en el dialog NO invoca DELETE', async () => {
     let deleteCalled = false;
     server.use(
-      http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
       http.delete('/api/fichas/delete', () => {
         deleteCalled = true;
         return new HttpResponse(null, { status: 204 });
       }),
     );
 
-    const queryClient = buildQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <KanbanCard ficha={FICHA_BASE} />
-      </QueryClientProvider>,
-    );
+    const { findByRole } = renderCard(FICHA_TRATO, { titulo: 'Trato no borrar' });
 
-    // Open dropdown → click Eliminar → open dialog → cancel
-    const menuBtn = await screen.findByRole('button', { name: /acciones de ficha/i });
+    const menuBtn = await findByRole('button', { name: /acciones de ficha/i });
     await userEvent.click(menuBtn);
-    await userEvent.click(await screen.findByRole('menuitem', { name: /eliminar/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /cancelar/i }));
+    await userEvent.click(await findByRole('menuitem', { name: /eliminar/i }));
+    await userEvent.click(await findByRole('button', { name: /cancelar/i }));
 
-    // Give time for any async calls
     await new Promise((r) => setTimeout(r, 50));
     expect(deleteCalled).toBe(false);
   });

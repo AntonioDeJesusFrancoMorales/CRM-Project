@@ -1,13 +1,13 @@
-// KanbanColumn — columna droppable del tablero Kanban.
+// KanbanColumn — columna droppable del tablero Kanban (CONTAINER).
 // Usa @dnd-kit/core useDroppable; el id del droppable es columna.id.
 // Muestra: nombre (fallback 'Sin nombre'), badge estado (dual: estadoTarea o estadoTrato),
 //          contador fichas, indicador limiteWip, indicador WIP superado.
 // Orden de fichas: creadoEn ASC (orden estable derivado del back).
-// Prop tipoFicha: discrimina badge dual y label de KanbanCard.
-//   - 'TRATO' (default): badge estadoTrato; KanbanCard.label = trato.nombre (fallback interno)
-//   - 'TAREA': badge estadoTarea; KanbanCard.label = tarea.titulo
+// Prop tipoFicha: discrimina badge dual y resolución de datos de cada ficha.
+//   - 'TRATO' (default): badge estadoTrato; resuelve trato.nombre, valorEstimado, probabilidad, fechaCierreEsperada
+//   - 'TAREA': badge estadoTarea; resuelve tarea.titulo, prioridad (badge de color), fechaLimite, tipo
 // Batch 5: prop tableroId + botón "+" (FichaCreateDialog) + botón "Quitar columna".
-// Tailwind + Radix Badge (via componentes del proyecto).
+// Cambio 2: Container centraliza la resolución de datos para KanbanCard (presentacional).
 
 import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
@@ -18,8 +18,12 @@ import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import type { TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useQuitarColumna } from '@/features/kanban/hooks/useQuitarColumna';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
+import { useTratos } from '@/features/tratos/hooks/useTratos';
+import { TIPO_TAREA_OPTIONS, PRIORIDAD_OPTIONS } from '@/features/tareas/schemas/tarea.schema';
+import { formatDate } from '@/lib/format';
 import { FichaCreateDialog } from './FichaCreateDialog';
 import { KanbanCard } from './KanbanCard';
+import type { KanbanCardDetalle, KanbanCardBadge } from './KanbanCard';
 
 interface KanbanColumnProps {
   columna: ColumnaTablero;
@@ -29,7 +33,7 @@ interface KanbanColumnProps {
 }
 
 // ---------------------------------------------------------------------------
-// Badge maps — TRATOS
+// Badge maps — TRATOS (columna)
 // ---------------------------------------------------------------------------
 
 const estadoTratoBadgeClasses: Record<string, string> = {
@@ -45,7 +49,7 @@ const estadoTratoLabel: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Badge maps — TAREAS
+// Badge maps — TAREAS (columna)
 // ---------------------------------------------------------------------------
 
 const estadoTareaBadgeClasses: Record<string, string> = {
@@ -60,7 +64,21 @@ const estadoTareaLabel: Record<string, string> = {
   FINALIZADA: 'Finalizada',
 };
 
-// Color de fondo para el header de la columna — usa el color del fixture (puede ser null)
+// ---------------------------------------------------------------------------
+// Badge maps — PRIORIDAD (tarjeta TAREA)
+// ---------------------------------------------------------------------------
+
+const prioridadBadgeClasses: Record<string, string> = {
+  BAJA: 'bg-slate-100 text-slate-700',
+  MEDIA: 'bg-yellow-100 text-yellow-700',
+  ALTA: 'bg-orange-100 text-orange-700',
+  URGENTE: 'bg-red-100 text-red-700',
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 const DEFAULT_COLUMN_COLOR = '#e2e8f0'; // slate-200 como fallback
 
 function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
@@ -69,13 +87,32 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
   );
 }
 
+/** Formatea un número como moneda USD en español. */
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('es', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+}
+
+/** Label en español para tipo de tarea. */
+function tipoTareaLabel(tipo: string): string {
+  return TIPO_TAREA_OPTIONS.find((o) => o.value === tipo)?.label ?? tipo;
+}
+
+/** Label en español para prioridad de tarea. */
+function prioridadLabel(prioridad: string): string {
+  return PRIORIDAD_OPTIONS.find((o) => o.value === prioridad)?.label ?? prioridad;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: columna.id });
   const [createOpen, setCreateOpen] = useState(false);
   const { mutate: quitarColumna, isPending: isQuitando } = useQuitarColumna();
 
-  // Para tableros TAREA: resolver label de cada ficha desde tarea.titulo
   const { data: tareas } = useTareas();
+  const { data: tratos } = useTratos();
 
   const nombre = columna.nombre ?? 'Sin nombre';
   const color = columna.color ?? DEFAULT_COLUMN_COLOR;
@@ -88,17 +125,8 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
     quitarColumna({ tableroId, columnaId: columna.id });
   }
 
-  // Resolver label por tipo: para TAREA busca tarea.titulo; para TRATO lo maneja KanbanCard internamente
-  function resolveLabel(ficha: Ficha): string | undefined {
-    if (tipoFicha === 'TAREA' && ficha.tareaId) {
-      const tarea = tareas?.find((t) => t.id === ficha.tareaId);
-      return tarea?.titulo;
-    }
-    return undefined; // KanbanCard usa su fallback interno (trato.nombre)
-  }
-
-  // Badge dual según tipoFicha
-  const badge =
+  // Badge dual de columna según tipoFicha
+  const columnaBadge =
     tipoFicha === 'TAREA'
       ? columna.estadoTarea
         ? { text: estadoTareaLabel[columna.estadoTarea] ?? columna.estadoTarea, classes: estadoTareaBadgeClasses[columna.estadoTarea] ?? 'bg-gray-100 text-gray-800' }
@@ -106,6 +134,59 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
       : columna.estadoTrato
         ? { text: estadoTratoLabel[columna.estadoTrato] ?? columna.estadoTrato, classes: estadoTratoBadgeClasses[columna.estadoTrato] ?? 'bg-gray-100 text-gray-800' }
         : null;
+
+  // Resolver título, detalles y badge de cada ficha según tipoFicha
+  function resolveCardProps(ficha: Ficha): {
+    titulo: string;
+    detalles: KanbanCardDetalle[];
+    badge: KanbanCardBadge | undefined;
+  } {
+    if (tipoFicha === 'TAREA') {
+      const tarea = tareas?.find((t) => t.id === ficha.tareaId);
+      const titulo = tarea?.titulo ?? ficha.tareaId ?? 'Sin tarea';
+      const detalles: KanbanCardDetalle[] = [];
+      let badge: KanbanCardBadge | undefined;
+
+      if (tarea) {
+        // Badge de prioridad
+        if (tarea.prioridad) {
+          badge = {
+            text: prioridadLabel(tarea.prioridad),
+            classes: prioridadBadgeClasses[tarea.prioridad] ?? 'bg-gray-100 text-gray-800',
+          };
+        }
+        // Fecha límite
+        if (tarea.fechaLimite) {
+          detalles.push({ label: 'Límite', value: formatDate(tarea.fechaLimite) });
+        }
+        // Tipo
+        if (tarea.tipo) {
+          detalles.push({ label: 'Tipo', value: tipoTareaLabel(tarea.tipo) });
+        }
+      }
+
+      return { titulo, detalles, badge };
+    }
+
+    // TRATO (default)
+    const trato = tratos?.find((t) => t.id === ficha.tratoId);
+    const titulo = trato?.nombre ?? ficha.tratoId ?? 'Sin trato';
+    const detalles: KanbanCardDetalle[] = [];
+
+    if (trato) {
+      if (trato.valorEstimado != null && trato.valorEstimado !== 0) {
+        detalles.push({ label: 'Valor', value: formatCurrency(trato.valorEstimado) });
+      }
+      if (trato.probabilidad != null) {
+        detalles.push({ label: 'Prob.', value: `${trato.probabilidad}%` });
+      }
+      if (trato.fechaCierreEsperada) {
+        detalles.push({ label: 'Cierre', value: formatDate(trato.fechaCierreEsperada) });
+      }
+    }
+
+    return { titulo, detalles, badge: undefined };
+  }
 
   return (
     <div className="flex w-72 flex-shrink-0 flex-col gap-2">
@@ -125,15 +206,15 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Badge de estado (dual: estadoTrato o estadoTarea según tipoFicha) */}
-          {badge && (
+          {/* Badge de estado de columna (dual: estadoTrato o estadoTarea según tipoFicha) */}
+          {columnaBadge && (
             <span
               className={[
                 'rounded-full px-2 py-0.5 text-xs font-medium',
-                badge.classes,
+                columnaBadge.classes,
               ].join(' ')}
             >
-              {badge.text}
+              {columnaBadge.text}
             </span>
           )}
 
@@ -193,9 +274,18 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
           isOver ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/30',
         ].join(' ')}
       >
-        {sortedFichas.map((ficha) => (
-          <KanbanCard key={ficha.id} ficha={ficha} label={resolveLabel(ficha)} />
-        ))}
+        {sortedFichas.map((ficha) => {
+          const { titulo, detalles, badge } = resolveCardProps(ficha);
+          return (
+            <KanbanCard
+              key={ficha.id}
+              ficha={ficha}
+              titulo={titulo}
+              detalles={detalles}
+              badge={badge}
+            />
+          );
+        })}
       </div>
 
       {/* FichaCreateDialog — abierto desde el botón "+" */}

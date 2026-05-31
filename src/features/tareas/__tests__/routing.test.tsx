@@ -98,10 +98,11 @@ describe('Routing tareas', () => {
     expect(link).toHaveAttribute('href', expect.stringContaining(USUARIO_ID));
   });
 
-  it('(d) TareasListPage inicializa filtro responsable desde query param responsable_id', async () => {
-    // Navegar a /tareas?responsable_id=USUARIO_ID debe inicializar el Select de Responsable
+  it('(d) TareasListPage inicializa filtro responsable desde query param responsable_id (en tab Lista)', async () => {
+    // Navegar a /tareas?tab=lista&responsable_id=USUARIO_ID debe inicializar el Select de Responsable.
+    // ?tab=lista es necesario porque kanban es el tab por defecto y los filtros solo son visibles en Lista.
     renderRoute(
-      `/tareas?responsable_id=${USUARIO_ID}`,
+      `/tareas?tab=lista&responsable_id=${USUARIO_ID}`,
       <Routes>
         <Route path="/tareas" element={<TareasListPage />} />
       </Routes>,

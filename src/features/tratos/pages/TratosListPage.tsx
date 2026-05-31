@@ -2,7 +2,7 @@
 // Búsqueda client-side por nombre. Sin filtros estado/cliente/prospecto/responsable.
 // Resolución de contactos para TratosTable vía useContactos().
 // Tab "Lista" = tabla + búsqueda. Tab "Kanban" = KanbanTabContent tipo="TRATOS".
-// useTabSync sincroniza el tab activo con ?tab= en la URL (URL limpia cuando activo = "lista").
+// useTabSync sincroniza el tab activo con ?tab= en la URL (URL limpia cuando activo = "kanban" — default).
 
 import { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
@@ -21,7 +21,7 @@ export function TratosListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const [tab, setTab] = useTabSync(['lista', 'kanban'], 'lista');
+  const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
   const { data: tratos, isLoading, isError, refetch } = useTratos();
   const { data: contactos = [] } = useContactos();

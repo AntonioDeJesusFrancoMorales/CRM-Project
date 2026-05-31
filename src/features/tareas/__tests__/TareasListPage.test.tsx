@@ -72,8 +72,8 @@ function renderPageWithLocation(initialPath = '/tareas') {
 }
 
 describe('TareasListPage — render y tabla', () => {
-  it('(a) renderiza filas con tareas del fixture', async () => {
-    renderPage();
+  it('(a) renderiza filas con tareas del fixture (en tab Lista)', async () => {
+    renderPage('/tareas?tab=lista');
 
     // El fixture tiene 7 tareas; comprobamos algunas
     await waitFor(() => {
@@ -84,7 +84,7 @@ describe('TareasListPage — render y tabla', () => {
 
   it('(b) título clickeable navega a /tareas/:id', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
       }),
     );
 
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     // Esperar la carga inicial
     await waitFor(() => expect(capturedUrl).toContain('/api/tareas/get-all'));
@@ -145,7 +145,7 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
       }),
     );
 
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     // Esperar la carga inicial (1 request)
     await waitFor(() => expect(requestCount).toBeGreaterThan(0));
@@ -178,7 +178,7 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
       }),
     );
 
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     await waitFor(() => expect(capturedUrls.length).toBeGreaterThan(0));
 
@@ -200,7 +200,7 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
 describe('TareasListPage — búsqueda client-side', () => {
   it('(f) búsqueda por título filtra client-side', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
@@ -227,7 +227,7 @@ describe('TareasListPage — error y estados de carga', () => {
       ),
     );
 
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
@@ -238,7 +238,7 @@ describe('TareasListPage — error y estados de carga', () => {
 describe('TareasListPage — creación (enums del back)', () => {
   it('(h) botón "Nueva tarea" abre TareaCreateDialog con Select de trato editable', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
@@ -285,7 +285,7 @@ describe('TareasListPage — creación (enums del back)', () => {
       }),
     );
 
-    renderPage();
+    renderPage('/tareas?tab=lista');
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
@@ -355,34 +355,7 @@ describe('TareasListPage — creación (enums del back)', () => {
 // ── Tabs Lista / Kanban ────────────────────────────────────────────────────────────────────
 
 describe('TareasListPage — tabs Lista/Kanban', () => {
-  it('(tab-a) render inicial sin ?tab= → tab "Lista" activo, filtros y tabla visibles', async () => {
-    renderPage('/tareas');
-
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-    );
-
-    // Tab Lista activo
-    const tabLista = screen.getByRole('tab', { name: /lista/i });
-    expect(tabLista.getAttribute('aria-selected')).toBe('true');
-
-    // La tabla está visible (al menos una fila con datos)
-    expect(screen.getByRole('table')).toBeInTheDocument();
-
-    // Los filtros deben estar visibles dentro del tab Lista
-    expect(screen.getByRole('combobox', { name: /estado/i })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /prioridad/i })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /responsable/i })).toBeInTheDocument();
-
-    // Tab Kanban presente pero no activo
-    const tabKanban = screen.getByRole('tab', { name: /kanban/i });
-    expect(tabKanban.getAttribute('aria-selected')).toBe('false');
-  });
-
-  it('(tab-b) click en tab "Kanban" → KanbanTabContent visible, filtros y tabla no visibles', async () => {
-    const user = userEvent.setup();
-
-    // Hay 1 tablero TAREAS → KanbanTabContent muestra KanbanBoardEmbebido
+  it('(tab-a) render inicial sin ?tab= → tab "Kanban" activo por defecto', async () => {
     server.use(
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
       http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
@@ -392,28 +365,23 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
 
     renderPage('/tareas');
 
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-    );
-
-    await user.click(screen.getByRole('tab', { name: /kanban/i }));
-
-    // Tab Kanban activo
+    // Tab Kanban debe estar activo por defecto
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
       ).toBe('true'),
     );
 
-    // La tabla ya no es visible
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    // Tab Lista presente pero no activo
+    const tabLista = screen.getByRole('tab', { name: /lista/i });
+    expect(tabLista.getAttribute('aria-selected')).toBe('false');
 
-    // Los filtros ya no son visibles (están dentro del TabsContent "lista")
+    // La tabla y filtros NO son visibles (estamos en Kanban)
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /estado/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('combobox', { name: /prioridad/i })).not.toBeInTheDocument();
   });
 
-  it('(tab-c) click en tab "Lista" desde Kanban → tabla visible, URL limpia sin ?tab=', async () => {
+  it('(tab-b) click en tab "Lista" → filtros y tabla visibles, URL con ?tab=lista', async () => {
     const user = userEvent.setup();
 
     server.use(
@@ -423,9 +391,9 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
       http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
     );
 
-    renderPageWithLocation('/tareas?tab=kanban');
+    renderPageWithLocation('/tareas');
 
-    // Inicialmente tab Kanban activo
+    // Esperar que cargue y esté en Kanban
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
@@ -441,16 +409,23 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
       ).toBe('true'),
     );
 
-    // URL debe quedar limpia (sin ?tab=)
-    await waitFor(() =>
-      expect(screen.getByTestId('location-search').textContent).toBe(''),
-    );
+    // URL debe tener ?tab=lista
+    await waitFor(() => {
+      const search = screen.getByTestId('location-search').textContent ?? '';
+      const params = new URLSearchParams(search);
+      expect(params.get('tab')).toBe('lista');
+    });
 
-    // La tabla vuelve a ser visible
+    // La tabla y filtros deben ser visibles
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+    expect(screen.getByRole('combobox', { name: /estado/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /prioridad/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /responsable/i })).toBeInTheDocument();
   });
 
-  it('(tab-d) URL con ?tab=kanban al cargar → tab "Kanban" activo, filtros no visibles', async () => {
+  it('(tab-c) click en tab "Kanban" desde Lista → tabla no visible, URL limpia sin ?tab=', async () => {
+    const user = userEvent.setup();
+
     server.use(
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
       http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
@@ -458,29 +433,127 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
       http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
     );
 
-    renderPage('/tareas?tab=kanban');
+    renderPageWithLocation('/tareas?tab=lista');
 
-    // Tab Kanban activo desde inicio
+    // Inicialmente tab Lista activo, tabla visible
+    await waitFor(() =>
+      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /kanban/i }));
+
+    // Tab Kanban ahora activo
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
       ).toBe('true'),
     );
 
-    // Filtros no visibles (están dentro del tab Lista que no está activo)
-    expect(screen.queryByRole('combobox', { name: /estado/i })).not.toBeInTheDocument();
+    // URL debe quedar limpia (sin ?tab= — kanban es el fallback)
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search').textContent).toBe(''),
+    );
 
-    // Tabla no visible
+    // La tabla ya no es visible
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+
+    // Los filtros ya no son visibles
+    expect(screen.queryByRole('combobox', { name: /estado/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /prioridad/i })).not.toBeInTheDocument();
+  });
+
+  it('(tab-d) URL con ?tab=lista al cargar → tab "Lista" activo, filtros y tabla visibles', async () => {
+    renderPage('/tareas?tab=lista');
+
+    // Tab Lista debe estar activo desde el inicio
+    await waitFor(() =>
+      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
+    );
+
+    const tabLista = screen.getByRole('tab', { name: /lista/i });
+    expect(tabLista.getAttribute('aria-selected')).toBe('true');
+
+    // Tabla visible
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    // Filtros visibles
+    expect(screen.getByRole('combobox', { name: /estado/i })).toBeInTheDocument();
+
+    // Tab Kanban no activo
+    expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe('false');
   });
 });
 
 // ── Coexistencia ?tab= y ?responsable_id= ─────────────────────────────────────────────────
 
 describe('TareasListPage — coexistencia ?tab= y ?responsable_id=', () => {
-  it('(coexi-a) ?responsable_id= persiste al cambiar a tab Kanban', async () => {
+  it('(coexi-a) ?responsable_id= persiste al cambiar a tab Kanban (URL limpia sin ?tab= ya que kanban es default)', async () => {
     const user = userEvent.setup();
 
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    // Empezamos en Lista explícita con ?responsable_id=
+    renderPageWithLocation('/tareas?tab=lista&responsable_id=user-1');
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /lista/i })).toBeInTheDocument(),
+    );
+
+    // Aseguramos que Lista está activo
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /kanban/i }));
+
+    // Kanban es el fallback → ?tab= se elimina; ?responsable_id= persiste
+    await waitFor(() => {
+      const search = screen.getByTestId('location-search').textContent ?? '';
+      const params = new URLSearchParams(search);
+      expect(params.get('tab')).toBeNull(); // kanban es default, URL limpia
+      expect(params.get('responsable_id')).toBe('user-1');
+    });
+  });
+
+  it('(coexi-b) ?responsable_id= persiste al ir al tab Lista desde Kanban (URL queda con ?tab=lista&responsable_id=)', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    // Empezamos en Kanban (sin ?tab=) con ?responsable_id=
+    renderPageWithLocation('/tareas?responsable_id=user-1');
+
+    // Kanban activo por defecto
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
+
+    // Al ir a Lista la URL debe tener ?tab=lista&responsable_id=user-1
+    await waitFor(() => {
+      const search = screen.getByTestId('location-search').textContent ?? '';
+      const params = new URLSearchParams(search);
+      expect(params.get('tab')).toBe('lista');
+      expect(params.get('responsable_id')).toBe('user-1');
+    });
+  });
+
+  it('(coexi-c) carga con ?responsable_id=user-1 sin ?tab= → tab Kanban activo (default)', async () => {
     server.use(
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
       http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
@@ -490,72 +563,17 @@ describe('TareasListPage — coexistencia ?tab= y ?responsable_id=', () => {
 
     renderPageWithLocation('/tareas?responsable_id=user-1');
 
-    await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /lista/i })).toBeInTheDocument(),
-    );
-
-    await user.click(screen.getByRole('tab', { name: /kanban/i }));
-
-    // Después del click, la URL debe contener ambos params
-    await waitFor(() => {
-      const search = screen.getByTestId('location-search').textContent ?? '';
-      const params = new URLSearchParams(search);
-      expect(params.get('tab')).toBe('kanban');
-      expect(params.get('responsable_id')).toBe('user-1');
-    });
-  });
-
-  it('(coexi-b) ?responsable_id= persiste al volver al tab Lista desde Kanban', async () => {
-    const user = userEvent.setup();
-
-    server.use(
-      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
-      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
-      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
-      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
-    );
-
-    renderPageWithLocation('/tareas?tab=kanban&responsable_id=user-1');
-
-    // Inicialmente tab Kanban activo
+    // Tab Kanban activo desde carga inicial (es el fallback/default)
     await waitFor(() =>
       expect(
         screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
       ).toBe('true'),
     );
 
-    await user.click(screen.getByRole('tab', { name: /lista/i }));
-
-    // Al volver a Lista la URL solo debe tener ?responsable_id= (sin ?tab=)
-    await waitFor(() => {
-      const search = screen.getByTestId('location-search').textContent ?? '';
-      const params = new URLSearchParams(search);
-      expect(params.get('tab')).toBeNull();
-      expect(params.get('responsable_id')).toBe('user-1');
-    });
-  });
-
-  it('(coexi-c) carga con ?tab=kanban&responsable_id=user-1 → tab Kanban activo', async () => {
-    server.use(
-      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
-      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
-      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
-      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
-    );
-
-    renderPageWithLocation('/tareas?tab=kanban&responsable_id=user-1');
-
-    // Tab Kanban activo desde carga inicial
-    await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
-    );
-
-    // La URL actual conserva ambos params al inicio
+    // La URL no tiene ?tab= (kanban es default) pero sí ?responsable_id=
     const search = screen.getByTestId('location-search').textContent ?? '';
     const params = new URLSearchParams(search);
-    expect(params.get('tab')).toBe('kanban');
+    expect(params.get('tab')).toBeNull(); // no hay ?tab= explícito
     expect(params.get('responsable_id')).toBe('user-1');
   });
 });
