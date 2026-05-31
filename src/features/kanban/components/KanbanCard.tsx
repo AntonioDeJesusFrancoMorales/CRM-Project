@@ -91,79 +91,52 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
         {...listeners}
       >
         <div className="flex items-start justify-between gap-2">
-          {/* Área de contenido — es un Link cuando to está definido */}
-          {to ? (
-            <Link
-              to={to}
-              className="min-w-0 flex-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Si el click viene inmediatamente después de soltar un arrastre,
-                // cancelar la navegación (y limpiar la bandera para el próximo click real).
-                if (arrastreRecienteRef?.current) {
-                  e.preventDefault();
-                  arrastreRecienteRef.current = false;
-                }
-              }}
-              draggable={false}
-            >
-              {/* Título principal */}
+          <div className="min-w-0 flex-1">
+            {/* Título: ÚNICO punto de entrada al detalle (click). El resto de la tarjeta solo arrastra. */}
+            {to ? (
+              <Link
+                to={to}
+                className="block truncate text-sm font-medium text-card-foreground hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Backup: si el click llega justo tras soltar un arrastre, no navegar.
+                  if (arrastreRecienteRef?.current) {
+                    e.preventDefault();
+                    arrastreRecienteRef.current = false;
+                  }
+                }}
+                draggable={false}
+              >
+                {titulo}
+              </Link>
+            ) : (
               <p className="truncate text-sm font-medium text-card-foreground">{titulo}</p>
+            )}
 
-              {/* Badge de prioridad u otro indicador */}
-              {badge && (
-                <span
-                  className={[
-                    'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                    badge.classes,
-                  ].join(' ')}
-                >
-                  {badge.text}
-                </span>
-              )}
+            {/* Badge de prioridad u otro indicador — área de arrastre, NO navegable */}
+            {badge && (
+              <span
+                className={[
+                  'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                  badge.classes,
+                ].join(' ')}
+              >
+                {badge.text}
+              </span>
+            )}
 
-              {/* Detalles adicionales (valor, probabilidad, fecha, tipo, etc.) */}
-              {detalles.length > 0 && (
-                <dl className="mt-1.5 space-y-0.5">
-                  {detalles.map((d) => (
-                    <div key={d.label} className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <dt className="shrink-0 font-medium">{d.label}:</dt>
-                      <dd className="truncate">{d.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </Link>
-          ) : (
-            <div className="min-w-0 flex-1">
-              {/* Título principal */}
-              <p className="truncate text-sm font-medium text-card-foreground">{titulo}</p>
-
-              {/* Badge de prioridad u otro indicador */}
-              {badge && (
-                <span
-                  className={[
-                    'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                    badge.classes,
-                  ].join(' ')}
-                >
-                  {badge.text}
-                </span>
-              )}
-
-              {/* Detalles adicionales (valor, probabilidad, fecha, tipo, etc.) */}
-              {detalles.length > 0 && (
-                <dl className="mt-1.5 space-y-0.5">
-                  {detalles.map((d) => (
-                    <div key={d.label} className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <dt className="shrink-0 font-medium">{d.label}:</dt>
-                      <dd className="truncate">{d.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </div>
-          )}
+            {/* Detalles adicionales (valor, probabilidad, fecha, tipo, etc.) — área de arrastre, NO navegable */}
+            {detalles.length > 0 && (
+              <dl className="mt-1.5 space-y-0.5">
+                {detalles.map((d) => (
+                  <div key={d.label} className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <dt className="shrink-0 font-medium">{d.label}:</dt>
+                    <dd className="truncate">{d.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
 
           {/* Dropdown de acciones — stopPropagation evita que el drag intercepte el click */}
           <div
