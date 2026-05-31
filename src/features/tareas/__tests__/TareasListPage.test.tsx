@@ -1,15 +1,17 @@
 // Tests de TareasListPage — filtros client-side (W1 fix) + enums del back (W2 fix).
 // Los filtros se aplican sobre el array completo en useMemo — NO hay query params al back.
+// Tabs Lista/Kanban con useTabSync + coexistencia ?tab= y ?responsable_id=.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Routes, Route } from 'react-router';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
 
 import { TareasListPage } from '../pages/TareasListPage';
 import { server } from '@/test/server';
+import { tableroTareasFixture, fichasFixture, columnasFixture } from '@/mocks/fixtures/tableros';
 
 function renderPage(initialPath = '/tareas') {
   const queryClient = new QueryClient({
@@ -25,6 +27,44 @@ function renderPage(initialPath = '/tareas') {
         <Routes>
           <Route path="/tareas" element={<TareasListPage />} />
           <Route path="/tareas/:id" element={<div>Detalle de la tarea</div>} />
+          <Route path="/tableros" element={<div>Tableros</div>} />
+          <Route path="/tableros/:id" element={<div>Tablero detalle</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+// Componente auxiliar que expone la URL actual en el DOM para inspección.
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
+
+function renderPageWithLocation(initialPath = '/tareas') {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route
+            path="/tareas"
+            element={
+              <>
+                <TareasListPage />
+                <LocationDisplay />
+              </>
+            }
+          />
+          <Route path="/tareas/:id" element={<div>Detalle de la tarea</div>} />
+          <Route path="/tableros" element={<div>Tableros</div>} />
+          <Route path="/tableros/:id" element={<div>Tablero detalle</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -309,5 +349,213 @@ describe('TareasListPage — creación (enums del back)', () => {
         }),
       );
     });
+  });
+});
+
+// ── Tabs Lista / Kanban ────────────────────────────────────────────────────────────────────
+
+describe('TareasListPage — tabs Lista/Kanban', () => {
+  it('(tab-a) render inicial sin ?tab= → tab "Lista" activo, filtros y tabla visibles', async () => {
+    renderPage('/tareas');
+
+    await waitFor(() =>
+      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
+    );
+
+    // Tab Lista activo
+    const tabLista = screen.getByRole('tab', { name: /lista/i });
+    expect(tabLista.getAttribute('aria-selected')).toBe('true');
+
+    // La tabla está visible (al menos una fila con datos)
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    // Los filtros deben estar visibles dentro del tab Lista
+    expect(screen.getByRole('combobox', { name: /estado/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /prioridad/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /responsable/i })).toBeInTheDocument();
+
+    // Tab Kanban presente pero no activo
+    const tabKanban = screen.getByRole('tab', { name: /kanban/i });
+    expect(tabKanban.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('(tab-b) click en tab "Kanban" → KanbanTabContent visible, filtros y tabla no visibles', async () => {
+    const user = userEvent.setup();
+
+    // Hay 1 tablero TAREAS → KanbanTabContent muestra KanbanBoardEmbebido
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPage('/tareas');
+
+    await waitFor(() =>
+      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /kanban/i }));
+
+    // Tab Kanban activo
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    // La tabla ya no es visible
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+
+    // Los filtros ya no son visibles (están dentro del TabsContent "lista")
+    expect(screen.queryByRole('combobox', { name: /estado/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /prioridad/i })).not.toBeInTheDocument();
+  });
+
+  it('(tab-c) click en tab "Lista" desde Kanban → tabla visible, URL limpia sin ?tab=', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPageWithLocation('/tareas?tab=kanban');
+
+    // Inicialmente tab Kanban activo
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
+
+    // Tab Lista ahora activo
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    // URL debe quedar limpia (sin ?tab=)
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search').textContent).toBe(''),
+    );
+
+    // La tabla vuelve a ser visible
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+  });
+
+  it('(tab-d) URL con ?tab=kanban al cargar → tab "Kanban" activo, filtros no visibles', async () => {
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPage('/tareas?tab=kanban');
+
+    // Tab Kanban activo desde inicio
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    // Filtros no visibles (están dentro del tab Lista que no está activo)
+    expect(screen.queryByRole('combobox', { name: /estado/i })).not.toBeInTheDocument();
+
+    // Tabla no visible
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});
+
+// ── Coexistencia ?tab= y ?responsable_id= ─────────────────────────────────────────────────
+
+describe('TareasListPage — coexistencia ?tab= y ?responsable_id=', () => {
+  it('(coexi-a) ?responsable_id= persiste al cambiar a tab Kanban', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPageWithLocation('/tareas?responsable_id=user-1');
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /lista/i })).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /kanban/i }));
+
+    // Después del click, la URL debe contener ambos params
+    await waitFor(() => {
+      const search = screen.getByTestId('location-search').textContent ?? '';
+      const params = new URLSearchParams(search);
+      expect(params.get('tab')).toBe('kanban');
+      expect(params.get('responsable_id')).toBe('user-1');
+    });
+  });
+
+  it('(coexi-b) ?responsable_id= persiste al volver al tab Lista desde Kanban', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPageWithLocation('/tareas?tab=kanban&responsable_id=user-1');
+
+    // Inicialmente tab Kanban activo
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
+
+    // Al volver a Lista la URL solo debe tener ?responsable_id= (sin ?tab=)
+    await waitFor(() => {
+      const search = screen.getByTestId('location-search').textContent ?? '';
+      const params = new URLSearchParams(search);
+      expect(params.get('tab')).toBeNull();
+      expect(params.get('responsable_id')).toBe('user-1');
+    });
+  });
+
+  it('(coexi-c) carga con ?tab=kanban&responsable_id=user-1 → tab Kanban activo', async () => {
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTareasFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPageWithLocation('/tareas?tab=kanban&responsable_id=user-1');
+
+    // Tab Kanban activo desde carga inicial
+    await waitFor(() =>
+      expect(
+        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
+      ).toBe('true'),
+    );
+
+    // La URL actual conserva ambos params al inicio
+    const search = screen.getByTestId('location-search').textContent ?? '';
+    const params = new URLSearchParams(search);
+    expect(params.get('tab')).toBe('kanban');
+    expect(params.get('responsable_id')).toBe('user-1');
   });
 });

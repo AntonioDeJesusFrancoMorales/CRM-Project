@@ -44,24 +44,33 @@ describe('tableros fixture — invariantes', () => {
     expect(estados.filter((e) => e === 'PERDIDO')).toHaveLength(1);
   });
 
-  it('fichasFixture tiene 3 fichas TRATO con tratoId de tratosFixture', () => {
-    expect(fichasFixture.length).toBeGreaterThanOrEqual(3);
-    fichasFixture.forEach((f) => {
-      expect(f.tipoFicha).toBe('TRATO');
+  it('fichasFixture tiene al menos 3 fichas TRATO con tratoId de tratosFixture', () => {
+    const fichasTrato = fichasFixture.filter((f) => f.tipoFicha === 'TRATO');
+    expect(fichasTrato.length).toBeGreaterThanOrEqual(3);
+    fichasTrato.forEach((f) => {
       expect(f.tratoId).not.toBeNull();
       expect('tipo_ficha' in f).toBe(false);
       expect('tablero_id' in f).toBe(false);
     });
   });
 
-  it('fichasFixture tratoIds apuntan a d1, d2, d3 (existen en tratosFixture)', () => {
+  it('fichasFixture tratoIds de tipo TRATO apuntan a d1, d2, d3 (existen en tratosFixture)', () => {
     const knownTratoIds = [
       'd1111111-dddd-1111-dddd-111111111111',
       'd2222222-dddd-2222-dddd-222222222222',
       'd3333333-dddd-3333-dddd-333333333333',
     ];
-    fichasFixture.forEach((f) => {
+    fichasFixture.filter((f) => f.tipoFicha === 'TRATO').forEach((f) => {
       expect(knownTratoIds).toContain(f.tratoId);
+    });
+  });
+
+  it('fichasFixture tiene fichas TAREA con tareaId no-null', () => {
+    const fichasTarea = fichasFixture.filter((f) => f.tipoFicha === 'TAREA');
+    expect(fichasTarea.length).toBeGreaterThanOrEqual(1);
+    fichasTarea.forEach((f) => {
+      expect(f.tareaId).not.toBeNull();
+      expect(f.tratoId).toBeNull();
     });
   });
 
@@ -294,12 +303,12 @@ describe('fichas MSW handler — GET /api/fichas/get-all', () => {
     });
   });
 
-  it('todas las fichas del fixture son de tipoFicha TRATO', async () => {
+  it('las fichas del fixture incluyen tipos TRATO y TAREA', async () => {
     const res = await fetch('/api/fichas/get-all');
     const data = (await res.json()) as { tipoFicha: string }[];
-    data.forEach((f) => {
-      expect(f.tipoFicha).toBe('TRATO');
-    });
+    const tipos = new Set(data.map((f) => f.tipoFicha));
+    expect(tipos.has('TRATO')).toBe(true);
+    expect(tipos.has('TAREA')).toBe(true);
   });
 });
 
