@@ -696,4 +696,45 @@ describe('KanbanCard — navegación: prop to', () => {
     // Sin `to` no debe haber un link apuntando a ningún detalle
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
+
+  it('(nav-e) arrastrar la tarjeta (mousedown + click en coordenadas lejanas) NO navega', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+    renderCardWithLocation(FICHA_TRATO, {
+      titulo: 'Trato drag no navega',
+      to: '/tratos/d1111111-dddd-1111-dddd-111111111111',
+    });
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+
+    const card = screen.getByTestId('kanban-card');
+
+    // Simular inicio de gesto en (0, 0) y soltar (click) lejos (movimiento > 5px) = arrastre
+    fireEvent.mouseDown(card, { clientX: 0, clientY: 0 });
+    const link = screen.getByRole('link');
+    fireEvent.click(link, { clientX: 50, clientY: 0 });
+
+    // La navegación NO debe haberse producido
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+  });
+
+  it('(nav-f) click limpio (sin movimiento) sigue navegando al detalle', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+    renderCardWithLocation(FICHA_TRATO, {
+      titulo: 'Trato click limpio',
+      to: '/tratos/d1111111-dddd-1111-dddd-111111111111',
+    });
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+
+    const card = screen.getByTestId('kanban-card');
+
+    // Mousedown y click en las mismas coordenadas (distancia = 0 → click limpio) → navega
+    fireEvent.mouseDown(card, { clientX: 10, clientY: 10 });
+    const link = screen.getByRole('link');
+    fireEvent.click(link, { clientX: 10, clientY: 10 });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trato-detail')).toBeInTheDocument();
+    });
+  });
 });

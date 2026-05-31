@@ -12,7 +12,7 @@
 //          sin to, la tarjeta no es navegable.
 // Dropdown Radix con opción "Eliminar" + FichaDeleteDialog + useEliminarTarjeta.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import { useEliminarTarjeta } from '../hooks/useEliminarTarjeta';
+import { huboArrastre } from '../lib/huboArrastre';
 import { FichaDeleteDialog } from './FichaDeleteDialog';
 
 export interface KanbanCardDetalle {
@@ -61,6 +62,16 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { eliminar, isPending, bloqueado, cantidadTareas } = useEliminarTarjeta(ficha);
 
+  // Guarda la posición del puntero al iniciar el gesto, para distinguir click de arrastre.
+  // Se captura en pointerdown (browser real, donde @dnd-kit usa PointerSensor) y también en
+  // mousedown (jsdom no propaga coords en pointerdown). Se usan handlers *Capture en el div raíz
+  // para no interferir con los listeners de @dnd-kit que ya se spreadean en ese mismo div.
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  function registrarPosicionInicial(e: { clientX: number; clientY: number }) {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  }
+
   const style = transform
     ? { transform: CSS.Translate.toString(transform) }
     : undefined;
@@ -84,6 +95,8 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
         ].join(' ')}
         {...attributes}
         {...listeners}
+        onPointerDownCapture={registrarPosicionInicial}
+        onMouseDownCapture={registrarPosicionInicial}
       >
         <div className="flex items-start justify-between gap-2">
           {/* Área de contenido — es un Link cuando to está definido */}
@@ -91,7 +104,14 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
             <Link
               to={to}
               className="min-w-0 flex-1"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Si el puntero se movió más del umbral desde el inicio del gesto,
+                // fue un arrastre → cancelar la navegación al detalle.
+                if (huboArrastre(pointerDownPos.current, { x: e.clientX, y: e.clientY })) {
+                  e.preventDefault();
+                }
+              }}
               draggable={false}
             >
               {/* Título principal */}
