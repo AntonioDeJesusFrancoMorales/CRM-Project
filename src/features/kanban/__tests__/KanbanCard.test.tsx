@@ -15,6 +15,7 @@ import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import type { Trato } from '@/api/types';
 
 import { KanbanCard } from '../components/KanbanCard';
+import { ArrastreRecienteContext } from '../components/arrastreReciente';
 import { FichaForm } from '../components/FichaForm';
 import { FichaCreateDialog } from '../components/FichaCreateDialog';
 
@@ -87,9 +88,12 @@ function renderCardWithLocation(
   props?: {
     titulo?: string;
     to?: string;
+    /** Cuando es true, simula que recién terminó un arrastre (el click no debe navegar). */
+    arrastreReciente?: boolean;
   },
 ) {
   const qc = buildQueryClient();
+  const arrastreRef = { current: props?.arrastreReciente ?? false };
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={['/tableros/t1']}>
@@ -97,7 +101,7 @@ function renderCardWithLocation(
           <Route
             path="/tableros/t1"
             element={
-              <>
+              <ArrastreRecienteContext.Provider value={arrastreRef}>
                 <KanbanCard
                   ficha={ficha}
                   titulo={props?.titulo ?? 'Título'}
@@ -105,7 +109,7 @@ function renderCardWithLocation(
                   to={props?.to}
                 />
                 <LocationDisplay />
-              </>
+              </ArrastreRecienteContext.Provider>
             }
           />
           <Route path="/tratos/:id" element={<div data-testid="trato-detail">Detalle del trato</div>} />
@@ -697,28 +701,24 @@ describe('KanbanCard — navegación: prop to', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('(nav-e) arrastrar la tarjeta (mousedown + click en coordenadas lejanas) NO navega', async () => {
-    const { fireEvent } = await import('@testing-library/react');
+  it('(nav-e) si recién terminó un arrastre, el click NO navega', async () => {
+    const user = userEvent.setup();
     renderCardWithLocation(FICHA_TRATO, {
       titulo: 'Trato drag no navega',
       to: '/tratos/d1111111-dddd-1111-dddd-111111111111',
+      arrastreReciente: true, // simula el click disparado al soltar un arrastre
     });
 
     expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
 
-    const card = screen.getByTestId('kanban-card');
-
-    // Simular inicio de gesto en (0, 0) y soltar (click) lejos (movimiento > 5px) = arrastre
-    fireEvent.mouseDown(card, { clientX: 0, clientY: 0 });
-    const link = screen.getByRole('link');
-    fireEvent.click(link, { clientX: 50, clientY: 0 });
+    await user.click(screen.getByText('Trato drag no navega'));
 
     // La navegación NO debe haberse producido
     expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
   });
 
-  it('(nav-f) click limpio (sin movimiento) sigue navegando al detalle', async () => {
-    const { fireEvent } = await import('@testing-library/react');
+  it('(nav-f) sin arrastre previo, el click navega al detalle', async () => {
+    const user = userEvent.setup();
     renderCardWithLocation(FICHA_TRATO, {
       titulo: 'Trato click limpio',
       to: '/tratos/d1111111-dddd-1111-dddd-111111111111',
@@ -726,12 +726,7 @@ describe('KanbanCard — navegación: prop to', () => {
 
     expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
 
-    const card = screen.getByTestId('kanban-card');
-
-    // Mousedown y click en las mismas coordenadas (distancia = 0 → click limpio) → navega
-    fireEvent.mouseDown(card, { clientX: 10, clientY: 10 });
-    const link = screen.getByRole('link');
-    fireEvent.click(link, { clientX: 10, clientY: 10 });
+    await user.click(screen.getByText('Trato click limpio'));
 
     await waitFor(() => {
       expect(screen.getByTestId('trato-detail')).toBeInTheDocument();

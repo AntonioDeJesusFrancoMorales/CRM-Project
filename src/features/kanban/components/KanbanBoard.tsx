@@ -8,6 +8,7 @@
 // de forma aislada (jsdom no soporta arrastre real).
 // onDragEnd: si over.id !== ficha.columnaId → useUpdateFicha(mutate); si igual → no-op.
 
+import { useRef } from 'react';
 import {
   DndContext,
   type DragEndEvent,
@@ -18,6 +19,7 @@ import {
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha, FichaEditInput, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useUpdateFicha } from '@/features/kanban/hooks/useUpdateFicha';
+import { ArrastreRecienteContext } from './arrastreReciente';
 import { KanbanColumn } from './KanbanColumn';
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,20 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
 
   const handleDragEnd = buildDragEndHandler({ fichas: fichasFiltradas, mutate });
 
+  // Guarda click-vs-arrastre: tras soltar un arrastre el navegador dispara un click sobre
+  // la tarjeta; esta bandera (consultada en KanbanCard) cancela esa navegación no deseada.
+  // Vive a nivel del board para sobrevivir a re-renders/remounts de las tarjetas.
+  const arrastreRecienteRef = useRef(false);
+
+  function handleDragEndConGuard(event: DragEndEvent) {
+    handleDragEnd(event);
+    arrastreRecienteRef.current = true;
+    // Red de seguridad por si el drop no produce click: limpia la bandera poco después.
+    window.setTimeout(() => {
+      arrastreRecienteRef.current = false;
+    }, 250);
+  }
+
   // Sensor con tolerancia de 5px para evitar drags accidentales en clicks
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -106,18 +122,26 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
   );
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {columnas.map((columna) => (
-          <KanbanColumn
-            key={columna.id}
-            columna={columna}
-            fichas={fichasPorColumna.get(columna.id) ?? []}
-            tableroId={tableroId}
-            tipoFicha={tipoFicha}
-          />
-        ))}
-      </div>
+    <DndContext
+      sensors={sensors}
+      onDragStart={() => {
+        arrastreRecienteRef.current = false;
+      }}
+      onDragEnd={handleDragEndConGuard}
+    >
+      <ArrastreRecienteContext.Provider value={arrastreRecienteRef}>
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {columnas.map((columna) => (
+            <KanbanColumn
+              key={columna.id}
+              columna={columna}
+              fichas={fichasPorColumna.get(columna.id) ?? []}
+              tableroId={tableroId}
+              tipoFicha={tipoFicha}
+            />
+          ))}
+        </div>
+      </ArrastreRecienteContext.Provider>
     </DndContext>
   );
 }
