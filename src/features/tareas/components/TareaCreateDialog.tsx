@@ -1,6 +1,9 @@
-// TareaCreateDialog — wrapper sobre TareaForm + useCreateTarea.
+// TareaCreateDialog — wrapper sobre TareaForm + useCrearTareaConFicha.
 // Acepta tratoIdFijo? para pre-cargar el trato cuando se crea desde el tab de un trato.
 // Homologa TratoCreateDialog.
+// Al crear una tarea se crea automáticamente una ficha TAREA en el tablero de tareas
+// (primera columna), usando useCrearTareaConFicha. Si no hay tablero TAREAS, la ficha
+// se omite y la tarea se crea igual (degradación elegante).
 
 import { isHttpError } from '@/api/http-error';
 import {
@@ -14,7 +17,7 @@ import {
   TAREA_EMPTY_DEFAULTS,
   type TareaCreateInput,
 } from '../schemas/tarea.schema';
-import { useCreateTarea } from '../hooks/useCreateTarea';
+import { useCrearTareaConFicha } from '../hooks/useCrearTareaConFicha';
 import { TareaForm } from './TareaForm';
 
 interface TareaCreateDialogProps {
@@ -30,18 +33,16 @@ export function TareaCreateDialog({
   tratoIdFijo,
   defaultValues,
 }: TareaCreateDialogProps) {
-  const mutation = useCreateTarea();
+  const { crear, isPending, error } = useCrearTareaConFicha();
 
   const serverErrors =
-    isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
-    mutation.error.details
-      ? mutation.error.details
+    isHttpError(error) && error.status === 422 && error.details
+      ? error.details
       : undefined;
 
   function handleSubmit(values: TareaCreateInput) {
-    mutation.mutate(values, {
-      onSuccess: () => onOpenChange(false),
+    void crear(values).then(() => onOpenChange(false)).catch(() => {
+      // El error queda en `error` del hook; el form mostrará serverErrors si aplica
     });
   }
 
@@ -65,7 +66,7 @@ export function TareaCreateDialog({
           defaultValues={initial}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          isSubmitting={isPending}
           serverErrors={serverErrors}
           tratoIdFijo={tratoIdFijo}
         />

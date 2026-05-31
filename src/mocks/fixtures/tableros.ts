@@ -71,9 +71,6 @@ export const tableroTratosFixture: Tablero = {
   creadoEn: '2026-04-01T08:00:00',
 };
 
-// Alias para compatibilidad con código existente que use tablerosFixture[]
-export const tablerosFixture: Tablero[] = [tableroTratosFixture];
-
 // ---------------------------------------------------------------------------
 // Fixture de tablero TAREAS — 3 columnas: PENDIENTE, EN_CURSO, FINALIZADA
 // ---------------------------------------------------------------------------
@@ -126,6 +123,9 @@ export const tableroTareasFixture: Tablero = {
   creadoEn: '2026-04-01T08:00:00',
 };
 
+// Alias unificado — incluye tableros de todos los tipos
+export const tablerosFixture: Tablero[] = [tableroTratosFixture, tableroTareasFixture];
+
 export const columnasFixtureTareas: Columna[] = [
   {
     id: columnasTablTareasIds.pendiente,
@@ -172,11 +172,12 @@ export const columnasFixture: Columna[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Fichas — 3 fichas TRATO apuntando a tratos del fixture de tratos
-// tratoId referencia los ids de tratosFixture (d1111111..., d2222222..., d3333333...)
+// Fichas — 3 fichas TRATO + 2 fichas TAREA
+// tratoId/tareaId referencian ids de tratosFixture y tareasFixture respectivamente
 // ---------------------------------------------------------------------------
 
 export const fichasFixture: Ficha[] = [
+  // TRATO fichas — apuntan a columnas del tablero TRATOS
   {
     id: 'h1111111-hhhh-1111-hhhh-111111111111',
     columnaId: columnasTablTratosIds.porContactar,
@@ -209,6 +210,31 @@ export const fichasFixture: Ficha[] = [
     creadoPor: '22222222-2222-2222-2222-222222222222',
     creadoEn: '2026-04-12T10:00:00Z',
     actualizadoEn: '2026-04-12T10:00:00Z',
+  },
+  // TAREA fichas — apuntan a columnas del tablero TAREAS
+  // tareaId referencia tareasFixture: e1111111 = "Demo presencial con CTO" (CIERRE, URGENTE)
+  //                                   e2222222 = "Llamada de seguimiento post-demo" (SEGUIMIENTO, MEDIA)
+  {
+    id: 'i1111111-iiii-1111-iiii-111111111111',
+    columnaId: columnasTablTareasIds.pendiente,
+    tipoFicha: 'TAREA',
+    tratoId: null,
+    tareaId: 'e1111111-eeee-1111-eeee-111111111111',
+    responsableId: '22222222-2222-2222-2222-222222222222',
+    creadoPor: '22222222-2222-2222-2222-222222222222',
+    creadoEn: '2026-04-13T08:00:00Z',
+    actualizadoEn: '2026-04-13T08:00:00Z',
+  },
+  {
+    id: 'i2222222-iiii-2222-iiii-222222222222',
+    columnaId: columnasTablTareasIds.enCurso,
+    tipoFicha: 'TAREA',
+    tratoId: null,
+    tareaId: 'e2222222-eeee-2222-eeee-222222222222',
+    responsableId: '22222222-2222-2222-2222-222222222222',
+    creadoPor: '22222222-2222-2222-2222-222222222222',
+    creadoEn: '2026-04-14T09:00:00Z',
+    actualizadoEn: '2026-04-14T09:00:00Z',
   },
 ];
 
