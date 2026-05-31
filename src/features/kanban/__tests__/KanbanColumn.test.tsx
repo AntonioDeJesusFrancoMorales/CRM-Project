@@ -7,6 +7,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
 import { server } from '@/test/server';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
@@ -86,12 +87,14 @@ function renderColumn(
   });
   return render(
     <QueryClientProvider client={qc}>
-      <KanbanColumn
-        columna={columna}
-        fichas={fichas}
-        tableroId={tableroId}
-        tipoFicha={tipoFicha}
-      />
+      <MemoryRouter>
+        <KanbanColumn
+          columna={columna}
+          fichas={fichas}
+          tableroId={tableroId}
+          tipoFicha={tipoFicha}
+        />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }

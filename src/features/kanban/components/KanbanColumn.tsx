@@ -135,11 +135,12 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
         ? { text: estadoTratoLabel[columna.estadoTrato] ?? columna.estadoTrato, classes: estadoTratoBadgeClasses[columna.estadoTrato] ?? 'bg-gray-100 text-gray-800' }
         : null;
 
-  // Resolver título, detalles y badge de cada ficha según tipoFicha
+  // Resolver título, detalles, badge y to de cada ficha según tipoFicha
   function resolveCardProps(ficha: Ficha): {
     titulo: string;
     detalles: KanbanCardDetalle[];
     badge: KanbanCardBadge | undefined;
+    to: string | undefined;
   } {
     if (tipoFicha === 'TAREA') {
       const tarea = tareas?.find((t) => t.id === ficha.tareaId);
@@ -165,7 +166,10 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
         }
       }
 
-      return { titulo, detalles, badge };
+      // Solo navegar si hay tareaId válido
+      const to = ficha.tareaId ? `/tareas/${ficha.tareaId}` : undefined;
+
+      return { titulo, detalles, badge, to };
     }
 
     // TRATO (default)
@@ -185,7 +189,10 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
       }
     }
 
-    return { titulo, detalles, badge: undefined };
+    // Solo navegar si hay tratoId válido
+    const to = ficha.tratoId ? `/tratos/${ficha.tratoId}` : undefined;
+
+    return { titulo, detalles, badge: undefined, to };
   }
 
   return (
@@ -275,7 +282,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
         ].join(' ')}
       >
         {sortedFichas.map((ficha) => {
-          const { titulo, detalles, badge } = resolveCardProps(ficha);
+          const { titulo, detalles, badge, to } = resolveCardProps(ficha);
           return (
             <KanbanCard
               key={ficha.id}
@@ -283,6 +290,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO' }
               titulo={titulo}
               detalles={detalles}
               badge={badge}
+              to={to}
             />
           );
         })}

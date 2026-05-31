@@ -2,11 +2,13 @@
 // KanbanCard es PURAMENTE presentacional: recibe titulo, detalles y badge ya resueltos.
 // No hace fetches internos. DnD real no testeable en jsdom — se testea la estructura.
 // Batch 3 & 4 mantienen FichaForm, FichaCreateDialog y FichaDeleteDialog tests.
+// Lote 6 añade tests de navegación: to prop, click navega, menu no navega.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/server';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
@@ -55,17 +57,61 @@ function renderCard(
     titulo?: string;
     detalles?: Array<{ label: string; value: string }>;
     badge?: { text: string; classes: string };
+    to?: string;
   },
 ) {
   const qc = buildQueryClient();
   return render(
     <QueryClientProvider client={qc}>
-      <KanbanCard
-        ficha={ficha}
-        titulo={props?.titulo ?? 'Título por defecto'}
-        detalles={props?.detalles ?? []}
-        badge={props?.badge}
-      />
+      <MemoryRouter initialEntries={['/tableros/t1']}>
+        <KanbanCard
+          ficha={ficha}
+          titulo={props?.titulo ?? 'Título por defecto'}
+          detalles={props?.detalles ?? []}
+          badge={props?.badge}
+          to={props?.to}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+// Componente auxiliar que expone la ruta actual en el DOM para aserciones de navegación.
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location-pathname">{location.pathname}</div>;
+}
+
+function renderCardWithLocation(
+  ficha: Ficha,
+  props?: {
+    titulo?: string;
+    to?: string;
+  },
+) {
+  const qc = buildQueryClient();
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={['/tableros/t1']}>
+        <Routes>
+          <Route
+            path="/tableros/t1"
+            element={
+              <>
+                <KanbanCard
+                  ficha={ficha}
+                  titulo={props?.titulo ?? 'Título'}
+                  detalles={[]}
+                  to={props?.to}
+                />
+                <LocationDisplay />
+              </>
+            }
+          />
+          <Route path="/tratos/:id" element={<div data-testid="trato-detail">Detalle del trato</div>} />
+          <Route path="/tareas/:id" element={<div data-testid="tarea-detail">Detalle de la tarea</div>} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -573,5 +619,78 @@ describe('KanbanCard — dropdown Eliminar', () => {
 
     await new Promise((r) => setTimeout(r, 50));
     expect(deleteCalled).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// KanbanCard — navegación al detalle (Lote 6)
+// ---------------------------------------------------------------------------
+
+describe('KanbanCard — navegación: prop to', () => {
+  it('(nav-a) click en la tarjeta navega a la ruta del trato cuando to="/tratos/d1"', async () => {
+    const user = userEvent.setup();
+    renderCardWithLocation(FICHA_TRATO, {
+      titulo: 'Trato navegable',
+      to: '/tratos/d1111111-dddd-1111-dddd-111111111111',
+    });
+
+    // Verificar estado inicial
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+
+    // Click en el título (zona navegable)
+    const titleEl = screen.getByText('Trato navegable');
+    await user.click(titleEl);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trato-detail')).toBeInTheDocument();
+    });
+  });
+
+  it('(nav-b) click en la tarjeta navega a la ruta de la tarea cuando to="/tareas/e1"', async () => {
+    const user = userEvent.setup();
+    renderCardWithLocation(FICHA_TAREA, {
+      titulo: 'Tarea navegable',
+      to: '/tareas/e1111111-eeee-1111-eeee-111111111111',
+    });
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+
+    const titleEl = screen.getByText('Tarea navegable');
+    await user.click(titleEl);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tarea-detail')).toBeInTheDocument();
+    });
+  });
+
+  it('(nav-c) click en el menu "Eliminar" NO navega', async () => {
+    const user = userEvent.setup();
+    renderCardWithLocation(FICHA_TRATO, {
+      titulo: 'Trato menu no navega',
+      to: '/tratos/d1111111-dddd-1111-dddd-111111111111',
+    });
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+
+    const menuBtn = screen.getByRole('button', { name: /acciones de ficha/i });
+    await user.click(menuBtn);
+
+    const eliminarItem = await screen.findByRole('menuitem', { name: /eliminar/i });
+    await user.click(eliminarItem);
+
+    // Debe haber abierto el dialog de confirmación, NO navegar
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    // La URL sigue siendo la misma (no navegó al detalle)
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent('/tableros/t1');
+  });
+
+  it('(nav-d) sin prop to la tarjeta NO renderiza un elemento navegable', () => {
+    renderCardWithLocation(FICHA_TRATO, {
+      titulo: 'Trato sin to',
+      to: undefined,
+    });
+
+    // Sin `to` no debe haber un link apuntando a ningún detalle
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });
