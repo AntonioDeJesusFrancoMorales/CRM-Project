@@ -34,6 +34,7 @@ import { useTablero } from '../hooks/useTablero';
 import { useFichas } from '../hooks/useFichas';
 import { useColumnas } from '../hooks/useColumnas';
 import { useAsignarColumna } from '../hooks/useAsignarColumna';
+import { useBackfillFichas } from '../hooks/useBackfillFichas';
 import {
   asignarColumnaSchema,
   type AsignarColumnaFormValues,
@@ -70,6 +71,10 @@ export function KanbanBoardEmbebido({ tableroId }: KanbanBoardEmbebidoProps) {
   const tipoTableroActual = tablero?.tipoTablero ?? 'TRATOS';
   const tipoFicha: TipoFicha = tipoTableroActual === 'TAREAS' ? 'TAREA' : 'TRATO';
   const esTareas = tipoTableroActual === 'TAREAS';
+
+  // Backfill automático: crea fichas en silencio para entidades sin ficha.
+  // Corre en segundo plano — no bloquea el render del board.
+  useBackfillFichas(tipoTableroActual, tipoFicha);
 
   const form = useForm<AsignarColumnaFormValues>({
     resolver: zodResolver(asignarColumnaSchema),

@@ -1,9 +1,10 @@
 // Tests para KanbanBoardEmbebido — board autocontenido identificado por tableroId.
 // Strict TDD: este archivo se escribe antes que la implementación (RED).
 // Patrón: server.use override por test, MemoryRouter + QueryClientProvider.
-// Cubre: render con tablero cargado, loading, error sin redirect, sin columnas, dialog.
+// Cubre: render con tablero cargado, loading, error sin redirect, sin columnas, dialog,
+//        y backfill de fichas (Lote 8).
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -18,6 +19,8 @@ import {
   fichasFixture,
   columnasFixture,
 } from '@/mocks/fixtures/tableros';
+import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import type { Trato } from '@/api/types';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -297,5 +300,180 @@ describe('KanbanBoardEmbebido — dialog Asignar columna', () => {
     expect(screen.getByRole('combobox', { name: /columna/i })).toBeInTheDocument();
     // getByLabelText para el campo limiteWip dentro del dialog
     expect(screen.getByLabelText(/límite wip/i)).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Escenario: Backfill de fichas (Lote 8)
+// ---------------------------------------------------------------------------
+
+// Trato que NO tiene ficha — debe disparar backfill
+const TRATO_SIN_FICHA_BF: Trato = {
+  id: 'dbackfill-001-integ-test',
+  contactoId: 'c-bf-001',
+  responsableId: 'usr-bf-001',
+  nombre: 'Trato backfill (sin ficha)',
+  valorEstimado: null,
+  probabilidad: null,
+  fechaCierreEsperada: null,
+  tipoContrato: 'OTRO',
+  motivoPerdida: null,
+  creadoEn: '2026-05-30T00:00:00Z',
+  actualizadoEn: null,
+};
+
+// Tratos que ya tienen ficha en fichasFixture (d1, d2, d3)
+const TRATOS_CON_FICHA: Trato[] = [
+  {
+    id: 'd1111111-dddd-1111-dddd-111111111111',
+    contactoId: 'c-001', responsableId: 'usr-001', nombre: 'Trato 1',
+    valorEstimado: null, probabilidad: null, fechaCierreEsperada: null,
+    tipoContrato: 'SERVICIO', motivoPerdida: null,
+    creadoEn: '2026-01-01T00:00:00Z', actualizadoEn: null,
+  },
+  {
+    id: 'd2222222-dddd-2222-dddd-222222222222',
+    contactoId: 'c-002', responsableId: 'usr-002', nombre: 'Trato 2',
+    valorEstimado: null, probabilidad: null, fechaCierreEsperada: null,
+    tipoContrato: 'SERVICIO', motivoPerdida: null,
+    creadoEn: '2026-01-01T00:00:00Z', actualizadoEn: null,
+  },
+  {
+    id: 'd3333333-dddd-3333-dddd-333333333333',
+    contactoId: 'c-003', responsableId: 'usr-003', nombre: 'Trato 3',
+    valorEstimado: null, probabilidad: null, fechaCierreEsperada: null,
+    tipoContrato: 'SERVICIO', motivoPerdida: null,
+    creadoEn: '2026-01-01T00:00:00Z', actualizadoEn: null,
+  },
+];
+
+describe('KanbanBoardEmbebido — backfill de fichas (Lote 8)', () => {
+  it('(l) al montar con un trato sin ficha, dispara POST /fichas/create para ese trato', async () => {
+    const postsCalled: string[] = [];
+
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json(tableroTratosFixture),
+      ),
+      http.get('/api/tableros/get-all', () =>
+        HttpResponse.json([tableroTratosFixture]),
+      ),
+      http.get('/api/fichas/get-all', () =>
+        HttpResponse.json(fichasFixture), // solo tiene fichas para d1, d2, d3
+      ),
+      http.get('/api/columnas/get-all', () =>
+        HttpResponse.json(columnasFixture),
+      ),
+      http.get('/api/tratos/get-all', () =>
+        // d1, d2, d3 tienen ficha; dbackfill-001 no tiene
+        HttpResponse.json([...TRATOS_CON_FICHA, TRATO_SIN_FICHA_BF]),
+      ),
+      http.get('/api/tareas/get-all', () => HttpResponse.json([])),
+      http.post('/api/fichas/create', async ({ request }) => {
+        const body = await request.json() as { tratoId?: string };
+        postsCalled.push(body.tratoId ?? 'unknown');
+        const newFicha: Ficha = {
+          id: `created-${body.tratoId}`,
+          columnaId: tableroTratosFixture.columnas[0]?.id ?? '',
+          tipoFicha: 'TRATO',
+          tratoId: body.tratoId ?? null,
+          tareaId: null,
+          responsableId: 'usr-bf-001',
+          creadoPor: 'usr-bf-001',
+          creadoEn: '2026-05-30T00:00:00Z',
+          actualizadoEn: '2026-05-30T00:00:00Z',
+        };
+        return HttpResponse.json(newFicha, { status: 201 });
+      }),
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/']}>
+          <KanbanBoardEmbebido tableroId={tableroTratosFixture.id} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // El board renderiza normalmente (no se bloquea por el backfill)
+    await waitFor(() => {
+      expect(screen.getByText('Por contactar')).toBeInTheDocument();
+    });
+
+    // El backfill debe haber disparado el POST para el trato sin ficha
+    await waitFor(() => {
+      expect(postsCalled).toContain(TRATO_SIN_FICHA_BF.id);
+    }, { timeout: 5000 });
+
+    // No debe crear ficha para tratos que ya la tienen
+    expect(postsCalled).not.toContain('d1111111-dddd-1111-dddd-111111111111');
+    expect(postsCalled).not.toContain('d2222222-dddd-2222-dddd-222222222222');
+    expect(postsCalled).not.toContain('d3333333-dddd-3333-dddd-333333333333');
+  });
+
+  it('(m) el board renderiza normalmente incluso cuando hay tratos sin ficha (no bloquea)', async () => {
+    // Esta vez NO registramos handler de POST para verificar que el board
+    // renderiza sin importar si el backfill aún no terminó.
+    const postCalled = vi.fn();
+
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json(tableroTratosFixture),
+      ),
+      http.get('/api/tableros/get-all', () =>
+        HttpResponse.json([tableroTratosFixture]),
+      ),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([...TRATOS_CON_FICHA, TRATO_SIN_FICHA_BF]),
+      ),
+      http.get('/api/tareas/get-all', () => HttpResponse.json([])),
+      http.post('/api/fichas/create', async ({ request }) => {
+        const body = await request.json() as { tratoId?: string };
+        postCalled();
+        const newFicha: Ficha = {
+          id: `created-${body.tratoId}`,
+          columnaId: tableroTratosFixture.columnas[0]?.id ?? '',
+          tipoFicha: 'TRATO',
+          tratoId: body.tratoId ?? null,
+          tareaId: null,
+          responsableId: 'usr-001',
+          creadoPor: 'usr-001',
+          creadoEn: '2026-05-30T00:00:00Z',
+          actualizadoEn: '2026-05-30T00:00:00Z',
+        };
+        return HttpResponse.json(newFicha, { status: 201 });
+      }),
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/']}>
+          <KanbanBoardEmbebido tableroId={tableroTratosFixture.id} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // El board debe renderizar sus columnas sin bloquear por el backfill
+    await waitFor(() => {
+      expect(screen.getByText('Por contactar')).toBeInTheDocument();
+    });
+    expect(screen.getByText('En negociación')).toBeInTheDocument();
+    expect(screen.getByText('Ganados')).toBeInTheDocument();
   });
 });
