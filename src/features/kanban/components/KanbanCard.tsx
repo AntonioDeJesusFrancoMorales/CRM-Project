@@ -56,7 +56,8 @@ interface KanbanCardProps {
 export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
-    data: { ficha },
+    // type: 'ficha' permite discriminar fichas vs columnas en el onDragEnd del DndContext
+    data: { type: 'ficha', ficha },
   });
 
   const [deleteOpen, setDeleteOpen] = useState(false);

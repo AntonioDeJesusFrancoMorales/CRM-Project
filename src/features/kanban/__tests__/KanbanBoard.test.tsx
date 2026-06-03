@@ -180,10 +180,12 @@ function renderBoard(
 }
 
 describe('KanbanBoard — tableroId threading', () => {
-  it('(f-tableroId) recibe tableroId como prop y lo pasa a cada KanbanColumn (los botones Quitar columna aparecen por columna)', () => {
-    // Si tableroId llega a KanbanColumn, cada columna renderizará su botón "Quitar columna"
+  it('(f-tableroId) recibe tableroId como prop y lo pasa a cada KanbanColumn (los botones Quitar columna aparecen por columna PERSONALIZADA)', async () => {
+    // COLUMNA_A y COLUMNA_B tienen ids que no existen en el catálogo fixture (col-a, col-b)
+    // → esPredeterminada devuelve false → ambas son PERSONALIZADA → ambas muestran Trash2
     renderBoard([COLUMNA_A, COLUMNA_B], [], TABLERO_ID);
-    const quitarBtns = screen.getAllByRole('button', { name: /quitar columna/i });
+    // Esperar a que el catálogo cargue (async via MSW)
+    const quitarBtns = await screen.findAllByRole('button', { name: /quitar columna/i });
     // Una por cada columna
     expect(quitarBtns).toHaveLength(2);
   });

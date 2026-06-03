@@ -19,6 +19,7 @@ import {
   columnaEditSchema,
 } from '../schemas/columna.schema';
 import { MOCK_USER_ID } from '../lib/mockUser';
+import { COLUMN_PALETTE } from '../lib/columnPalette';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -524,12 +525,15 @@ describe('tableroEditSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// columnaCreateSchema (CreateColumnaRequest)
+// columnaCreateSchema (CreateColumnaRequest) — Fase 1 paleta + validación
 // ---------------------------------------------------------------------------
+
+// Color válido de la paleta garantizado
+const COLOR_VALIDO = COLUMN_PALETTE[4]!; // '#f87171' rojo
 
 const COLUMNA_CREATE_VALIDA = {
   nombre: 'Bloqueado',
-  color: '#f87171',
+  color: COLOR_VALIDO,
   tipoTablero: 'TRATOS',
   tipoColumna: 'PERSONALIZADA',
 };
@@ -539,13 +543,50 @@ describe('columnaCreateSchema', () => {
     expect(columnaCreateSchema.safeParse(COLUMNA_CREATE_VALIDA).success).toBe(true);
   });
 
-  it('requiere nombre y color no vacíos', () => {
+  it('requiere nombre no vacío', () => {
     expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, nombre: '' }).success).toBe(
       false,
     );
+  });
+
+  it('rechaza nombre de más de 80 caracteres', () => {
+    expect(
+      columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, nombre: 'x'.repeat(81) }).success,
+    ).toBe(false);
+  });
+
+  it('acepta nombre de exactamente 80 caracteres', () => {
+    expect(
+      columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, nombre: 'x'.repeat(80) }).success,
+    ).toBe(true);
+  });
+
+  it('rechaza color fuera de la paleta', () => {
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, color: '#000000' }).success).toBe(
+      false,
+    );
+  });
+
+  it('rechaza color vacío', () => {
     expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, color: '' }).success).toBe(
       false,
     );
+  });
+
+  it('rechaza color con formato hex inválido', () => {
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, color: 'rojo' }).success).toBe(
+      false,
+    );
+    expect(columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, color: '#ZZZ' }).success).toBe(
+      false,
+    );
+  });
+
+  it('acepta todos los colores de COLUMN_PALETTE', () => {
+    for (const color of COLUMN_PALETTE) {
+      const result = columnaCreateSchema.safeParse({ ...COLUMNA_CREATE_VALIDA, color });
+      expect(result.success, `color ${color} debe ser válido`).toBe(true);
+    }
   });
 
   it('rechaza tipoTablero/tipoColumna inválidos', () => {
@@ -559,7 +600,10 @@ describe('columnaCreateSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// columnaEditSchema (EditColumnaRequest — edición parcial)
+// columnaEditSchema (EditColumnaRequest — edición parcial) — Fase 4 color relajado
+// color acepta cualquier hex válido #RRGGBB, NO solo la paleta.
+// Razón: columnas existentes pueden tener colores legacy; editar el nombre
+// no debe fallar por un color fuera de paleta.
 // ---------------------------------------------------------------------------
 
 describe('columnaEditSchema', () => {
@@ -567,9 +611,30 @@ describe('columnaEditSchema', () => {
     expect(columnaEditSchema.safeParse({}).success).toBe(true);
   });
 
-  it('acepta edición parcial de un solo campo', () => {
+  it('acepta edición parcial de nombre', () => {
     expect(columnaEditSchema.safeParse({ nombre: 'Renombrada' }).success).toBe(true);
+  });
+
+  it('acepta color válido de la paleta', () => {
+    expect(columnaEditSchema.safeParse({ color: COLOR_VALIDO }).success).toBe(true);
+  });
+
+  it('acepta color hex válido FUERA de la paleta (color legacy)', () => {
+    // Un color como #000000 no está en la paleta pero es hex válido — debe aceptarse
     expect(columnaEditSchema.safeParse({ color: '#000000' }).success).toBe(true);
+    expect(columnaEditSchema.safeParse({ color: '#1a2b3c' }).success).toBe(true);
+    expect(columnaEditSchema.safeParse({ color: '#FFFFFF' }).success).toBe(true);
+  });
+
+  it('rechaza color con formato hex inválido', () => {
+    expect(columnaEditSchema.safeParse({ color: 'rojo' }).success).toBe(false);
+    expect(columnaEditSchema.safeParse({ color: '#ZZZ' }).success).toBe(false);
+    expect(columnaEditSchema.safeParse({ color: '#12345' }).success).toBe(false);
+    expect(columnaEditSchema.safeParse({ color: '' }).success).toBe(false);
+  });
+
+  it('rechaza nombre de más de 80 caracteres', () => {
+    expect(columnaEditSchema.safeParse({ nombre: 'x'.repeat(81) }).success).toBe(false);
   });
 
   it('rechaza enums inválidos cuando se proveen', () => {

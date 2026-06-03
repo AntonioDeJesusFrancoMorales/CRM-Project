@@ -1,12 +1,14 @@
 // KanbanBoard — tablero Kanban completo con DnD entre columnas.
 // Envuelve todo en <DndContext onDragEnd={handler}>.
-// Drag SOLO entre columnas (no intra-columna).
+// Coexistencia de dos tipos de arrastre en el mismo DndContext:
+//   - Fichas: draggable con data.type='ficha'; onDragEnd mueve fichas entre columnas.
+//   - Columnas: sortable con data.type='columna'; onDragEnd reordena columnas.
 // Agrupar fichas por columnaId, filtrar por tipoFicha (prop, default 'TRATO').
 // Orden dentro de cada columna: creadoEn ASC (estable, no reordenable).
 //
-// buildDragEndHandler es una función pura exportada para poder testearla
-// de forma aislada (jsdom no soporta arrastre real).
-// onDragEnd: si over.id !== ficha.columnaId → useUpdateFicha(mutate); si igual → no-op.
+// buildDragEndHandler: función pura exportada para testeo aislado de lógica de fichas.
+// buildColumnReorderHandler: función pura exportada para testeo aislado de reorden de columnas.
+// onDragEnd: discrimina por active.data.current?.type ('columna' vs resto).
 
 import { useRef } from 'react';
 import {
@@ -16,9 +18,15 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha, FichaEditInput, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useUpdateFicha } from '@/features/kanban/hooks/useUpdateFicha';
+import { useReordenarColumnas } from '@/features/kanban/hooks/useReordenarColumnas';
 import { ArrastreRecienteContext } from './arrastreReciente';
 import { KanbanColumn } from './KanbanColumn';
 
@@ -66,6 +74,45 @@ export function buildDragEndHandler({ fichas, mutate }: DragEndHandlerParams) {
 }
 
 // ---------------------------------------------------------------------------
+// Tipos para buildColumnReorderHandler
+// ---------------------------------------------------------------------------
+
+interface ColumnReorderHandlerParams {
+  columnas: ColumnaTablero[];
+  tableroId: string;
+  reordenar: (vars: { tableroId: string; nuevoOrden: string[]; idsActuales: string[] }) => void;
+}
+
+/**
+ * Función pura de lógica de reorden de columnas exportada para testeo aislado.
+ * Recibe un DragEndEvent con active.id = columna origen y over.id = columna destino.
+ * Calcula el nuevo orden con arrayMove y llama reordenar.
+ * No-op si active.id === over.id (misma posición) o si over es null.
+ */
+export function buildColumnReorderHandler({
+  columnas,
+  tableroId,
+  reordenar,
+}: ColumnReorderHandlerParams) {
+  return function handleColumnReorder(event: DragEndEvent): void {
+    const { active, over } = event;
+
+    if (!over) return;
+    if (active.id === over.id) return;
+
+    const idsActuales = columnas.map((c) => c.id);
+    const origenIdx = idsActuales.indexOf(String(active.id));
+    const destinoIdx = idsActuales.indexOf(String(over.id));
+
+    if (origenIdx === -1 || destinoIdx === -1) return;
+
+    const nuevoOrden = arrayMove(idsActuales, origenIdx, destinoIdx);
+
+    reordenar({ tableroId, nuevoOrden, idsActuales });
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -82,6 +129,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }: KanbanBoardProps) {
   const { mutate } = useUpdateFicha();
+  const { mutate: reordenarColumnas } = useReordenarColumnas();
 
   // Filtrar fichas por tipo (no hardcodear 'TRATO')
   const fichasFiltradas = fichas.filter((f) => f.tipoFicha === tipoFicha);
@@ -98,7 +146,12 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
     }
   }
 
-  const handleDragEnd = buildDragEndHandler({ fichas: fichasFiltradas, mutate });
+  const handleFichaDragEnd = buildDragEndHandler({ fichas: fichasFiltradas, mutate });
+  const handleColumnDragEnd = buildColumnReorderHandler({
+    columnas,
+    tableroId,
+    reordenar: reordenarColumnas,
+  });
 
   // Guarda click-vs-arrastre: tras soltar un arrastre el navegador dispara un click sobre
   // la tarjeta; esta bandera (consultada en KanbanCard) cancela esa navegación no deseada.
@@ -106,12 +159,20 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
   const arrastreRecienteRef = useRef(false);
 
   function handleDragEndConGuard(event: DragEndEvent) {
-    handleDragEnd(event);
-    arrastreRecienteRef.current = true;
-    // Red de seguridad por si el drop no produce click: limpia la bandera poco después.
-    window.setTimeout(() => {
-      arrastreRecienteRef.current = false;
-    }, 250);
+    const tipo = event.active.data.current?.type as string | undefined;
+
+    if (tipo === 'columna') {
+      // Reordenamiento de columna — NO activa la bandera de arrastre reciente de fichas
+      handleColumnDragEnd(event);
+    } else {
+      // Movimiento de ficha entre columnas (tipo === 'ficha' o sin tipo)
+      handleFichaDragEnd(event);
+      arrastreRecienteRef.current = true;
+      // Red de seguridad por si el drop no produce click: limpia la bandera poco después.
+      window.setTimeout(() => {
+        arrastreRecienteRef.current = false;
+      }, 250);
+    }
   }
 
   // Sensor con tolerancia de 5px para evitar drags accidentales en clicks
@@ -130,17 +191,31 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
       onDragEnd={handleDragEndConGuard}
     >
       <ArrastreRecienteContext.Provider value={arrastreRecienteRef}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {columnas.map((columna) => (
-            <KanbanColumn
-              key={columna.id}
-              columna={columna}
-              fichas={fichasPorColumna.get(columna.id) ?? []}
-              tableroId={tableroId}
-              tipoFicha={tipoFicha}
-            />
-          ))}
-        </div>
+        {/* SortableContext habilita el reorden horizontal de columnas */}
+        <SortableContext
+          items={columnas.map((c) => c.id)}
+          strategy={horizontalListSortingStrategy}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {columnas.map((columna) => {
+              // Nombres de las demás columnas (excluye la propia) para bloqueo de duplicados en edición
+              const nombresHermanos = columnas
+                .filter((c) => c.id !== columna.id)
+                .map((c) => c.nombre ?? '');
+
+              return (
+                <KanbanColumn
+                  key={columna.id}
+                  columna={columna}
+                  fichas={fichasPorColumna.get(columna.id) ?? []}
+                  tableroId={tableroId}
+                  tipoFicha={tipoFicha}
+                  nombresHermanos={nombresHermanos}
+                />
+              );
+            })}
+          </div>
+        </SortableContext>
       </ArrastreRecienteContext.Provider>
     </DndContext>
   );

@@ -9,7 +9,8 @@
 //   - 404 tablero redirige a /tableros
 // Batch 5:
 //   - KanbanPage pasa tableroId al board (botones Quitar columna visibles)
-//   - UI "Asignar columna" existe con limiteWip >= 1
+//   - UI "Nueva columna" existe (Fase 3: reemplaza "Asignar columna")
+// Fase 3: migrado de "Asignar columna" → "Nueva columna" (ColumnaCreateDialog)
 
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -25,7 +26,8 @@ import {
   tableroTratosFixture,
   tableroTareasFixture,
 } from '@/mocks/fixtures/tableros';
-import { asignarColumnaSchema } from '../schemas/columna.schema';
+import { columnaNuevaSchema } from '../schemas/columna.schema';
+import { COLUMN_PALETTE } from '../lib/columnPalette';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -206,10 +208,10 @@ describe('KanbanPage — ver tablero', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Batch 5 — KanbanPage threadea tableroId + UI Asignar columna
+// Batch 5 / Fase 3 — KanbanPage: tableroId threading + UI "Nueva columna"
 // ---------------------------------------------------------------------------
 
-describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => {
+describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna', () => {
   it('(g) pasa tableroId al KanbanBoard (botones "Quitar columna" visibles por columna)', async () => {
     const tableroId = tableroTratosFixture.id;
     renderDetailPage(`/tableros/${tableroId}`);
@@ -225,7 +227,8 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(quitarBtns.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('(h) UI "Asignar columna" muestra selector de columnas del catálogo', async () => {
+  it('(h) UI "Nueva columna" — el botón está presente en el header', async () => {
+    // Fase 3: el botón pasó de "Asignar columna" a "Nueva columna"
     const tableroId = tableroTratosFixture.id;
     renderDetailPage(`/tableros/${tableroId}`);
 
@@ -233,16 +236,17 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
       expect(screen.getByText('Por contactar')).toBeInTheDocument();
     });
 
-    // Debe haber algún control / botón para asignar columna
-    expect(screen.getByRole('button', { name: /asignar columna/i })).toBeInTheDocument();
+    // Debe haber un botón "Nueva columna" en lugar del viejo "Asignar columna"
+    expect(screen.getByRole('button', { name: /nueva columna/i })).toBeInTheDocument();
   });
 
-  it('(i) asignarColumnaSchema rechaza limiteWip=0 — validación cliente wired en KanbanPage', () => {
-    // El schema está wired en KanbanPage via zodResolver.
-    // Aquí verificamos directamente el schema (la integración rhf+zod con Radix Dialog
-    // tiene complejidades de foco en jsdom que no aportan valor adicional
-    // más allá de lo ya cubierto en schemas.test.ts Batch 1)
-    const result = asignarColumnaSchema.safeParse({
+  it('(i) columnaNuevaSchema rechaza limiteWip=0 — validación cliente', () => {
+    // El schema está wired en ColumnaCreateDialog via zodResolver.
+    // Aquí verificamos directamente el schema.
+    const result = columnaNuevaSchema.safeParse({
+      tipoTablero: 'TRATOS',
+      nombre: 'Test',
+      color: COLUMN_PALETTE[0],
       limiteWip: 0,
       totalValorEstimado: 0,
     });
@@ -252,7 +256,7 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(errors!.limiteWip![0]).toMatch(/el límite wip debe ser al menos 1/i);
   });
 
-  it('(k) tablero TAREAS muestra selector estadoTarea (no estadoTrato)', async () => {
+  it('(k) tablero TAREAS: clic en "Nueva columna" abre dialog con selector estadoTarea', async () => {
     server.use(
       http.get('/api/tableros/get-by-id', () =>
         HttpResponse.json(tableroTareasFixture),
@@ -266,9 +270,9 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
       expect(screen.getByText('Pipeline de Tareas')).toBeInTheDocument();
     });
 
-    // Abrir el form de asignar columna
-    const asignarBtn = screen.getByRole('button', { name: /asignar columna/i });
-    await user.click(asignarBtn);
+    // Abrir el form de nueva columna
+    const nuevaBtn = screen.getByRole('button', { name: /nueva columna/i });
+    await user.click(nuevaBtn);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -281,7 +285,7 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(screen.queryByRole('combobox', { name: /estado de trato/i })).not.toBeInTheDocument();
   });
 
-  it('(l) tablero TAREAS oculta el campo totalValorEstimado', async () => {
+  it('(l) tablero TAREAS: dialog "Nueva columna" oculta el campo totalValorEstimado', async () => {
     server.use(
       http.get('/api/tableros/get-by-id', () =>
         HttpResponse.json(tableroTareasFixture),
@@ -295,8 +299,8 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
       expect(screen.getByText('Pipeline de Tareas')).toBeInTheDocument();
     });
 
-    const asignarBtn = screen.getByRole('button', { name: /asignar columna/i });
-    await user.click(asignarBtn);
+    const nuevaBtn = screen.getByRole('button', { name: /nueva columna/i });
+    await user.click(nuevaBtn);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -306,12 +310,12 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(screen.queryByLabelText(/total valor estimado/i)).not.toBeInTheDocument();
   });
 
-  it('(m) asignarColumnaSchema para TAREAS requiere estadoTarea y totalValorEstimado=0', () => {
-    // El schema enforza los invariantes del back para tableros TAREAS.
-    // La lógica de submit en KanbanPage usa esTareas para construir el body sin tipoTablero.
-    // Aquí verificamos el contrato del schema (mismo patrón que el test (i) para TRATOS).
-    const result = asignarColumnaSchema.safeParse({
+  it('(m) columnaNuevaSchema para TAREAS requiere estadoTarea y totalValorEstimado=0', () => {
+    // Verifica los invariantes del schema para tableros TAREAS.
+    const result = columnaNuevaSchema.safeParse({
       tipoTablero: 'TAREAS',
+      nombre: 'Mi columna',
+      color: COLUMN_PALETTE[0],
       limiteWip: 2,
       estadoTarea: 'PENDIENTE',
       totalValorEstimado: 0,
@@ -319,8 +323,10 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(result.success).toBe(true);
 
     // Sin estadoTarea falla
-    const sinEstado = asignarColumnaSchema.safeParse({
+    const sinEstado = columnaNuevaSchema.safeParse({
       tipoTablero: 'TAREAS',
+      nombre: 'Mi columna',
+      color: COLUMN_PALETTE[0],
       limiteWip: 2,
       totalValorEstimado: 0,
     });
@@ -328,8 +334,10 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(sinEstado.error?.flatten().fieldErrors.estadoTarea).toBeDefined();
 
     // Con totalValorEstimado != 0 falla
-    const conValor = asignarColumnaSchema.safeParse({
+    const conValor = columnaNuevaSchema.safeParse({
       tipoTablero: 'TAREAS',
+      nombre: 'Mi columna',
+      color: COLUMN_PALETTE[0],
       limiteWip: 2,
       estadoTarea: 'PENDIENTE',
       totalValorEstimado: 1000,
@@ -338,8 +346,10 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(conValor.error?.flatten().fieldErrors.totalValorEstimado).toBeDefined();
 
     // Con estadoTrato también falla (excluyente)
-    const conTrato = asignarColumnaSchema.safeParse({
+    const conTrato = columnaNuevaSchema.safeParse({
       tipoTablero: 'TAREAS',
+      nombre: 'Mi columna',
+      color: COLUMN_PALETTE[0],
       limiteWip: 2,
       estadoTarea: 'PENDIENTE',
       estadoTrato: 'ABIERTO',
@@ -349,26 +359,28 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     expect(conTrato.error?.flatten().fieldErrors.estadoTrato).toBeDefined();
   });
 
-  it('(j) asignar columna success invoca POST asignar-columna y cierra el form', async () => {
+  it('(j) nueva columna success invoca POST /columnas/create + POST asignar-columna y cierra el form', async () => {
     const user = userEvent.setup();
-    let postCalled = false;
+    let createCalled = false;
+    let asignarCalled = false;
 
     server.use(
+      http.post('/api/columnas/create', () => {
+        createCalled = true;
+        return HttpResponse.json({
+          id: 'nueva-col-001',
+          nombre: 'Revisión',
+          color: COLUMN_PALETTE[1],
+          tipoTablero: 'TRATOS',
+          tipoColumna: 'PERSONALIZADA',
+        }, { status: 201 });
+      }),
       http.post('/api/tableros/asignar-columna', () => {
-        postCalled = true;
+        asignarCalled = true;
         return HttpResponse.json(tableroTratosFixture);
       }),
-      http.get('/api/columnas/get-all', () =>
-        HttpResponse.json([
-          {
-            id: 'a1111111-aaaa-1111-aaaa-111111111111',
-            nombre: 'Por contactar - Cat',
-            color: '#94a3b8',
-            tipoTablero: 'TRATOS',
-            tipoColumna: 'PREDETERMINADA',
-          },
-        ]),
-      ),
+      http.get('/api/columnas/get-all', () => HttpResponse.json([])),
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
     );
 
     const tableroId = tableroTratosFixture.id;
@@ -378,45 +390,25 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
       expect(screen.getByText('Por contactar')).toBeInTheDocument();
     });
 
-    // Abrir el formulario
-    const asignarBtn = screen.getByRole('button', { name: /asignar columna/i });
-    await user.click(asignarBtn);
+    // Abrir el form
+    const nuevaBtn = screen.getByRole('button', { name: /nueva columna/i });
+    await user.click(nuevaBtn);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    // Esperar a que cargue el selector de columnas del catálogo
-    await waitFor(() => {
-      expect(screen.getByText(/Por contactar - Cat/)).toBeInTheDocument();
-    });
+    // Ingresar nombre
+    await user.type(screen.getByLabelText(/nombre de la columna/i), 'Revisión');
 
-    // Seleccionar la columna del catálogo usando Radix Select
-    const selectTrigger = screen.getByRole('combobox', { name: /columna/i });
-    await user.click(selectTrigger);
-
-    // Encontrar la opción en el listbox
+    // Seleccionar estado de trato (requerido para tableros TRATOS)
+    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
+    await user.click(estadoTrigger);
     await waitFor(() => {
       const options = screen.getAllByRole('option');
       expect(options.length).toBeGreaterThan(0);
     });
-    const options = screen.getAllByRole('option');
-    await user.click(options[0]!);
-
-    // Llenar limiteWip con valor válido
-    const limiteWipInputs = screen.getAllByRole('spinbutton');
-    await user.clear(limiteWipInputs[0]!);
-    await user.type(limiteWipInputs[0]!, '3');
-
-    // Seleccionar estado de trato (requerido para tableros TRATOS por invariante del back)
-    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
-    await user.click(estadoTrigger);
-    await waitFor(() => {
-      const estadoOptions = screen.getAllByRole('option');
-      expect(estadoOptions.length).toBeGreaterThan(0);
-    });
-    const estadoOptions = screen.getAllByRole('option');
-    await user.click(estadoOptions[0]!);
+    await user.click(screen.getAllByRole('option')[0]!);
 
     // Enviar
     const dialog = screen.getByRole('dialog');
@@ -424,7 +416,11 @@ describe('KanbanPage — Batch 5: tableroId threading + Asignar columna', () => 
     await user.click(submitBtn!);
 
     await waitFor(() => {
-      expect(postCalled).toBe(true);
+      expect(createCalled).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(asignarCalled).toBe(true);
     });
   });
 });

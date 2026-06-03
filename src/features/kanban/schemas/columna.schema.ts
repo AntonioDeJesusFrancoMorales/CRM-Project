@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import { tipoTablero, tipoColumna, estadoTrato, estadoTarea } from './tablero.schema';
+import { COLUMN_PALETTE } from '../lib/columnPalette';
 
 // ---------------------------------------------------------------------------
 // ColumnaResponse — shape del back para el catálogo de columnas
@@ -26,9 +27,21 @@ export type Columna = z.infer<typeof columnaSchema>;
 // significativos como requeridos. superUsuarioId se OMITE (opcional, derivado).
 // ---------------------------------------------------------------------------
 
+// Regex hex puro — acepta cualquier color #RRGGBB como fallback de servidor
+const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
+
 export const columnaCreateSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio'),
-  color: z.string().min(1, 'El color es obligatorio'),
+  nombre: z
+    .string()
+    .min(1, 'El nombre es obligatorio')
+    .max(80, 'El nombre no puede superar los 80 caracteres'),
+  color: z
+    .string()
+    .regex(HEX_REGEX, 'El color debe ser un valor hexadecimal válido (#RRGGBB)')
+    .refine(
+      (v) => (COLUMN_PALETTE as readonly string[]).includes(v),
+      'El color debe ser uno de los colores predefinidos de la paleta',
+    ),
   tipoTablero,
   tipoColumna,
 });
@@ -42,8 +55,14 @@ export type ColumnaCreateInput = z.infer<typeof columnaCreateSchema>;
 // ---------------------------------------------------------------------------
 
 export const columnaEditSchema = z.object({
-  nombre: z.string().min(1).optional(),
-  color: z.string().min(1).optional(),
+  nombre: z.string().min(1, 'El nombre es obligatorio').max(80, 'El nombre no puede superar los 80 caracteres').optional(),
+  // color acepta cualquier hex #RRGGBB válido — NO restringe a la paleta.
+  // Columnas existentes pueden tener colores legacy fuera de la paleta;
+  // la restricción de paleta se aplica solo en la UI (ColorPaletteField), no en el schema.
+  color: z
+    .string()
+    .regex(HEX_REGEX, 'El color debe ser un valor hexadecimal válido (#RRGGBB)')
+    .optional(),
   tipoTablero: tipoTablero.optional(),
   tipoColumna: tipoColumna.optional(),
 });
@@ -104,3 +123,72 @@ export const asignarColumnaSchema = z
   });
 
 export type AsignarColumnaFormValues = z.infer<typeof asignarColumnaSchema>;
+
+// ---------------------------------------------------------------------------
+// columnaNuevaSchema — form completo "Nueva columna" (Fase 3).
+// Combina campos de creación (nombre + color) con los de asignación (limiteWip,
+// estado, totalValorEstimado). El discriminador tipoTablero es parte del form
+// pero NO se envía al back.
+// Reutiliza el superRefine de exclusividad de estado de asignarColumnaSchema.
+// ---------------------------------------------------------------------------
+
+export const columnaNuevaSchema = z
+  .object({
+    tipoTablero,
+    nombre: z
+      .string()
+      .min(1, 'El nombre es obligatorio')
+      .max(80, 'El nombre no puede superar los 80 caracteres'),
+    color: z
+      .string()
+      .regex(
+        /^#[0-9A-Fa-f]{6}$/,
+        'El color debe ser un valor hexadecimal válido (#RRGGBB)',
+      )
+      .refine(
+        (v) => (COLUMN_PALETTE as readonly string[]).includes(v),
+        'El color debe ser uno de los colores predefinidos de la paleta',
+      ),
+    limiteWip: z.number().int().min(1, 'El límite WIP debe ser al menos 1'),
+    estadoTrato: estadoTrato.optional(),
+    estadoTarea: estadoTarea.optional(),
+    totalValorEstimado: z.number().min(0),
+  })
+  .superRefine((v, ctx) => {
+    if (v.tipoTablero === 'TRATOS') {
+      if (!v.estadoTrato)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['estadoTrato'],
+          message: 'Selecciona un estado de trato',
+        });
+      if (v.estadoTarea)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['estadoTarea'],
+          message: 'No aplica en tableros de tratos',
+        });
+    } else {
+      // TAREAS
+      if (!v.estadoTarea)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['estadoTarea'],
+          message: 'Selecciona un estado de tarea',
+        });
+      if (v.estadoTrato)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['estadoTrato'],
+          message: 'No aplica en tableros de tareas',
+        });
+      if (v.totalValorEstimado !== 0)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['totalValorEstimado'],
+          message: 'Debe ser 0 en tableros de tareas',
+        });
+    }
+  });
+
+export type ColumnaNuevaFormValues = z.infer<typeof columnaNuevaSchema>;

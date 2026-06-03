@@ -1,6 +1,7 @@
 // Tests de componente para KanbanColumn — Strict TDD B6.1 (RED).
 // Cubre: nombre/color/badge estadoTrato, limiteWip visual, indicador WIP superado.
 // DnD (useDroppable) no se testea con jsdom — se testea la lógica del handler en KanbanBoard.
+// Fase 4: botón Pencil (siempre), Trash2 condicional (solo PERSONALIZADA).
 
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -11,6 +12,7 @@ import { MemoryRouter } from 'react-router';
 import { server } from '@/test/server';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import { columnasTablTratosIds } from '@/mocks/fixtures/tableros';
 
 import { KanbanColumn } from '../components/KanbanColumn';
 
@@ -60,6 +62,16 @@ const COL_NOMBRE_NULL: ColumnaTablero = {
   color: null,
 };
 
+// Columna con id de "En negociación" → PERSONALIZADA en el catálogo fixture
+// (ver src/mocks/fixtures/tableros.ts: enNegociacion → tipoColumna: 'PERSONALIZADA')
+const COL_PERSONALIZADA: ColumnaTablero = {
+  ...COL_BASE,
+  id: columnasTablTratosIds.enNegociacion,
+  nombre: 'En negociación',
+  color: '#fbbf24',
+  limiteWip: 2,
+};
+
 function makeFixhas(columnaId: string, count: number): Ficha[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `h${i + 1}`,
@@ -81,6 +93,7 @@ function renderColumn(
   fichas: Ficha[] = [],
   tableroId = TABLERO_ID,
   tipoFicha?: 'TRATO' | 'TAREA',
+  nombresHermanos?: string[],
 ) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -93,6 +106,7 @@ function renderColumn(
           fichas={fichas}
           tableroId={tableroId}
           tipoFicha={tipoFicha}
+          nombresHermanos={nombresHermanos}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -240,10 +254,14 @@ describe('KanbanColumn — botón "+" y FichaCreateDialog', () => {
   });
 });
 
-describe('KanbanColumn — botón "Quitar columna"', () => {
-  it('(o) header muestra botón "Quitar columna"', () => {
-    renderColumn(COL_BASE);
-    expect(screen.getByRole('button', { name: /quitar columna/i })).toBeInTheDocument();
+describe('KanbanColumn — botón "Quitar columna" (condicional: solo PERSONALIZADA)', () => {
+  it('(o) columna PERSONALIZADA muestra botón "Quitar columna"', async () => {
+    // COL_PERSONALIZADA tiene id de "En negociación" → tipoColumna: PERSONALIZADA en el fixture
+    renderColumn(COL_PERSONALIZADA);
+    // El catálogo se carga de forma async — esperamos que el botón aparezca
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /quitar columna/i })).toBeInTheDocument();
+    });
   });
 
   it('(p) clic en "Quitar columna" invoca DELETE eliminar-columna con tableroId y columnaId correctos', async () => {
@@ -261,14 +279,15 @@ describe('KanbanColumn — botón "Quitar columna"', () => {
       }),
     );
 
-    renderColumn(COL_BASE, [], TABLERO_ID);
+    renderColumn(COL_PERSONALIZADA, [], TABLERO_ID);
 
-    const quitarBtn = screen.getByRole('button', { name: /quitar columna/i });
+    // Esperar que el catálogo cargue y el botón aparezca
+    const quitarBtn = await screen.findByRole('button', { name: /quitar columna/i });
     await user.click(quitarBtn);
 
     await waitFor(() => {
       expect(capturedParams.id).toBe(TABLERO_ID);
-      expect(capturedParams.columnaId).toBe(COL_BASE.id);
+      expect(capturedParams.columnaId).toBe(COL_PERSONALIZADA.id);
     });
   });
 
@@ -284,13 +303,12 @@ describe('KanbanColumn — botón "Quitar columna"', () => {
       }),
     );
 
-    renderColumn(COL_BASE, [], TABLERO_ID);
+    renderColumn(COL_PERSONALIZADA, [], TABLERO_ID);
 
-    const quitarBtn = screen.getByRole('button', { name: /quitar columna/i });
+    const quitarBtn = await screen.findByRole('button', { name: /quitar columna/i });
     await user.click(quitarBtn);
 
-    // El hook maneja el 409 con toast.error — aquí verificamos que la mutación fue invocada
-    // y el botón queda habilitado (no en estado de carga permanente)
+    // El hook maneja el 409 con toast.error — verificamos que el botón queda habilitado
     await waitFor(() => {
       expect(quitarBtn).not.toBeDisabled();
     });
@@ -440,8 +458,10 @@ describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TRATO', () => {
     await waitFor(() => {
       expect(screen.getByText('Trato con valor')).toBeInTheDocument();
     });
-    // El valor 250000 debe aparecer de alguna forma (formateado como moneda)
-    expect(screen.getByText(/250/)).toBeInTheDocument();
+    // El valor 250000 debe aparecer formateado como moneda (puede estar en la tarjeta
+    // y/o en el total derivado de la columna — ambos son válidos)
+    const matchingEls = screen.getAllByText(/250/);
+    expect(matchingEls.length).toBeGreaterThanOrEqual(1);
   });
 
   it('(x) tarjeta TRATO muestra probabilidad como porcentaje', async () => {
@@ -673,5 +693,166 @@ describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TAREA', () => {
     });
     // Tipo "SEGUIMIENTO" debe aparecer en español como "Seguimiento"
     expect(screen.getByText('Seguimiento')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fase 4 — Botón Pencil + Trash2 condicional
+// ---------------------------------------------------------------------------
+
+describe('KanbanColumn — Fase 4: botón Pencil siempre visible', () => {
+  it('(z6) columna PREDETERMINADA muestra el botón "Editar columna" (lápiz)', async () => {
+    // COL_BASE id = porContactar → PREDETERMINADA en el catálogo fixture
+    renderColumn(COL_BASE);
+    // El botón está en el DOM desde el primer render (no depende del catálogo)
+    expect(screen.getByRole('button', { name: /editar columna/i })).toBeInTheDocument();
+  });
+
+  it('(z7) columna PERSONALIZADA también muestra el botón "Editar columna" (lápiz)', async () => {
+    renderColumn(COL_PERSONALIZADA);
+    expect(screen.getByRole('button', { name: /editar columna/i })).toBeInTheDocument();
+  });
+});
+
+describe('KanbanColumn — Fase 4: Trash2 condicional según tipoColumna', () => {
+  it('(z8) columna PREDETERMINADA NO muestra el botón "Quitar columna"', async () => {
+    // COL_BASE tiene id de "Por contactar" → PREDETERMINADA en el catálogo fixture.
+    // El catálogo se carga async (MSW); al inicio catalogo=[] → esPredeterminada=false → Trash2 visible.
+    // Una vez que carga, esPredeterminada=true → Trash2 desaparece.
+    // Esperamos a que el Trash2 desaparezca (catálogo cargado).
+    renderColumn(COL_BASE);
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /quitar columna/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('(z9) columna PERSONALIZADA SÍ muestra el botón "Quitar columna"', async () => {
+    // COL_PERSONALIZADA tiene id de "En negociación" → PERSONALIZADA en el catálogo fixture
+    renderColumn(COL_PERSONALIZADA);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /quitar columna/i })).toBeInTheDocument();
+    });
+  });
+});
+
+describe('KanbanColumn — Fase 4: botón Pencil abre ColumnaEditDialog', () => {
+  it('(z10) clic en lápiz abre el dialog "Editar columna"', async () => {
+    const user = userEvent.setup();
+    renderColumn(COL_BASE);
+
+    const editBtn = screen.getByRole('button', { name: /editar columna/i });
+    await user.click(editBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Editar columna')).toBeInTheDocument();
+  });
+
+  it('(z11) el dialog precarga el nombre actual de la columna', async () => {
+    const user = userEvent.setup();
+    renderColumn(COL_BASE);
+
+    await user.click(screen.getByRole('button', { name: /editar columna/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // El input de nombre debe tener el valor actual de la columna
+    const input = screen.getByLabelText(/nombre de la columna/i);
+    expect((input as HTMLInputElement).value).toBe(COL_BASE.nombre);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ajuste: total derivado de la columna
+// ---------------------------------------------------------------------------
+
+describe('KanbanColumn — Total derivado (solo TRATOS)', () => {
+  it('(z12) columna TRATOS con fichas muestra el total = suma de valorEstimado de los tratos', async () => {
+    // Mock de tratos: dos tratos con valor 10000 y 25000 → total 35000
+    server.use(
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'd1',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato A',
+            valorEstimado: 10000,
+            probabilidad: 50,
+            fechaCierreEsperada: null,
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-05T10:00:00Z',
+            actualizadoEn: '2026-04-05T10:00:00Z',
+          },
+          {
+            id: 'd2',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato B',
+            valorEstimado: 25000,
+            probabilidad: 70,
+            fechaCierreEsperada: null,
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-06T10:00:00Z',
+            actualizadoEn: '2026-04-06T10:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    const fichas = makeFixhas(COL_BASE.id, 2); // tratoId: 'd1' y 'd2'
+    renderColumn(COL_BASE, fichas, TABLERO_ID, 'TRATO');
+
+    // El total 35000 debe aparecer formateado como moneda
+    await waitFor(() => {
+      const totalEl = screen.getByTestId('columna-total-derivado');
+      expect(totalEl).toBeInTheDocument();
+      // El texto incluye "Total:" y el valor formateado con 35000
+      expect(totalEl.textContent).toMatch(/total/i);
+      expect(totalEl.textContent).toMatch(/35/);
+    });
+  });
+
+  it('(z13) columna TRATOS con fichas sin valorEstimado (null) muestra total 0', async () => {
+    server.use(
+      http.get('/api/tratos/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'd1',
+            contactoId: 'c1',
+            responsableId: 'usr1',
+            nombre: 'Trato sin valor',
+            valorEstimado: null,
+            probabilidad: null,
+            fechaCierreEsperada: null,
+            tipoContrato: 'OTRO',
+            motivoPerdida: null,
+            creadoEn: '2026-04-05T10:00:00Z',
+            actualizadoEn: '2026-04-05T10:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    const fichas = makeFixhas(COL_BASE.id, 1);
+    renderColumn(COL_BASE, fichas, TABLERO_ID, 'TRATO');
+
+    // Debe mostrar el indicador de total (con valor 0)
+    await waitFor(() => {
+      const totalEl = screen.getByTestId('columna-total-derivado');
+      expect(totalEl).toBeInTheDocument();
+      expect(totalEl.textContent).toMatch(/total/i);
+    });
+  });
+
+  it('(z14) columna TAREAS NO muestra el indicador de total derivado', () => {
+    // Para tableros TAREAS, el total no aplica → no se renderiza
+    renderColumn(COL_TAREA_PENDIENTE, [], TABLERO_ID, 'TAREA');
+    expect(screen.queryByTestId('columna-total-derivado')).not.toBeInTheDocument();
   });
 });

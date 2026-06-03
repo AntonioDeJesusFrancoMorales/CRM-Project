@@ -3,6 +3,7 @@
 // Patrón: server.use override por test, MemoryRouter + QueryClientProvider.
 // Cubre: render con tablero cargado, loading, error sin redirect, sin columnas, dialog,
 //        y backfill de fichas (Lote 8).
+// Fase 3: migrado de "Asignar columna" (Select catálogo) → "Nueva columna" (ColumnaCreateDialog)
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -19,6 +20,7 @@ import {
   fichasFixture,
   columnasFixture,
 } from '@/mocks/fixtures/tableros';
+import { COLUMN_PALETTE } from '../lib/columnPalette';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import type { Trato } from '@/api/types';
 
@@ -98,7 +100,8 @@ describe('KanbanBoardEmbebido — render con tablero cargado', () => {
     expect(screen.getAllByText('Finalizada').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('(c) muestra el botón "Asignar columna" cuando el tablero carga', async () => {
+  it('(c) muestra el botón "Nueva columna" cuando el tablero carga (Fase 3)', async () => {
+    // Fase 3: el botón pasó de "Asignar columna" a "Nueva columna"
     server.use(
       http.get('/api/tableros/get-by-id', () =>
         HttpResponse.json(tableroTratosFixture),
@@ -110,7 +113,7 @@ describe('KanbanBoardEmbebido — render con tablero cargado', () => {
     renderBoard(tableroTratosFixture.id);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /asignar columna/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /nueva columna/i })).toBeInTheDocument();
     });
   });
 });
@@ -237,11 +240,11 @@ describe('KanbanBoardEmbebido — tablero sin columnas', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Escenario: Dialog "Asignar columna"
+// Escenario: Dialog "Nueva columna" (Fase 3 — antes "Asignar columna")
 // ---------------------------------------------------------------------------
 
-describe('KanbanBoardEmbebido — dialog Asignar columna', () => {
-  it('(j) clic en "Asignar columna" abre el dialog', async () => {
+describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
+  it('(j) clic en "Nueva columna" abre el dialog', async () => {
     server.use(
       http.get('/api/tableros/get-by-id', () =>
         HttpResponse.json(tableroTratosFixture),
@@ -254,52 +257,110 @@ describe('KanbanBoardEmbebido — dialog Asignar columna', () => {
     renderBoard(tableroTratosFixture.id);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /asignar columna/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /nueva columna/i })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /asignar columna/i }));
+    await user.click(screen.getByRole('button', { name: /nueva columna/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });
 
-  it('(k) el dialog contiene selector de columna del catálogo y límite WIP', async () => {
+  it('(k) el dialog contiene campo nombre, paleta de colores y límite WIP (Fase 3)', async () => {
     server.use(
       http.get('/api/tableros/get-by-id', () =>
         HttpResponse.json(tableroTratosFixture),
       ),
       http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
-      http.get('/api/columnas/get-all', () =>
-        HttpResponse.json([
-          {
-            id: 'col-cat-1',
-            nombre: 'Columna Catálogo Test',
-            color: '#fff',
-            tipoTablero: 'TRATOS',
-            tipoColumna: 'PREDETERMINADA',
-          },
-        ]),
-      ),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
     );
 
     const user = userEvent.setup();
     renderBoard(tableroTratosFixture.id);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /asignar columna/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /nueva columna/i })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /asignar columna/i }));
+    await user.click(screen.getByRole('button', { name: /nueva columna/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    // El catálogo de columnas y el campo de limiteWip deben estar presentes
-    expect(screen.getByRole('combobox', { name: /columna/i })).toBeInTheDocument();
-    // getByLabelText para el campo limiteWip dentro del dialog
+    // Campos del nuevo dialog — nombre libre en vez de Select catálogo
+    expect(screen.getByLabelText(/nombre de la columna/i)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /paleta de colores/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/límite wip/i)).toBeInTheDocument();
+
+    // Ya NO debe haber un selector "Columna" del catálogo
+    expect(screen.queryByRole('combobox', { name: /^columna$/i })).not.toBeInTheDocument();
+  });
+
+  it('(k2) submit válido invoca create + asignar y cierra el dialog', async () => {
+    let createCalled = false;
+    let asignarCalled = false;
+
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json(tableroTratosFixture),
+      ),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+      http.post('/api/columnas/create', () => {
+        createCalled = true;
+        return HttpResponse.json({
+          id: 'new-col-emb',
+          nombre: 'Revisión',
+          color: COLUMN_PALETTE[0],
+          tipoTablero: 'TRATOS',
+          tipoColumna: 'PERSONALIZADA',
+        }, { status: 201 });
+      }),
+      http.post('/api/tableros/asignar-columna', () => {
+        asignarCalled = true;
+        return HttpResponse.json(tableroTratosFixture);
+      }),
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
+    );
+
+    const user = userEvent.setup();
+    renderBoard(tableroTratosFixture.id);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /nueva columna/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /nueva columna/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Ingresar nombre
+    await user.type(screen.getByLabelText(/nombre de la columna/i), 'Revisión');
+
+    // Seleccionar estado de trato
+    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
+    await user.click(estadoTrigger);
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
+    });
+    await user.click(screen.getAllByRole('option')[0]!);
+
+    // Submit
+    const dialog = screen.getByRole('dialog');
+    const submitBtn = Array.from(dialog.querySelectorAll('button[type="submit"]'))[0];
+    await user.click(submitBtn!);
+
+    await waitFor(() => {
+      expect(createCalled).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(asignarCalled).toBe(true);
+    });
   });
 });
 
