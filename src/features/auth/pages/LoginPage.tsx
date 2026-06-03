@@ -1,29 +1,17 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuthStore } from '@/store/authStore';
-import { LoginForm } from '../components/LoginForm';
+import { loginWithKeycloak } from '@/lib/keycloak';
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const token = useAuthStore((s) => s.token);
-
-  // Si ya hay sesión activa, evitar mostrar el login.
   useEffect(() => {
-    if (token) navigate('/empresas', { replace: true });
-  }, [token, navigate]);
+    void loginWithKeycloak();
+  }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
-          <CardDescription>Ingresa tus credenciales para entrar a Pipely</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm />
-        </CardContent>
-      </Card>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Redirigiendo a Keycloak...</p>
+      </div>
     </div>
   );
 }
