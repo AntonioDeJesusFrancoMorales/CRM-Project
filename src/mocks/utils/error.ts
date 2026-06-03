@@ -20,6 +20,8 @@ export const errors = {
     apiError(403, 'FORBIDDEN', message),
   notFound: (message = 'Recurso no encontrado'): Response =>
     apiError(404, 'NOT_FOUND', message),
+  conflict: (message = 'Conflicto con el estado actual del recurso'): Response =>
+    apiError(409, 'CONFLICT', message),
   validation: (details: ApiError['details'], message = 'Datos invalidos'): Response =>
     apiError(422, 'VALIDATION_ERROR', message, details),
   server: (message = 'Error interno del servidor'): Response =>

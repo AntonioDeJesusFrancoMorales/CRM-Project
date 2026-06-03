@@ -211,6 +211,26 @@ describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => 
     expect(data.id).toBe(TABLERO_ID);
   });
 
+  it('aplica el nuevoOrden: el tablero vuelve con las columnas reordenadas', async () => {
+    const ordenOriginal = tableroTratosFixture.columnas.map((c) => c.id);
+    const invertido = [...ordenOriginal].reverse();
+    const res = await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoOrden: invertido }),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { columnas: { id: string }[] };
+    expect(data.columnas.map((c) => c.id)).toEqual(invertido);
+
+    // Restaurar el orden original para no contaminar otros tests (fixture compartido)
+    await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoOrden: ordenOriginal }),
+    });
+  });
+
   it('retorna 404 cuando el tablero no existe', async () => {
     const res = await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_NONEXISTENT}`, {
       method: 'PUT',
@@ -226,14 +246,29 @@ describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => 
 // ---------------------------------------------------------------------------
 
 describe('tableros MSW handler — DELETE /api/tableros/eliminar-columna', () => {
-  it('retorna 200 con el tablero cuando el id existe', async () => {
+  it('retorna 200 y quita la columna cuando NO tiene fichas', async () => {
+    const columnaSinFichas = columnasFixture[2]!.id; // "ganados" — sin fichas en el fixture
+    const snapshot = [...tableroTratosFixture.columnas];
+
+    const res = await fetch(
+      `/api/tableros/eliminar-columna?id=${TABLERO_ID}&columnaId=${columnaSinFichas}`,
+      { method: 'DELETE' },
+    );
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { id: string; columnas: { id: string }[] };
+    expect(data.id).toBe(TABLERO_ID);
+    expect(data.columnas.some((c) => c.id === columnaSinFichas)).toBe(false);
+
+    // Restaurar el fixture compartido
+    tableroTratosFixture.columnas = snapshot;
+  });
+
+  it('retorna 409 cuando la columna tiene fichas activas', async () => {
     const res = await fetch(
       `/api/tableros/eliminar-columna?id=${TABLERO_ID}&columnaId=${COLUMNA_ID_2}`,
       { method: 'DELETE' },
     );
-    expect(res.status).toBe(200);
-    const data = (await res.json()) as { id: string };
-    expect(data.id).toBe(TABLERO_ID);
+    expect(res.status).toBe(409);
   });
 
   it('retorna 404 cuando el tablero no existe', async () => {
@@ -622,6 +657,35 @@ describe('columnas MSW handler — PUT /api/columnas/edit?id=', () => {
     expect(data.color).toBe('#000000'); // se preserva lo no enviado
   });
 
+  it('propaga nombre y color a la ColumnaTablero embebida en el tablero', async () => {
+    const original = tableroTratosFixture.columnas.find((c) => c.id === COLUMNA_ID_1)!;
+    const nombreOrig = original.nombre;
+    const colorOrig = original.color;
+
+    const res = await fetch(`/api/columnas/edit?id=${COLUMNA_ID_1}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Sincronizada', color: '#123456' }),
+    });
+    expect(res.status).toBe(200);
+
+    // El tablero debe reflejar el nuevo nombre/color en su ColumnaTablero
+    const tableroRes = await fetch(`/api/tableros/get-by-id?id=${TABLERO_ID}`);
+    const tablero = (await tableroRes.json()) as {
+      columnas: { id: string; nombre: string; color: string }[];
+    };
+    const col = tablero.columnas.find((c) => c.id === COLUMNA_ID_1)!;
+    expect(col.nombre).toBe('Sincronizada');
+    expect(col.color).toBe('#123456');
+
+    // Restaurar el fixture compartido
+    await fetch(`/api/columnas/edit?id=${COLUMNA_ID_1}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nombreOrig, color: colorOrig }),
+    });
+  });
+
   it('retorna 404 cuando la columna no existe', async () => {
     const res = await fetch(`/api/columnas/edit?id=${TABLERO_NONEXISTENT}`, {
       method: 'PUT',
@@ -654,5 +718,70 @@ describe('columnas MSW handler — DELETE /api/columnas/delete?id=', () => {
   it('retorna 404 cuando la columna no existe', async () => {
     const res = await fetch(`/api/columnas/delete?id=${TABLERO_NONEXISTENT}`, { method: 'DELETE' });
     expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fix 1.4 — buildDefaultColumns registra columnas en el catálogo
+// ---------------------------------------------------------------------------
+
+describe('tableros MSW handler — buildDefaultColumns registra columnas en catálogo', () => {
+  it('las columnas del tablero TRATOS creado aparecen en GET /columnas/get-all', async () => {
+    // Crear un tablero nuevo — buildDefaultColumns debe registrar sus columnas en el catálogo
+    const createRes = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Tablero catálogo test', descripcion: 'Fase 1', tipoTablero: 'TRATOS' }),
+    });
+    expect(createRes.status).toBe(201);
+    const tablero = (await createRes.json()) as { columnas: { id: string }[] };
+    const idsColumnas = tablero.columnas.map((c) => c.id);
+
+    // Obtener catálogo completo
+    const catRes = await fetch('/api/columnas/get-all');
+    const catalogo = (await catRes.json()) as { id: string; tipoColumna: string; tipoTablero: string }[];
+
+    // Cada columna del tablero debe estar en el catálogo
+    for (const id of idsColumnas) {
+      const entrada = catalogo.find((c) => c.id === id);
+      expect(entrada, `columna ${id} debe estar en el catálogo`).toBeDefined();
+      expect(entrada!.tipoColumna).toBe('PREDETERMINADA');
+      expect(entrada!.tipoTablero).toBe('TRATOS');
+    }
+  });
+
+  it('las columnas del tablero TAREAS creado aparecen en el catálogo con tipoTablero TAREAS', async () => {
+    const createRes = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Tablero tareas catálogo', descripcion: 'Fase 1', tipoTablero: 'TAREAS' }),
+    });
+    const tablero = (await createRes.json()) as { columnas: { id: string }[] };
+
+    const catRes = await fetch('/api/columnas/get-all');
+    const catalogo = (await catRes.json()) as { id: string; tipoColumna: string; tipoTablero: string }[];
+
+    for (const { id } of tablero.columnas) {
+      const entrada = catalogo.find((c) => c.id === id);
+      expect(entrada, `columna ${id} debe estar en el catálogo`).toBeDefined();
+      expect(entrada!.tipoColumna).toBe('PREDETERMINADA');
+      expect(entrada!.tipoTablero).toBe('TAREAS');
+    }
+  });
+
+  it('las columnas del catálogo son recuperables por get-by-id', async () => {
+    const createRes = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Tablero get-by-id test', descripcion: 'Fase 1', tipoTablero: 'TRATOS' }),
+    });
+    const tablero = (await createRes.json()) as { columnas: { id: string }[] };
+    const primeraColumnaId = tablero.columnas[0]!.id;
+
+    const res = await fetch(`/api/columnas/get-by-id?id=${primeraColumnaId}`);
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { id: string; tipoColumna: string };
+    expect(data.id).toBe(primeraColumnaId);
+    expect(data.tipoColumna).toBe('PREDETERMINADA');
   });
 });
