@@ -1,4 +1,4 @@
-import Keycloak, { type KeycloakInitOptions, type KeycloakProfile } from 'keycloak-js';
+import Keycloak, { type KeycloakInitOptions, type KeycloakTokenParsed } from 'keycloak-js';
 
 const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180';
 const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || 'crm2-local';
@@ -13,29 +13,40 @@ export const keycloak = new Keycloak({
 let keycloakInitPromise: Promise<boolean> | null = null;
 
 export interface KeycloakUser {
-  id: string;
-  nombre: string;
-  correo: string;
-  rol_sistema: 'admin' | 'usuario';
-  rol_empresa: string | null;
+  subject: string;           // token.sub
+  username: string;          // token.preferred_username
+  email: string;             // token.email
+  usuario_id: string;        // token.usuario_id (claim custom, UUID)
+  super_usuario_id: string | null; // token.super_usuario_id (null si usuario normal)
+  roles: string[];           // token.realm_access.roles
 }
 
-export function mapKeycloakProfileToUser(profile: KeycloakProfile): KeycloakUser {
-  const username = profile.username || profile.email || 'unknown';
-  const nombre = profile.firstName && profile.lastName
-    ? `${profile.firstName} ${profile.lastName}`
-    : profile.firstName || username;
+type KeycloakTokenClaims = KeycloakTokenParsed & {
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  preferred_username?: string;
+  email?: string;
+  usuario_id?: string;
+  super_usuario_id?: string;
+  realm_access?: { roles?: string[] };
+};
 
-  const profileAny = profile as Record<string, unknown>;
-  const roles = profileAny['kc:roles'] as string[] | undefined;
-  const rol_sistema: 'admin' | 'usuario' = roles?.includes('admin') ? 'admin' : 'usuario';
+// Lee los datos del usuario directamente del access token ya parseado por keycloak-js.
+// Evita llamar al endpoint /account (loadUserProfile), que rechaza el token con 401
+// porque su audience es crm2-api y no account. Todos los datos viven en el token.
+// El modelo retornado es isomorfo al ActorContext del back.
+export function getKeycloakUserFromToken(): KeycloakUser | null {
+  const token = keycloak.tokenParsed as KeycloakTokenClaims | undefined;
+  if (!token) return null;
 
   return {
-    id: profile.id || username,
-    nombre,
-    correo: profile.email || username,
-    rol_sistema,
-    rol_empresa: null,
+    subject: token.sub ?? keycloak.subject ?? '',
+    username: token.preferred_username || token.email || 'unknown',
+    email: token.email || '',
+    usuario_id: token.usuario_id || keycloak.subject || '',
+    super_usuario_id: token.super_usuario_id ?? null,
+    roles: token.realm_access?.roles ?? [],
   };
 }
 
@@ -99,8 +110,4 @@ export function getKeycloakToken(): string | undefined {
 
 export function isKeycloakAuthenticated(): boolean {
   return keycloak.authenticated ?? false;
-}
-
-export function getKeycloakUserProfile(): Promise<KeycloakProfile | null> {
-  return keycloak.loadUserProfile();
 }

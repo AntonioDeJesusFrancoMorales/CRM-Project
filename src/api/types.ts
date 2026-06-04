@@ -1,7 +1,6 @@
 // Tipos del contrato API. Esta es la fuente única de verdad.
 // Cuando el contrato cambie, actualizar acá y propaga a TODA la app.
 
-export type RolSistema = 'admin' | 'usuario';
 export type EstadoRelacion = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO';
 export type TipoContrato = 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCION' | 'PERMANENTE' | 'OTRO';
 export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
@@ -19,12 +18,13 @@ export interface Usuario {
   keycloakId: string | null;
 }
 
-export interface UsuarioSesion {  // Exclusivo para sesion de auth; independiente de Usuario
-  id: string;
-  nombre: string;
-  correo: string;
-  rol_sistema: RolSistema;
-  rol_empresa: string | null;
+export interface UsuarioSesion {  // Exclusivo para sesion de auth; isomorfo al ActorContext del back
+  subject: string;           // token.sub
+  username: string;          // token.preferred_username
+  email: string;             // token.email
+  usuario_id: string;        // token.usuario_id (claim custom, UUID)
+  super_usuario_id: string | null; // token.super_usuario_id (claim custom, null si usuario normal)
+  roles: string[];           // token.realm_access.roles
 }
 
 export interface Rol {            // == RolResponse del back
@@ -140,12 +140,6 @@ export interface Comentario {
   usuario_id: string;
   contenido: string;
   creado_en: string;
-}
-
-// Respuesta de POST /auth/login
-export interface LoginResponse {
-  token: string;
-  usuario: UsuarioSesion;
 }
 
 // Forma del error normalizado del contrato.

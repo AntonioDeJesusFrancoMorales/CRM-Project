@@ -33,11 +33,12 @@ describe('ProtectedRoute', () => {
     useAuthStore.setState({
       token: 'mock-token',
       usuario: {
-        id: '1',
-        nombre: 'Test',
-        correo: 'test@test.com',
-        rol_sistema: 'admin',
-        rol_empresa: null,
+        subject: 'sub-test',
+        username: 'Test',
+        email: 'test@test.com',
+        usuario_id: 'usr-test-1',
+        super_usuario_id: 'super-uuid-001',
+        roles: ['SUPER_USUARIO'],
       },
     });
 

@@ -2,20 +2,21 @@
 // La signature NO se verifica criptográficamente (es un mock). El payload sí
 // codifica datos reales para que jwt.io pueda inspeccionarlo en debug.
 
-import type { RolSistema } from '@/api/types';
+// Nota: fake-jwt.ts es un utilitario de mock legacy.
+// RolSistema fue eliminado de api/types — reemplazado por string.
 
 interface JwtPayload {
   sub: string;
   exp: number;
   iat: number;
   nombre: string;
-  rol_sistema: RolSistema;
+  rol_sistema: string;
 }
 
 interface FakeJwtUser {
   id: string;
   nombre: string;
-  rol_sistema: RolSistema;
+  rol_sistema: string;
 }
 
 function base64UrlEncode(input: string): string {

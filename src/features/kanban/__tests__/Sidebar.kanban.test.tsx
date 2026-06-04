@@ -17,11 +17,12 @@ function renderSidebar() {
   // Simular usuario logueado mínimo para que Sidebar funcione
   useAuthStore.setState({
     usuario: {
-      id: '22222222-2222-2222-2222-222222222222',
-      nombre: 'Test User',
-      correo: 'test@test.com',
-      rol_sistema: 'usuario',
-      rol_empresa: null,
+      subject: 'sub-test',
+      username: 'Test User',
+      email: 'test@test.com',
+      usuario_id: '22222222-2222-2222-2222-222222222222',
+      super_usuario_id: null,
+      roles: ['USUARIO'],
     },
     token: 'fake-token',
   });

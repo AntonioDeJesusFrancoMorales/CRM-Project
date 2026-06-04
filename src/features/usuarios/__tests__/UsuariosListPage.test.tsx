@@ -51,11 +51,12 @@ beforeEach(() => {
   useAuthStore.setState({
     token: 'fake-token',
     usuario: {
-      id: ADMIN_ID,
-      nombre: 'Antonio Franco',
-      correo: 'admin@crm.test',
-      rol_sistema: 'admin',
-      rol_empresa: 'Director Comercial',
+      subject: 'sub-admin',
+      username: 'Antonio Franco',
+      email: 'admin@crm.test',
+      usuario_id: ADMIN_ID,
+      super_usuario_id: 'super-uuid-001',
+      roles: ['SUPER_USUARIO'],
     },
   });
 });

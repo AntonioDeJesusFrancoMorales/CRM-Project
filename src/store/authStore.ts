@@ -33,11 +33,12 @@ export const useAuthStore = create<AuthState>()(
           set({
             token,
             usuario: {
-              id: user.id,
-              nombre: user.nombre,
-              correo: user.correo,
-              rol_sistema: user.rol_sistema,
-              rol_empresa: user.rol_empresa,
+              subject: user.subject,
+              username: user.username,
+              email: user.email,
+              usuario_id: user.usuario_id,
+              super_usuario_id: user.super_usuario_id,
+              roles: user.roles,
             },
           });
         }
@@ -75,7 +76,17 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'crm-auth',
+      version: 2,
       partialize: (state) => ({ usuario: state.usuario }),
+      // Al rehidratar: si el shape persisted no tiene `subject` (shape v1 o anterior),
+      // se invalida el usuario para forzar un nuevo login.
+      migrate: (persistedState: unknown, version: number) => {
+        if (version < 2) {
+          // Shape viejo (v1 o sin versión) — invalidamos usuario
+          return { usuario: null };
+        }
+        return persistedState as { usuario: unknown };
+      },
     },
   ),
 );

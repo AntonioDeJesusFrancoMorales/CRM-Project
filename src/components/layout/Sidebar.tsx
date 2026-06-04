@@ -22,7 +22,7 @@ const items: NavItem[] = [
 
 export function Sidebar() {
   const usuario = useAuthStore((s) => s.usuario);
-  const isAdmin = usuario?.rol_sistema === 'admin';
+  const isAdmin = (usuario?.super_usuario_id ?? null) !== null;
 
   return (
     <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
@@ -79,7 +79,7 @@ export function Sidebar() {
         {/* "Mis tareas" — ítem dinámico: filtra por responsable_id del usuario logueado (ADR-054) */}
         {usuario && (
           <NavLink
-            to={`/tareas?responsable_id=${usuario.id}`}
+            to={`/tareas?responsable_id=${usuario.usuario_id}`}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',

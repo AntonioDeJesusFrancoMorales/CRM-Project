@@ -31,19 +31,19 @@ export function Topbar() {
           <Button variant="ghost" size="sm" className="gap-2 h-auto py-1">
             <Avatar className="h-7 w-7">
               <AvatarFallback className="text-xs">
-                {usuario ? getInitials(usuario.nombre) : '?'}
+                {usuario ? getInitials(usuario.username) : '?'}
               </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium hidden sm:block">
-              {usuario?.nombre ?? 'Usuario'}
+              {usuario?.username ?? 'Usuario'}
             </span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
             <div className="flex flex-col">
-              <span className="text-sm font-medium">{usuario?.nombre}</span>
-              <span className="text-xs text-muted-foreground">{usuario?.correo}</span>
+              <span className="text-sm font-medium">{usuario?.username}</span>
+              <span className="text-xs text-muted-foreground">{usuario?.email}</span>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />

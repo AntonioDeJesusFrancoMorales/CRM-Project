@@ -12,7 +12,7 @@ import { UsuarioDeleteDialog } from '../components/UsuarioDeleteDialog';
 export function UsuariosListPage() {
   const { data: usuarios, isPending, isError, refetch } = useUsuarios();
   const { data: roles = [] } = useRoles();
-  const sessionUserId = useAuthStore((s) => s.usuario?.id ?? '');
+  const sessionUserId = useAuthStore((s) => s.usuario?.usuario_id ?? '');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Usuario | null>(null);

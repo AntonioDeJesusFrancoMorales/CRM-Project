@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { keycloak, initKeycloak, loginWithKeycloak, mapKeycloakProfileToUser } from '@/lib/keycloak';
+import { initKeycloak, loginWithKeycloak, getKeycloakUserFromToken } from '@/lib/keycloak';
 import { useAuthStore } from '@/store/authStore';
 import { useTokenRefresh } from '@/features/auth/hooks/useTokenRefresh';
 import { useNavigate } from 'react-router';
@@ -23,9 +23,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setKeycloakReady(true);
 
       if (authenticated) {
-        const profile = await keycloak.loadUserProfile();
-        if (profile) {
-          const user = mapKeycloakProfileToUser(profile);
+        const user = getKeycloakUserFromToken();
+        if (user) {
           setKeycloakSession(user);
         }
         navigate('/empresas', { replace: true });

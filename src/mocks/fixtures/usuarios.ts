@@ -5,11 +5,11 @@
 // que solo existen en el mock: password, rol_sistema, rol_empresa.
 // toUsuarioDto omite los 3 campos auth y devuelve un Usuario válido.
 
-import type { Usuario, RolSistema } from '@/api/types';
+import type { Usuario } from '@/api/types';
 
 export interface UsuarioMock extends Usuario {
   password: string;
-  rol_sistema: RolSistema;
+  rol_sistema: string;   // campo mock-only — no existe en UsuarioSesion del front
   rol_empresa: string | null;
 }
 

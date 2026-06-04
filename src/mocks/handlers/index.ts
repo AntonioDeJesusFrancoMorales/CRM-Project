@@ -1,4 +1,3 @@
-import { authHandlers } from './auth';
 import { empresasHandlers } from './empresas';
 import { usuariosHandlers } from './usuarios';
 import { rolesHandlers } from './roles';
@@ -9,7 +8,6 @@ import { tablerosHandlers } from './tableros';
 import { etiquetasComentariosHandlers } from './etiquetas-comentarios';
 
 export const handlers = [
-  ...authHandlers,
   ...empresasHandlers,
   ...usuariosHandlers,
   ...rolesHandlers,
