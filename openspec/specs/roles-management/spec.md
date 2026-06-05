@@ -18,10 +18,10 @@ Cambios estructurales implementados:
 - CRUD completo: `useCreateRol`, `useEditRol`, `useDeleteRol` + components `RolesTable`, `RolFormDialog`, `RolDeleteDialog`, `RolesListPage`.
 - `RolDeleteDialog` diferencia 409 (rol con usuarios asignados) de errores genericos: toast sin cerrar en 409.
 - Handler MSW con store mutable que soporta CRUD completo + regla 409 simulada.
-- Sidebar: item "Configuracion" (Settings) con `adminOnly: true`, ruta `/configuracion`.
-- Router: ruta `/configuracion` bajo `RoleGuard role="admin"`.
+- Sidebar: item "Configuracion" (Settings), ruta `/configuracion`. Visible a todo usuario autenticado desde el change `align-authorization-to-backend-reality` (ver capability `frontend-authorization`).
+- Router: ruta `/configuracion` SIN guard de rol — el `RoleGuard` fue eliminado en `align-authorization-to-backend-reality`.
 - `activo` es campo display-only en la tabla (el back no expone endpoint de toggle para roles).
-- El back no gatea `/api/roles/**` por rol (deuda conocida); el gate admin-only es responsabilidad del front via `RoleGuard`.
+- El back no gatea `/api/roles/**` por rol y el front TAMPOCO (ya no hay gate admin-only). La autorizacion real es deuda del back.
 
 ---
 
@@ -152,29 +152,13 @@ El sistema MUST mostrar el campo `activo` de `Rol` como badge informativo en la 
 
 ---
 
-### Requirement: Area de Configuracion admin-only en Sidebar y router
+### Requirement: Acceso a Configuracion (sin gate de rol)
 
-El sistema MUST mostrar el item "Configuracion" (icono Settings) en el `Sidebar` exclusivamente para usuarios con `rol_sistema === 'admin'`. La ruta `/configuracion` MUST estar protegida con `RoleGuard role="admin"`.
-
-#### Scenario: Admin ve "Configuracion" en el sidebar [integration test]
-
-- GIVEN un usuario con `rol_sistema: 'admin'` esta autenticado
-- WHEN se renderiza el Sidebar
-- THEN aparece el item "Configuracion" en la lista de navegacion
-- AND al navegar a `/configuracion` se renderiza `RolesListPage`
-
-#### Scenario: Usuario normal no ve "Configuracion" en el sidebar [integration test]
-
-- GIVEN un usuario con `rol_sistema` distinto de `'admin'` esta autenticado
-- WHEN se renderiza el Sidebar
-- THEN el item "Configuracion" NO aparece en la lista de navegacion
-
-#### Scenario: RoleGuard protege /configuracion [integration test]
-
-- GIVEN un usuario no-admin intenta acceder directamente a `/configuracion`
-- WHEN el router evalua la ruta
-- THEN `RoleGuard` redirige al usuario
-- AND `RolesListPage` NO se renderiza
+> **Derogado** el gate admin-only en el change `align-authorization-to-backend-reality`
+> (2026-06-04). El back no enforza autorizacion por rol, por lo que el front NO gatea
+> `/configuracion` ni el item del Sidebar. El comportamiento vigente — item visible a todo
+> usuario autenticado y ruta sin `RoleGuard` — se especifica en la capability
+> `frontend-authorization`.
 
 ---
 
@@ -209,7 +193,7 @@ El sistema MUST proveer un handler MSW en `src/mocks/handlers/roles.ts` con stor
 
 **Response** (`RolResponse`): `id: UUID`, `nombre: string`, `descripcion: string | null`, `activo: boolean`.
 
-Autorizacion: cualquier JWT valido acepta el back (deuda back). Gate admin-only es responsabilidad del front.
+Autorizacion: cualquier JWT valido acepta el back (deuda back). El front ya NO aplica gate admin-only (derogado en `align-authorization-to-backend-reality`).
 
 ---
 
