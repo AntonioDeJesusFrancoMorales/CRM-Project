@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { toast } from 'sonner';
 import type { UsuarioSesion } from '@/api/types';
 import { keycloak, type KeycloakUser, logoutWithKeycloak, refreshToken, getKeycloakToken, isKeycloakAuthenticated } from '@/lib/keycloak';
 
@@ -9,11 +10,13 @@ interface AuthState {
   token: string | null;
   usuario: AuthUser | null;
   isKeycloakReady: boolean;
+  isLoggingOut: boolean;
   setSession: (token: string, usuario: AuthUser) => void;
   setKeycloakSession: (user: KeycloakUser) => void;
   setKeycloakReady: (ready: boolean) => void;
   logout: () => Promise<void>;
-  refreshKeycloakToken: () => Promise<boolean>;
+  refreshKeycloakToken: (minValidity?: number) => Promise<boolean>;
+  handleSessionExpired: () => Promise<void>;
   getCurrentToken: () => string | null;
   isAuthenticated: () => boolean;
 }
@@ -24,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       usuario: null,
       isKeycloakReady: false,
+      isLoggingOut: false,
 
       setSession: (token, usuario) => set({ token, usuario }),
 
@@ -51,8 +55,8 @@ export const useAuthStore = create<AuthState>()(
         await logoutWithKeycloak();
       },
 
-      refreshKeycloakToken: async () => {
-        const success = await refreshToken();
+      refreshKeycloakToken: async (minValidity) => {
+        const success = await refreshToken(minValidity);
         if (success) {
           const token = getKeycloakToken();
           if (token) {
@@ -60,6 +64,17 @@ export const useAuthStore = create<AuthState>()(
           }
         }
         return success;
+      },
+
+      // Corte de sesión irrecuperable (refresh token / SSO session vencidos). IDEMPOTENTE:
+      // las 3 capas (intervalo, client, onTokenExpired) pueden dispararlo casi a la vez;
+      // el guard `isLoggingOut` asegura un único logout + toast + redirect (logoutWithKeycloak
+      // redirige a /login). Sin esto habría toasts y redirects duplicados.
+      handleSessionExpired: async () => {
+        if (get().isLoggingOut) return;
+        set({ isLoggingOut: true });
+        toast.error('Tu sesión expiró. Volvé a iniciar sesión.');
+        await get().logout();
       },
 
       getCurrentToken: () => {

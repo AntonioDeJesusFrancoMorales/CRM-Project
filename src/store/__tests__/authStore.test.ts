@@ -3,8 +3,10 @@
 // y que la versión del store protege contra shapes viejos al rehidratar.
 // Layer: Unit (Zustand store directo, sin render).
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { useAuthStore } from '../authStore';
+import { logoutWithKeycloak, refreshToken } from '@/lib/keycloak';
+import { toast } from 'sonner';
 
 // Mockeamos keycloak para que getKeycloakToken retorne un valor controlable
 vi.mock('@/lib/keycloak', () => ({
@@ -12,8 +14,13 @@ vi.mock('@/lib/keycloak', () => ({
   getKeycloakToken: vi.fn(() => 'mock-jwt-token'),
   isKeycloakAuthenticated: vi.fn(() => true),
   logoutWithKeycloak: vi.fn(),
-  refreshToken: vi.fn(),
+  refreshToken: vi.fn(() => Promise.resolve(true)),
+  MIN_VALIDITY: 120,
+  REFRESH_INTERVAL: 60_000,
+  registerOnTokenExpired: vi.fn(() => () => {}),
 }));
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 describe('authStore — setKeycloakSession con modelo nuevo', () => {
   beforeEach(() => {
@@ -57,6 +64,39 @@ describe('authStore — setKeycloakSession con modelo nuevo', () => {
     expect(usuario).not.toBeNull();
     expect(usuario!.super_usuario_id).toBeNull();
     expect(usuario!.roles).toEqual(['USUARIO']);
+  });
+});
+
+describe('authStore — refreshKeycloakToken propaga el margen', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (refreshToken as Mock).mockResolvedValue(true);
+  });
+
+  it('(d) pasa minValidity a refreshToken', async () => {
+    await useAuthStore.getState().refreshKeycloakToken(120);
+    expect(refreshToken).toHaveBeenCalledWith(120);
+  });
+});
+
+describe('authStore — handleSessionExpired es idempotente', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({ token: 'jwt', usuario: null, isLoggingOut: false });
+  });
+
+  it('(e) ante disparos concurrentes ejecuta logout + toast una sola vez', async () => {
+    const { handleSessionExpired } = useAuthStore.getState();
+    await Promise.all([
+      handleSessionExpired(),
+      handleSessionExpired(),
+      handleSessionExpired(),
+    ]);
+
+    expect(logoutWithKeycloak).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(useAuthStore.getState().isLoggingOut).toBe(true);
   });
 });
 

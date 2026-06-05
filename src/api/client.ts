@@ -1,14 +1,20 @@
 import { useAuthStore } from '@/store/authStore';
-import { toast } from 'sonner';
 import { HttpError } from './http-error';
 import type { ApiError } from './types';
-import { isKeycloakAuthenticated } from '@/lib/keycloak';
+import { isKeycloakAuthenticated, MIN_VALIDITY } from '@/lib/keycloak';
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function request<T>(method: Method, path: string, body?: unknown, retryAfterRefresh = true): Promise<T> {
+  // Capa 2: refresh proactivo on-demand. Si el token está por vencer (≤MIN_VALIDITY) lo
+  // renueva ANTES de salir; si aún es válido, updateToken es un no-op sin red. Cubre el
+  // caso de tab en background con el setInterval throttleado. Solo en el intento original.
+  if (retryAfterRefresh && isKeycloakAuthenticated()) {
+    await useAuthStore.getState().refreshKeycloakToken(MIN_VALIDITY);
+  }
+
   const token = useAuthStore.getState().getCurrentToken();
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -30,17 +36,21 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
     };
 
     if (res.status === 401) {
-      if (isKeycloakAuthenticated() && retryAfterRefresh) {
-        const refreshed = await useAuthStore.getState().refreshKeycloakToken();
-        if (refreshed) {
-          return request<T>(method, path, body, false);
+      // SINGLE RETRY: si todavía estamos autenticados y es el intento original, intentamos
+      // un refresh reactivo y reintentamos UNA vez (retryAfterRefresh=false). Si el refresh
+      // es imposible (refresh token vencido), cortamos la sesión. El reintento ya entra con
+      // retryAfterRefresh=false, así que jamás hay recursión más allá de un retry.
+      if (retryAfterRefresh) {
+        if (isKeycloakAuthenticated()) {
+          const refreshed = await useAuthStore.getState().refreshKeycloakToken();
+          if (refreshed) {
+            return request<T>(method, path, body, false);
+          }
         }
-      }
-
-      if (!isKeycloakAuthenticated() && useAuthStore.getState().token !== null) {
-        const logout = useAuthStore.getState().logout;
-        await logout();
-        toast.error('Tu sesión expiró. Vuelve a iniciar sesión.');
+        // Refresh imposible o sesión ausente: corte limpio e idempotente.
+        if (useAuthStore.getState().token !== null) {
+          await useAuthStore.getState().handleSessionExpired();
+        }
       }
     }
 

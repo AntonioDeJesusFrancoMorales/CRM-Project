@@ -10,6 +10,14 @@ export const keycloak = new Keycloak({
   clientId: keycloakClientId,
 });
 
+// --- Ciclo de vida del token (ver change harden-token-lifecycle) ---
+// El access token del realm dura 300s. Refrescamos con MARGEN para no salir al filo:
+// updateToken(MIN_VALIDITY) renueva cuando al token le quedan <=120s (≈2 min de colchón),
+// y el intervalo (60s) es muy menor al margen, así ningún hueco entre ticks lo deja vencer.
+export const ACCESS_TOKEN_LIFESPAN = 300; // s — dato del realm (NO se toca desde el front)
+export const MIN_VALIDITY = 120;          // s — margen de renovación
+export const REFRESH_INTERVAL = 60_000;   // ms — tick del refresh proactivo
+
 let keycloakInitPromise: Promise<boolean> | null = null;
 
 export interface KeycloakUser {
@@ -94,14 +102,30 @@ export async function logoutWithKeycloak(): Promise<void> {
   }
 }
 
-export async function refreshToken(): Promise<boolean> {
+// Renueva el token si le quedan menos de `minValidity` segundos de validez. Si aún es
+// válido, keycloak resuelve sin ir a la red (no-op barato). Devuelve false cuando el
+// refresh es IMPOSIBLE (refresh token / SSO session vencidos): ese es el corte de sesión.
+export async function refreshToken(minValidity: number = MIN_VALIDITY): Promise<boolean> {
   try {
-    const refreshed = await keycloak.updateToken(300);
-    return refreshed;
+    // updateToken devuelve true si refrescó, false si el token aún era válido.
+    // En ambos casos el token quedó utilizable, así que devolvemos true.
+    await keycloak.updateToken(minValidity);
+    return true;
   } catch (error) {
     console.error('Token refresh failed:', error);
     return false;
   }
+}
+
+// Registra el handler de "token expirado" (red de seguridad de última capa). Devuelve una
+// función de limpieza para desregistrarlo en el cleanup del hook y no fugar callbacks.
+export function registerOnTokenExpired(cb: () => void): () => void {
+  keycloak.onTokenExpired = cb;
+  return () => {
+    if (keycloak.onTokenExpired === cb) {
+      keycloak.onTokenExpired = undefined;
+    }
+  };
 }
 
 export function getKeycloakToken(): string | undefined {
