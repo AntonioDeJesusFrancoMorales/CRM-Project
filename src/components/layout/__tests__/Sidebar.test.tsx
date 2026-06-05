@@ -1,6 +1,7 @@
-// Tests del Sidebar — Phase 4.1 RED.
-// Verifica que isAdmin se deriva de super_usuario_id (no de rol_sistema),
-// y que el link "Mis tareas" usa usuario_id.
+// Tests del Sidebar.
+// Tras align-authorization-to-backend-reality: los ítems "Usuarios" y "Configuración"
+// se muestran a CUALQUIER usuario autenticado (no hay gate de rol; el back no lo enforza).
+// El link "Mis tareas" usa usuario_id.
 // Layer: Integration (RTL + MemoryRouter).
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -47,17 +48,17 @@ beforeEach(() => {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('Sidebar — isAdmin derivado de super_usuario_id', () => {
-  it('(a) super usuario (super_usuario_id non-null) ve el item "Usuarios" (adminOnly)', () => {
+describe('Sidebar — "Usuarios" visible a cualquier autenticado', () => {
+  it('(a) super usuario ve el item "Usuarios"', () => {
     useAuthStore.setState({ token: 'tok', usuario: superUsuario });
     renderSidebar();
     expect(screen.getByRole('link', { name: /usuarios/i })).toBeInTheDocument();
   });
 
-  it('(b) usuario normal (super_usuario_id null) NO ve el item "Usuarios" (adminOnly)', () => {
+  it('(b) usuario normal (super_usuario_id null) TAMBIÉN ve el item "Usuarios" (sin gate de rol)', () => {
     useAuthStore.setState({ token: 'tok', usuario: usuarioNormal });
     renderSidebar();
-    expect(screen.queryByRole('link', { name: /usuarios/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /usuarios/i })).toBeInTheDocument();
   });
 });
 
@@ -77,16 +78,16 @@ describe('Sidebar — link "Mis tareas" usa usuario_id', () => {
   });
 });
 
-describe('Sidebar — item "Configuración" (adminOnly)', () => {
-  it('(e) super usuario (super_usuario_id non-null) VE el link "Configuración"', () => {
+describe('Sidebar — "Configuración" visible a cualquier autenticado', () => {
+  it('(e) super usuario ve el link "Configuración"', () => {
     useAuthStore.setState({ token: 'tok', usuario: superUsuario });
     renderSidebar();
     expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
   });
 
-  it('(f) usuario normal (super_usuario_id null) NO ve el link "Configuración"', () => {
+  it('(f) usuario normal (super_usuario_id null) TAMBIÉN ve el link "Configuración" (sin gate de rol)', () => {
     useAuthStore.setState({ token: 'tok', usuario: usuarioNormal });
     renderSidebar();
-    expect(screen.queryByRole('link', { name: /configuración/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
   });
 });

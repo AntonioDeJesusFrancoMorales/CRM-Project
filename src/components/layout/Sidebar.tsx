@@ -8,7 +8,6 @@ interface NavItem {
   to: string;
   icon: LucideIcon;
   disabled?: boolean;
-  adminOnly?: boolean;
   badge?: string;
 }
 
@@ -17,13 +16,15 @@ const items: NavItem[] = [
   { label: 'Contactos', to: '/contactos', icon: Contact2 },
   { label: 'Tratos', to: '/tratos', icon: Handshake },
   { label: 'Tableros', to: '/tableros', icon: KanbanSquare },
-  { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, adminOnly: true },
-  { label: 'Configuración', to: '/configuracion', icon: Settings, adminOnly: true },
+  { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck },
+  { label: 'Configuración', to: '/configuracion', icon: Settings },
 ];
 
 export function Sidebar() {
+  // Todos los ítems se muestran a cualquier usuario autenticado. El back NO enforza
+  // autorización por rol (solo autenticación), así que ocultar ítems por "rol" sería
+  // falsa seguridad. Ver capability frontend-authorization.
   const usuario = useAuthStore((s) => s.usuario);
-  const isAdmin = (usuario?.super_usuario_id ?? null) !== null;
 
   return (
     <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
@@ -32,7 +33,6 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {items
-          .filter((item) => !item.adminOnly || isAdmin)
           .map((item) => {
             const Icon = item.icon;
             const baseClasses =

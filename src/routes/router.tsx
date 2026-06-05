@@ -1,6 +1,5 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
-import { RoleGuard } from '@/components/layout/RoleGuard';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthProvider } from '@/features/auth/components/AuthProvider';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
@@ -56,13 +55,12 @@ export const router = createBrowserRouter([
               { path: 'tareas/:id', element: <TareaDetailPage /> },
               { path: 'tableros', element: <KanbanListPage /> },
               { path: 'tableros/:id', element: <KanbanPage /> },
-              {
-                element: <RoleGuard role="admin" />,
-                children: [
-                  { path: 'usuarios', element: <UsuariosListPage /> },
-                  { path: 'configuracion', element: <RolesListPage /> },
-                ],
-              },
+              // /usuarios y /configuracion NO van detrás de un guard de rol:
+              // el back no enforza autorización por rol (solo autenticación), así que
+              // gatear acá sería falsa seguridad. Cualquier autenticado accede, igual
+              // que a la API. Ver capability frontend-authorization.
+              { path: 'usuarios', element: <UsuariosListPage /> },
+              { path: 'configuracion', element: <RolesListPage /> },
             ],
           },
         ],
