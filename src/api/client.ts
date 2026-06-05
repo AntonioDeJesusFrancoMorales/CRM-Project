@@ -19,12 +19,15 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
   const res = await fetch(`${BASE_URL}${path}`, init);
 
   if (!res.ok) {
-    const fallback: ApiError = {
+    // El back puede responder { error: "<texto>" } (su forma RPC) o { status, error, message }.
+    // Normalizamos a ApiError para que la UI siempre tenga un mensaje legible y el status real.
+    const raw = (await res.json().catch(() => ({}))) as Partial<ApiError>;
+    const payload: ApiError = {
       status: res.status,
-      error: 'UNKNOWN_ERROR',
-      message: `Request failed with ${res.status}`,
+      error: raw.error ?? 'UNKNOWN_ERROR',
+      message: raw.message ?? raw.error ?? `Request failed with ${res.status}`,
+      details: raw.details,
     };
-    const payload = (await res.json().catch(() => fallback)) as ApiError;
 
     if (res.status === 401) {
       if (isKeycloakAuthenticated() && retryAfterRefresh) {
@@ -40,6 +43,13 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
         toast.error('Tu sesión expiró. Vuelve a iniciar sesión.');
       }
     }
+
+    // 403 Forbidden: el back rechazó esta operación puntual. IMPORTANTE: el back NO autoriza
+    // por rol de negocio (solo exige autenticación), así que un 403 NO es una restricción de
+    // rol que administre el front. Por eso acá NO deslogueamos ni inventamos mensajes del tipo
+    // "no tenés permisos de rol": propagamos el HttpError con el mensaje real del back para que
+    // el hook/UI lo muestre tal cual. La autorización real es responsabilidad del back.
+
     throw new HttpError(payload);
   }
 
