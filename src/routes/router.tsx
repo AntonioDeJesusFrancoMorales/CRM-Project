@@ -7,6 +7,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { EmpresasListPage } from '@/features/empresas/pages/EmpresasListPage';
 import { EmpresaDetailPage } from '@/features/empresas/pages/EmpresaDetailPage';
 import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
+import { RolesListPage } from '@/features/roles/pages/RolesListPage';
 import { ContactosPage } from '@/features/contactos/pages/ContactosPage';
 import { ContactoDetailPage } from '@/features/contactos/pages/ContactoDetailPage';
 import { TratosListPage } from '@/features/tratos/pages/TratosListPage';
@@ -57,7 +58,10 @@ export const router = createBrowserRouter([
               { path: 'tableros/:id', element: <KanbanPage /> },
               {
                 element: <RoleGuard role="admin" />,
-                children: [{ path: 'usuarios', element: <UsuariosListPage /> }],
+                children: [
+                  { path: 'usuarios', element: <UsuariosListPage /> },
+                  { path: 'configuracion', element: <RolesListPage /> },
+                ],
               },
             ],
           },

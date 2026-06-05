@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, ShieldCheck, ClipboardList, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, ShieldCheck, ClipboardList, Settings, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -18,6 +18,7 @@ const items: NavItem[] = [
   { label: 'Tratos', to: '/tratos', icon: Handshake },
   { label: 'Tableros', to: '/tableros', icon: KanbanSquare },
   { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, adminOnly: true },
+  { label: 'Configuración', to: '/configuracion', icon: Settings, adminOnly: true },
 ];
 
 export function Sidebar() {

@@ -76,3 +76,17 @@ describe('Sidebar — link "Mis tareas" usa usuario_id', () => {
     expect(link).toHaveAttribute('href', expect.stringContaining(USUARIO_ID));
   });
 });
+
+describe('Sidebar — item "Configuración" (adminOnly)', () => {
+  it('(e) super usuario (super_usuario_id non-null) VE el link "Configuración"', () => {
+    useAuthStore.setState({ token: 'tok', usuario: superUsuario });
+    renderSidebar();
+    expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
+  });
+
+  it('(f) usuario normal (super_usuario_id null) NO ve el link "Configuración"', () => {
+    useAuthStore.setState({ token: 'tok', usuario: usuarioNormal });
+    renderSidebar();
+    expect(screen.queryByRole('link', { name: /configuración/i })).not.toBeInTheDocument();
+  });
+});
