@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { Usuario } from '@/api/types';
 import { useAuthStore } from '@/store/authStore';
 import { useUsuarios } from '../hooks/useUsuarios';
-import { useRoles } from '../hooks/useRoles';
+import { useRoles } from '@/features/roles/hooks/useRoles';
 import { UsuariosTable } from '../components/UsuariosTable';
 import { UsuarioFormDialog } from '../components/UsuarioFormDialog';
 import { UsuarioDeleteDialog } from '../components/UsuarioDeleteDialog';

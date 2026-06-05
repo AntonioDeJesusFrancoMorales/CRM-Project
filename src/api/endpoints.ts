@@ -65,5 +65,9 @@ export const endpoints = {
   },
   roles: {
     getAll: () => '/roles/get-all',
+    getById: (id: string) => `/roles/get-by-id?id=${id}`,
+    create: () => '/roles/create',
+    edit: (id: string) => `/roles/edit?id=${id}`,
+    delete: (id: string) => `/roles/delete?id=${id}`,
   },
 } as const;

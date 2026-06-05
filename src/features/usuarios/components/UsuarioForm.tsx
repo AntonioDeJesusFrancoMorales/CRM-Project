@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRoles } from '../hooks/useRoles';
+import { useRoles } from '@/features/roles/hooks/useRoles';
 import {
   usuarioCreateSchema,
   usuarioUpdateSchema,
