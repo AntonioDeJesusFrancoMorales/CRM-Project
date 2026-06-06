@@ -417,6 +417,8 @@ describe('useCrearColumnaEnTablero', () => {
       limiteWip: 5,
       estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
+      // boolean primitivo en el record del back: debe ir SIEMPRE (no null/ausente)
+      existeOtraColumnaConMismoNombre: false,
     });
     // tipoTablero NO se envía (el back lo deriva del tablero)
     expect(agregarBody).not.toHaveProperty('tipoTablero');

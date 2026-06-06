@@ -30,6 +30,8 @@ export interface CrearColumnaEnTableroVars {
 
 // Body de POST /tableros/agregar-columna (AgregarColumnaRequest del back).
 // tipoTablero NO va: el back lo deriva del tablero.
+// existeOtraColumnaConMismoNombre es boolean PRIMITIVO en un record Java: si se omite,
+// Jackson le pasa null al constructor del record y revienta. Hay que enviarlo SIEMPRE.
 interface AgregarColumnaBody {
   nombre: string;
   color?: string;
@@ -39,6 +41,7 @@ interface AgregarColumnaBody {
   estadoTarea?: AsignarColumnaInput['estadoTarea'];
   estadoTrato?: AsignarColumnaInput['estadoTrato'];
   totalValorEstimado: number;
+  existeOtraColumnaConMismoNombre: boolean;
 }
 
 export function useCrearColumnaEnTablero(): UseMutationResult<
@@ -61,6 +64,10 @@ export function useCrearColumnaEnTablero(): UseMutationResult<
         estadoTarea,
         estadoTrato,
         totalValorEstimado,
+        // El dialog ya bloquea nombres duplicados client-side antes de llamar,
+        // así que afirmamos que no hay duplicado. Obligatorio: el back lo exige
+        // como boolean primitivo (no puede ser null/ausente).
+        existeOtraColumnaConMismoNombre: false,
       };
 
       // UNA llamada: el back crea la columna y la agrega al tablero.
