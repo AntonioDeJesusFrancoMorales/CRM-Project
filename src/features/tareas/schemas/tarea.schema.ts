@@ -18,16 +18,24 @@ export const tareaCreateSchema = z.object({
   fechaLimite: z.string().min(1, { message: 'La fecha límite es requerida' }),
 });
 
-// El schema de update permite modificar campos editables solamente.
-// NO incluye tratoId (una tarea no cambia de trato).
-// NO incluye estado (se modifica solo con TareaEstadoMenu / localStorage).
-// NO incluye responsableId (no editable desde el form de update).
-export const tareaUpdateSchema = tareaCreateSchema
-  .omit({ tratoId: true, responsableId: true })
-  .extend({
-    fechaCompletada: z.string().nullable().optional(),
-  })
-  .partial();
+// El schema de update alinea al contrato real de EditTareaRequest.java.
+// Campos REQUERIDOS: responsableId, titulo, tipo, prioridad, fechaLimite.
+// descripcion: opcional/nullable.
+// NO incluye tratoId (inmutable — una tarea no cambia de trato).
+// NO incluye estado (se modifica solo con TareaEstadoMenu).
+// NO incluye fechaCompletada (no existe en EditTareaRequest.java — el back no lo acepta).
+export const tareaUpdateSchema = z.object({
+  responsableId: z.string().min(1, { message: 'El responsable es requerido' }),
+  titulo: z
+    .string()
+    .min(1, { message: 'El título es requerido' })
+    .max(200, { message: 'El título no puede superar 200 caracteres' }),
+  descripcion: z.string().nullable().optional(),
+  tipo: z.enum(['GENERAL', 'SEGUIMIENTO', 'NEGOCIACION', 'CIERRE']),
+  prioridad: z.enum(['BAJA', 'MEDIA', 'ALTA', 'URGENTE']),
+  // fechaLimite: ISO-8601 compatible con LocalDateTime del back (sin timezone o con Z)
+  fechaLimite: z.string().min(1, { message: 'La fecha límite es requerida' }),
+});
 
 export type TareaCreateInput = z.infer<typeof tareaCreateSchema>;
 export type TareaUpdateInput = z.infer<typeof tareaUpdateSchema>;

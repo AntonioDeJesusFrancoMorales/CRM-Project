@@ -37,7 +37,16 @@ describe('useUpdateTarea', () => {
 
     const { result } = renderHook(() => useUpdateTarea(), { wrapper: Wrapper });
 
-    result.current.mutate({ id: TAREA_ID, data: { titulo: 'Título actualizado' } });
+    result.current.mutate({
+      id: TAREA_ID,
+      data: {
+        responsableId: '22222222-2222-2222-2222-222222222222',
+        titulo: 'Título actualizado',
+        tipo: 'GENERAL',
+        prioridad: 'MEDIA',
+        fechaLimite: '2026-06-01T00:00:00.000Z',
+      },
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -72,7 +81,13 @@ describe('useUpdateTarea', () => {
 
     result.current.mutate({
       id: TAREA_ID,
-      data: { titulo: 'Tarea actualizada', tipo: 'SEGUIMIENTO', prioridad: 'ALTA' },
+      data: {
+        responsableId: '22222222-2222-2222-2222-222222222222',
+        titulo: 'Tarea actualizada',
+        tipo: 'SEGUIMIENTO',
+        prioridad: 'ALTA',
+        fechaLimite: '2026-06-01T00:00:00.000Z',
+      },
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

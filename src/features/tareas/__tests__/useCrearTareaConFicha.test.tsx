@@ -90,9 +90,6 @@ const FICHA_CREADA: Ficha = {
   tipoFicha: 'TAREA',
   tratoId: null,
   tareaId: TAREA_CREADA.id,
-  responsableId: MOCK_USER_ID,
-  creadoPor: MOCK_USER_ID,
-  creadoEn: '2026-05-30T00:00:00.000Z',
   actualizadoEn: '2026-05-30T00:00:00.000Z',
 };
 
@@ -167,8 +164,6 @@ describe('useCrearTareaConFicha', () => {
     expect(capturedFichaBody!['tipoFicha']).toBe('TAREA');
     expect(capturedFichaBody!['tareaId']).toBe(TAREA_CREADA.id);
     expect(capturedFichaBody!['tratoId']).toBeNull();
-    expect(capturedFichaBody!['responsableId']).toBe(MOCK_USER_ID);
-    expect(capturedFichaBody!['creadoPor']).toBe(MOCK_USER_ID);
   });
 
   it('usa la PRIMERA columna (columnas[0]) del tablero TAREAS como columnaId de la ficha', async () => {
@@ -316,9 +311,9 @@ describe('useCrearTareaConFicha', () => {
   });
 
   // -------------------------------------------------------------------------
-  // responsableId: usa el de la tarea creada si está disponible
+  // El payload de ficha incluye tareaId de la tarea creada (back infiere actor del JWT)
   // -------------------------------------------------------------------------
-  it('usa responsableId de la tarea creada en el payload de la ficha', async () => {
+  it('el payload de ficha usa tareaId de la tarea creada (no responsableId — back infiere del JWT)', async () => {
     const tareaConResponsable: Tarea = {
       ...TAREA_CREADA,
       responsableId: '99999999-9999-9999-9999-999999999999',
@@ -344,8 +339,10 @@ describe('useCrearTareaConFicha', () => {
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
-    // responsableId de la tarea debe propagarse a la ficha
-    expect(capturedFichaBody!['responsableId']).toBe('99999999-9999-9999-9999-999999999999');
+    // El payload de ficha incluye tareaId de la tarea creada
+    expect(capturedFichaBody!['tareaId']).toBe(tareaConResponsable.id);
+    // responsableId NO se envía — el back lo infiere del JWT (ActorContext)
+    expect(capturedFichaBody).not.toHaveProperty('responsableId');
   });
 
   // -------------------------------------------------------------------------
