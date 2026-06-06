@@ -11,7 +11,7 @@ import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { ContactoFormDialog } from '../components/ContactoFormDialog';
 import { ContactoDeleteDialog } from '../components/ContactoDeleteDialog';
 import { EstadoRelacionSelect } from '../components/EstadoRelacionSelect';
-import { useUpdateContacto } from '../hooks/useUpdateContacto';
+import { useCambiarEstadoContacto } from '../hooks/useCambiarEstadoContacto';
 import { useFichas } from '@/features/kanban/hooks/useFichas';
 import { useTableros } from '@/features/kanban/hooks/useTableros';
 import { deriveEstadoTrato } from '@/features/kanban/lib/deriveEstadoTrato';
@@ -48,7 +48,7 @@ export function ContactoDetailPage() {
   const { data: tratos } = useTratos();
   const { data: fichas } = useFichas();
   const { data: tableros } = useTableros();
-  const updateMutation = useUpdateContacto();
+  const cambiarEstadoMutation = useCambiarEstadoContacto();
 
   // Supuesto (NO CONFIRMADO): se asume que existe un único tablero de tipo TRATOS.
   // Si hubiera varios, se toma el primero encontrado. Documentado en design.md §Open Questions.
@@ -110,9 +110,12 @@ export function ContactoDetailPage() {
 
   function handleEstadoChange(nuevoEstado: string) {
     if (!contacto) return;
-    updateMutation.mutate(
-      { id: contacto.id, data: { estadoRelacion: nuevoEstado as Contacto['estadoRelacion'] } },
-    );
+    // Endpoint dedicado del back: PUT /contactos/cambiar-estado?id= body { nuevoEstado }.
+    // NO usar edit (reemplazo total que exige nombre @NotBlank).
+    cambiarEstadoMutation.mutate({
+      id: contacto.id,
+      nuevoEstado: nuevoEstado as Contacto['estadoRelacion'],
+    });
   }
 
   return (
@@ -179,7 +182,7 @@ export function ContactoDetailPage() {
                   tieneTratosActivos={tieneTratosActivos}
                   value={contacto.estadoRelacion}
                   onChange={handleEstadoChange}
-                  disabled={updateMutation.isPending}
+                  disabled={cambiarEstadoMutation.isPending}
                 />
               </div>
             </div>

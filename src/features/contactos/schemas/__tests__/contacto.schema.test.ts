@@ -107,19 +107,35 @@ describe('contactoCreateSchema', () => {
 });
 
 describe('contactoUpdateSchema', () => {
-  it('acepta payload vacío (todo es opcional)', () => {
+  // EditContactoRequest del back: nombre @NotBlank y estadoRelacion @NotNull.
+  // El PUT /edit es reemplazo total, por eso el update NO es un patch parcial.
+  it('rechaza payload vacío — nombre y estadoRelacion son requeridos', () => {
     const result = contactoUpdateSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it('rechaza payload solo con nombre — falta estadoRelacion', () => {
+    const result = contactoUpdateSchema.safeParse({ nombre: 'Nuevo nombre' });
+    expect(result.success).toBe(false);
+  });
+
+  it('acepta nombre + estadoRelacion (mínimo requerido)', () => {
+    const result = contactoUpdateSchema.safeParse({ nombre: 'Nuevo nombre', estadoRelacion: 'ACTIVO' });
     expect(result.success).toBe(true);
   });
 
-  it('acepta patch parcial solo con nombre', () => {
-    const result = contactoUpdateSchema.safeParse({ nombre: 'Nuevo nombre' });
+  it('acepta cargo cuando se provee', () => {
+    const result = contactoUpdateSchema.safeParse({
+      nombre: 'X',
+      estadoRelacion: 'ACTIVO',
+      cargo: 'Gerente',
+    });
     expect(result.success).toBe(true);
   });
 
   it('NO incluye empresaId — se ignora si se pasa', () => {
     // empresaId es inmutable en el back; el schema no lo acepta
-    const parsed = contactoUpdateSchema.safeParse({ nombre: 'X', empresaId: 'some-id' });
+    const parsed = contactoUpdateSchema.safeParse({ nombre: 'X', estadoRelacion: 'ACTIVO', empresaId: 'some-id' });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect('empresaId' in parsed.data).toBe(false);
@@ -127,7 +143,7 @@ describe('contactoUpdateSchema', () => {
   });
 
   it('NO incluye creadoPor — se ignora si se pasa', () => {
-    const parsed = contactoUpdateSchema.safeParse({ nombre: 'X', creadoPor: 'user-1' });
+    const parsed = contactoUpdateSchema.safeParse({ nombre: 'X', estadoRelacion: 'ACTIVO', creadoPor: 'user-1' });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect('creadoPor' in parsed.data).toBe(false);
@@ -135,12 +151,12 @@ describe('contactoUpdateSchema', () => {
   });
 
   it('estadoRelacion rechaza valor inválido', () => {
-    const result = contactoUpdateSchema.safeParse({ estadoRelacion: 'INVALIDO' });
+    const result = contactoUpdateSchema.safeParse({ nombre: 'X', estadoRelacion: 'INVALIDO' });
     expect(result.success).toBe(false);
   });
 
   it('correo rechaza string sin @ cuando se provee', () => {
-    const result = contactoUpdateSchema.safeParse({ correo: 'noesuncorreo' });
+    const result = contactoUpdateSchema.safeParse({ nombre: 'X', estadoRelacion: 'ACTIVO', correo: 'noesuncorreo' });
     expect(result.success).toBe(false);
   });
 });

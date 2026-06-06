@@ -82,7 +82,7 @@ describe('contactos MSW handler — PUT /api/contactos/edit?id=', () => {
     const res = await fetch(`/api/contactos/edit?id=${CONTACTO_ACTIVO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Sofía Actualizada' }),
+      body: JSON.stringify({ nombre: 'Sofía Actualizada', estadoRelacion: 'ACTIVO' }),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as { id: string; nombre: string };
@@ -90,11 +90,52 @@ describe('contactos MSW handler — PUT /api/contactos/edit?id=', () => {
     expect(data.nombre).toBe('Sofía Actualizada');
   });
 
+  it('responde 400 cuando falta nombre (espejo de @NotBlank del back)', async () => {
+    const res = await fetch(`/api/contactos/edit?id=${CONTACTO_ACTIVO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estadoRelacion: 'ACTIVO' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
   it('responde 404 cuando el id no existe', async () => {
     const res = await fetch(`/api/contactos/edit?id=${CONTACTO_NONEXISTENT}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'X' }),
+      body: JSON.stringify({ nombre: 'X', estadoRelacion: 'ACTIVO' }),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('contactos MSW handler — PUT /api/contactos/cambiar-estado?id=', () => {
+  it('cambia solo el estadoRelacion con body { nuevoEstado }', async () => {
+    const res = await fetch(`/api/contactos/cambiar-estado?id=${CONTACTO_ACTIVO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoEstado: 'INACTIVO' }),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { id: string; estadoRelacion: string };
+    expect(data.id).toBe(CONTACTO_ACTIVO_ID);
+    expect(data.estadoRelacion).toBe('INACTIVO');
+  });
+
+  it('responde 400 cuando falta nuevoEstado', async () => {
+    const res = await fetch(`/api/contactos/cambiar-estado?id=${CONTACTO_ACTIVO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('responde 404 cuando el id no existe', async () => {
+    const res = await fetch(`/api/contactos/cambiar-estado?id=${CONTACTO_NONEXISTENT}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoEstado: 'ACTIVO' }),
     });
     expect(res.status).toBe(404);
   });

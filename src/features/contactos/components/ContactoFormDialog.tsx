@@ -85,6 +85,7 @@ function EditDialog({
     correo: contacto.correo,
     telefono: contacto.telefono,
     estadoRelacion: contacto.estadoRelacion,
+    cargo: contacto.cargo,
     comoNosConocio: contacto.comoNosConocio,
     empresaId: contacto.empresaId,
   };
