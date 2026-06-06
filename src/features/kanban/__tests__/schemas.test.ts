@@ -166,9 +166,7 @@ const FICHA_VALIDA = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: '22222222-2222-2222-2222-222222222222',
-  creadoPor: '22222222-2222-2222-2222-222222222222',
-  creadoEn: '2026-04-10T08:00:00Z',
+  // Sin responsableId, creadoPor, creadoEn — shape real de FichaResponse.java
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -208,18 +206,17 @@ const FICHA_CREATE_VALIDA = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: '22222222-2222-2222-2222-222222222222',
-  creadoPor: '22222222-2222-2222-2222-222222222222',
+  // Sin responsableId ni creadoPor — shape real de CreateFichaRequest.java
 };
 
 describe('fichaCreateSchema', () => {
-  it('parsea un payload de creación válido', () => {
+  it('parsea un payload de creación válido (sin responsableId ni creadoPor)', () => {
     expect(fichaCreateSchema.safeParse(FICHA_CREATE_VALIDA).success).toBe(true);
   });
 
-  it('requiere creadoPor', () => {
-    const { creadoPor: _c, ...sinCreador } = FICHA_CREATE_VALIDA;
-    expect(fichaCreateSchema.safeParse(sinCreador).success).toBe(false);
+  it('sigue requiriendo columnaId', () => {
+    const { columnaId: _c, ...sinColumna } = FICHA_CREATE_VALIDA;
+    expect(fichaCreateSchema.safeParse(sinColumna).success).toBe(false);
   });
 });
 
@@ -232,7 +229,7 @@ const FICHA_EDIT_VALIDA = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: '22222222-2222-2222-2222-222222222222',
+  // Sin responsableId — shape real de EditFichaRequest.java
 };
 
 describe('fichaEditSchema', () => {

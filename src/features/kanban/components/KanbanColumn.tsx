@@ -102,7 +102,7 @@ const DEFAULT_COLUMN_COLOR = '#e2e8f0'; // slate-200 como fallback
 
 function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
   return [...fichas].sort(
-    (a, b) => new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime(),
+    (a, b) => new Date(a.actualizadoEn).getTime() - new Date(b.actualizadoEn).getTime(),
   );
 }
 

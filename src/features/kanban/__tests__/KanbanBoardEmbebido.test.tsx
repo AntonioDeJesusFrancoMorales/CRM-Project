@@ -439,9 +439,6 @@ describe('KanbanBoardEmbebido — backfill de fichas (Lote 8)', () => {
           tipoFicha: 'TRATO',
           tratoId: body.tratoId ?? null,
           tareaId: null,
-          responsableId: 'usr-bf-001',
-          creadoPor: 'usr-bf-001',
-          creadoEn: '2026-05-30T00:00:00Z',
           actualizadoEn: '2026-05-30T00:00:00Z',
         };
         return HttpResponse.json(newFicha, { status: 201 });
@@ -506,9 +503,6 @@ describe('KanbanBoardEmbebido — backfill de fichas (Lote 8)', () => {
           tipoFicha: 'TRATO',
           tratoId: body.tratoId ?? null,
           tareaId: null,
-          responsableId: 'usr-001',
-          creadoPor: 'usr-001',
-          creadoEn: '2026-05-30T00:00:00Z',
           actualizadoEn: '2026-05-30T00:00:00Z',
         };
         return HttpResponse.json(newFicha, { status: 201 });

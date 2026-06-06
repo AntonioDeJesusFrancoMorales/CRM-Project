@@ -90,9 +90,6 @@ const FICHA_CREADA: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: TRATO_CREADO.id,
   tareaId: null,
-  responsableId: MOCK_USER_ID,
-  creadoPor: MOCK_USER_ID,
-  creadoEn: '2026-05-30T00:00:00.000Z',
   actualizadoEn: '2026-05-30T00:00:00.000Z',
 };
 
@@ -167,8 +164,6 @@ describe('useCrearTratoConFicha', () => {
     expect(capturedFichaBody!['tipoFicha']).toBe('TRATO');
     expect(capturedFichaBody!['tratoId']).toBe(TRATO_CREADO.id);
     expect(capturedFichaBody!['tareaId']).toBeNull();
-    expect(capturedFichaBody!['responsableId']).toBe(MOCK_USER_ID);
-    expect(capturedFichaBody!['creadoPor']).toBe(MOCK_USER_ID);
   });
 
   it('usa la PRIMERA columna (columnas[0]) del tablero TRATOS como columnaId de la ficha', async () => {
@@ -316,9 +311,9 @@ describe('useCrearTratoConFicha', () => {
   });
 
   // -------------------------------------------------------------------------
-  // responsableId: usa el del trato creado si está disponible
+  // El payload de ficha usa tratoId del trato creado (back infiere actor del JWT)
   // -------------------------------------------------------------------------
-  it('usa responsableId del trato creado en el payload de la ficha', async () => {
+  it('el payload de ficha usa tratoId del trato creado (no responsableId — back infiere del JWT)', async () => {
     const tratoConResponsable: Trato = {
       ...TRATO_CREADO,
       responsableId: '99999999-9999-9999-9999-999999999999',
@@ -344,8 +339,10 @@ describe('useCrearTratoConFicha', () => {
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
-    // responsableId del trato debe propagarse a la ficha
-    expect(capturedFichaBody!['responsableId']).toBe('99999999-9999-9999-9999-999999999999');
+    // El payload de ficha incluye tratoId del trato creado
+    expect(capturedFichaBody!['tratoId']).toBe(tratoConResponsable.id);
+    // responsableId NO se envía — el back lo infiere del JWT (ActorContext)
+    expect(capturedFichaBody).not.toHaveProperty('responsableId');
   });
 
   // -------------------------------------------------------------------------

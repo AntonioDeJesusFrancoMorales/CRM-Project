@@ -6,7 +6,7 @@
 // Mapea body según tipoFicha:
 //   - 'TRATO' → { tratoId: entidadId, tareaId: null }
 //   - 'TAREA' → { tareaId: entidadId, tratoId: null }
-// Compone FichaCreateInput completo con columnaId, tipoFicha, creadoPor: MOCK_USER_ID.
+// Compone FichaCreateInput con columnaId y tipoFicha (sin responsableId/creadoPor — back infiere del JWT).
 // Homologa TratoCreateDialog: mutation.error → serverErrors 422 → FichaForm.setError via prop.
 // Tras éxito: useCreateFicha invalida ['fichas'] (en el hook) y cerramos el dialog.
 
@@ -19,7 +19,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCreateFicha } from '../hooks/useCreateFicha';
-import { MOCK_USER_ID } from '../lib/mockUser';
 import { useTratosSinFicha } from '../lib/useTratosSinFicha';
 import { useTareasSinFicha } from '../lib/useTareasSinFicha';
 import { FichaForm } from './FichaForm';
@@ -77,8 +76,6 @@ export function FichaCreateDialog({
         tipoFicha,
         tratoId,
         tareaId,
-        responsableId: values.responsableId,
-        creadoPor: MOCK_USER_ID,
       },
       {
         onSuccess: () => onOpenChange(false),

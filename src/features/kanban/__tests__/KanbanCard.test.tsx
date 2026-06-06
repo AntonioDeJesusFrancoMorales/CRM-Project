@@ -29,9 +29,6 @@ const FICHA_TRATO: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: '22222222-2222-2222-2222-222222222222',
-  creadoPor: '22222222-2222-2222-2222-222222222222',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -381,17 +378,12 @@ async function selectOption(triggerName: RegExp, optionText: string) {
   await userEvent.click(target);
 }
 
-describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
-  it('(b) envía POST /api/fichas/create con creadoPor UUID válido y tipoFicha TRATO', async () => {
+describe('FichaCreateDialog — envío sin responsableId (back infiere del JWT)', () => {
+  it('(b) envía POST /api/fichas/create sin responsableId y con tipoFicha TRATO', async () => {
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios/get-all', () =>
-        HttpResponse.json([
-          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', rolId: 'rol-admin-uuid-1111-111111111111', creadoEn: '2026-01-15T10:00:00Z', activo: true, keycloakId: null, correo: 'admin@crm.test' },
-        ]),
-      ),
       http.post('/api/fichas/create', async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(
@@ -401,9 +393,6 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
             tipoFicha: 'TRATO',
             tratoId: capturedBody['tratoId'],
             tareaId: null,
-            responsableId: capturedBody['responsableId'],
-            creadoPor: capturedBody['creadoPor'],
-            creadoEn: '2026-05-29T00:00:00Z',
             actualizadoEn: '2026-05-29T00:00:00Z',
           },
           { status: 201 },
@@ -418,7 +407,6 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
     });
 
     await selectOption(/trato/i, 'Implementación CRM Innovatech');
-    await selectOption(/responsable/i, 'Antonio Franco');
 
     const submitBtn = await screen.findByRole('button', { name: /crear ficha/i });
     await userEvent.click(submitBtn);
@@ -427,21 +415,18 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
       expect(capturedBody).not.toBeNull();
     });
 
-    expect(capturedBody!['creadoPor']).toBe('00000000-0000-0000-0000-000000000001');
     expect(capturedBody!['tipoFicha']).toBe('TRATO');
     expect(capturedBody!['columnaId']).toBe('a1111111-aaaa-1111-aaaa-111111111111');
     expect(capturedBody!['tratoId']).toBe('d1111111-dddd-1111-dddd-111111111111');
+    // responsableId y creadoPor NO se envían — el back infiere del JWT (ActorContext)
+    expect(capturedBody).not.toHaveProperty('responsableId');
+    expect(capturedBody).not.toHaveProperty('creadoPor');
   });
 
   it('(c) cierra el dialog tras éxito', async () => {
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios/get-all', () =>
-        HttpResponse.json([
-          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', rolId: 'rol-admin-uuid-1111-111111111111', creadoEn: '2026-01-15T10:00:00Z', activo: true, keycloakId: null, correo: 'admin@crm.test' },
-        ]),
-      ),
       http.post('/api/fichas/create', async () =>
         HttpResponse.json(
           {
@@ -450,9 +435,6 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
             tipoFicha: 'TRATO',
             tratoId: 'd1111111-dddd-1111-dddd-111111111111',
             tareaId: null,
-            responsableId: '11111111-1111-1111-1111-111111111111',
-            creadoPor: '00000000-0000-0000-0000-000000000001',
-            creadoEn: '2026-05-29T00:00:00Z',
             actualizadoEn: '2026-05-29T00:00:00Z',
           },
           { status: 201 },
@@ -464,7 +446,6 @@ describe('FichaCreateDialog — envío con creadoPor MOCK_USER_ID', () => {
     renderFichaCreateDialog({ onOpenChange });
 
     await selectOption(/trato/i, 'Implementación CRM Innovatech');
-    await selectOption(/responsable/i, 'Antonio Franco');
 
     await userEvent.click(await screen.findByRole('button', { name: /crear ficha/i }));
 
@@ -479,11 +460,6 @@ describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
     server.use(
       http.get('/api/tratos/get-all', () => HttpResponse.json([TRATO_T1])),
       http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-      http.get('/api/usuarios/get-all', () =>
-        HttpResponse.json([
-          { id: '11111111-1111-1111-1111-111111111111', nombre: 'Antonio Franco', rolId: 'rol-admin-uuid-1111-111111111111', creadoEn: '2026-01-15T10:00:00Z', activo: true, keycloakId: null, correo: 'admin@crm.test' },
-        ]),
-      ),
       http.post('/api/fichas/create', () =>
         HttpResponse.json(
           {
@@ -500,7 +476,6 @@ describe('FichaCreateDialog — error 422 mantiene dialog abierto', () => {
     renderFichaCreateDialog({ onOpenChange });
 
     await selectOption(/trato/i, 'Implementación CRM Innovatech');
-    await selectOption(/responsable/i, 'Antonio Franco');
 
     await userEvent.click(await screen.findByRole('button', { name: /crear ficha/i }));
 

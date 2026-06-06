@@ -21,9 +21,6 @@ const FICHA_FIXTURE: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: '22222222-2222-2222-2222-222222222222',
-  creadoPor: '22222222-2222-2222-2222-222222222222',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -62,8 +59,6 @@ const CREATE_PAYLOAD: FichaCreateInput = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: 'MOCK_USER',
-  creadoPor: 'MOCK_USER',
 };
 
 // ---------------------------------------------------------------------------
@@ -210,7 +205,6 @@ describe('useUpdateFicha', () => {
           columnaId: 'a2222222-aaaa-2222-aaaa-222222222222',
           tipoFicha: 'TRATO',
           tratoId: FICHA_FIXTURE.tratoId,
-          responsableId: FICHA_FIXTURE.responsableId,
         },
       });
     });
@@ -241,7 +235,6 @@ describe('useUpdateFicha', () => {
           columnaId: 'a2222222-aaaa-2222-aaaa-222222222222',
           tipoFicha: 'TRATO',
           tratoId: FICHA_FIXTURE.tratoId,
-          responsableId: FICHA_FIXTURE.responsableId,
         },
       });
     });
@@ -272,7 +265,6 @@ describe('useUpdateFicha', () => {
           columnaId: NUEVO_COLUMNA_ID,
           tipoFicha: 'TRATO',
           tratoId: FICHA_FIXTURE.tratoId,
-          responsableId: FICHA_FIXTURE.responsableId,
         },
       });
     });
@@ -487,7 +479,12 @@ describe('useReordenarColumnas', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(capturedUrl).toContain(`/tableros/reordenar-columnas?id=${TABLERO_ID}`);
-    expect(capturedBody).toMatchObject({ nuevoOrden: NUEVO_ORDEN });
+    // El body debe contener nuevoOrden como Array<{value: uuid}>, NO como string[]
+    // (back usa List<ColumnaId> donde ColumnaId = record(UUID value))
+    const body = capturedBody as { nuevoOrden: unknown[] };
+    expect(body.nuevoOrden).toHaveLength(NUEVO_ORDEN.length);
+    expect(body.nuevoOrden[0]).toMatchObject({ value: NUEVO_ORDEN[0] });
+    expect(body.nuevoOrden[1]).toMatchObject({ value: NUEVO_ORDEN[1] });
   });
 
   it('invalida queryKey ["tableros", tableroId] en onSuccess', async () => {

@@ -79,9 +79,6 @@ function makeFixhas(columnaId: string, count: number): Ficha[] {
     tipoFicha: 'TRATO' as const,
     tratoId: `d${i + 1}`,
     tareaId: null,
-    responsableId: 'usr1',
-    creadoPor: 'usr1',
-    creadoEn: `2026-04-${10 + i}T08:00:00Z`,
     actualizadoEn: `2026-04-${10 + i}T08:00:00Z`,
   }));
 }
@@ -198,7 +195,7 @@ describe('KanbanColumn — fichas children', () => {
     expect(screen.getByText(/d2/)).toBeInTheDocument();
   });
 
-  it('(l) orden de fichas es por creadoEn ASC (la más antigua primero)', () => {
+  it('(l) orden de fichas es por actualizadoEn ASC (la más antigua primero)', () => {
     const fichas: Ficha[] = [
       {
         id: 'h-new',
@@ -206,9 +203,6 @@ describe('KanbanColumn — fichas children', () => {
         tipoFicha: 'TRATO',
         tratoId: 'd-nuevo',
         tareaId: null,
-        responsableId: 'usr1',
-        creadoPor: 'usr1',
-        creadoEn: '2026-05-01T08:00:00Z',
         actualizadoEn: '2026-05-01T08:00:00Z',
       },
       {
@@ -217,9 +211,6 @@ describe('KanbanColumn — fichas children', () => {
         tipoFicha: 'TRATO',
         tratoId: 'd-viejo',
         tareaId: null,
-        responsableId: 'usr1',
-        creadoPor: 'usr1',
-        creadoEn: '2026-04-01T08:00:00Z',
         actualizadoEn: '2026-04-01T08:00:00Z',
       },
     ];
@@ -396,9 +387,6 @@ describe('KanbanColumn — Batch 5: tipoFicha=TAREA pasa titulo a KanbanCard', (
         tipoFicha: 'TAREA',
         tratoId: null,
         tareaId: 'ta-abc',
-        responsableId: 'usr1',
-        creadoPor: 'usr1',
-        creadoEn: '2026-04-10T08:00:00Z',
         actualizadoEn: '2026-04-10T08:00:00Z',
       },
     ];
@@ -424,9 +412,6 @@ describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TRATO', () => {
       tipoFicha: 'TRATO',
       tratoId: 'trato-rich-id',
       tareaId: null,
-      responsableId: 'usr1',
-      creadoPor: 'usr1',
-      creadoEn: '2026-04-10T08:00:00Z',
       actualizadoEn: '2026-04-10T08:00:00Z',
     },
   ];
@@ -569,9 +554,6 @@ describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TAREA', () => {
       tipoFicha: 'TAREA',
       tratoId: null,
       tareaId: 'tarea-rich-id',
-      responsableId: 'usr1',
-      creadoPor: 'usr1',
-      creadoEn: '2026-04-10T08:00:00Z',
       actualizadoEn: '2026-04-10T08:00:00Z',
     },
   ];

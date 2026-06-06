@@ -71,9 +71,6 @@ const FICHA_TRATO_EXISTENTE: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: 'usr-001',
-  creadoPor: 'usr-001',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -135,9 +132,6 @@ describe('useBackfillFichas — TRATOS — crea fichas solo para entidades falta
           tipoFicha: 'TRATO',
           tratoId: body.tratoId ?? null,
           tareaId: null,
-          responsableId: 'usr-001',
-          creadoPor: 'usr-001',
-          creadoEn: '2026-05-30T00:00:00Z',
           actualizadoEn: '2026-05-30T00:00:00Z',
         };
         return HttpResponse.json(newFicha, { status: 201 });
@@ -175,9 +169,6 @@ describe('useBackfillFichas — TRATOS — crea fichas solo para entidades falta
           tipoFicha: 'TRATO',
           tratoId: body.tratoId ?? null,
           tareaId: null,
-          responsableId: 'usr-001',
-          creadoPor: 'usr-001',
-          creadoEn: '2026-05-30T00:00:00Z',
           actualizadoEn: '2026-05-30T00:00:00Z',
         };
         return HttpResponse.json(newFicha, { status: 201 });
@@ -246,7 +237,7 @@ describe('useBackfillFichas — anti-loop (no re-procesa ids ya enviados)', () =
     server.use(
       http.get('/api/fichas/get-all', () => HttpResponse.json(fichasActuales)),
       http.post('/api/fichas/create', async ({ request }) => {
-        const body = await request.json() as { tratoId?: string; columnaId?: string; responsableId?: string; creadoPor?: string };
+        const body = await request.json() as { tratoId?: string; columnaId?: string };
         postsCalled.push(body.tratoId ?? 'unknown');
         const newFicha: Ficha = {
           id: `created-${body.tratoId}`,
@@ -254,9 +245,6 @@ describe('useBackfillFichas — anti-loop (no re-procesa ids ya enviados)', () =
           tipoFicha: 'TRATO',
           tratoId: body.tratoId ?? null,
           tareaId: null,
-          responsableId: body.responsableId ?? 'usr-001',
-          creadoPor: body.creadoPor ?? 'usr-001',
-          creadoEn: '2026-05-30T00:00:00Z',
           actualizadoEn: '2026-05-30T00:00:00Z',
         };
         // Simular que la ficha ahora existe
@@ -318,9 +306,6 @@ describe('useBackfillFichas — error en una creación no rompe el resto', () =>
           tipoFicha: 'TRATO',
           tratoId: id === 'unknown' ? null : id,
           tareaId: null,
-          responsableId: 'usr-001',
-          creadoPor: 'usr-001',
-          creadoEn: '2026-05-30T00:00:00Z',
           actualizadoEn: '2026-05-30T00:00:00Z',
         };
         return HttpResponse.json(newFicha, { status: 201 });

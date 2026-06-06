@@ -64,7 +64,6 @@ export function useCrearTratoConFicha(): UseCrearTratoConFichaResult {
       // Paso 2: crear la ficha automáticamente (best-effort, degradación elegante)
       await crearFichaPara({
         id: createdTrato.id,
-        responsableId: createdTrato.responsableId,
       });
 
       return createdTrato;

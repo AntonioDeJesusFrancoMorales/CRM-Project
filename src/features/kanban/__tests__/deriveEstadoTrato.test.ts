@@ -50,9 +50,6 @@ const fichaBase: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'trato-1',
   tareaId: null,
-  responsableId: 'user-1',
-  creadoPor: 'user-1',
-  creadoEn: '2026-01-01T00:00:00Z',
   actualizadoEn: '2026-01-01T00:00:00Z',
 };
 
@@ -140,8 +137,8 @@ describe('deriveEstadoTrato', () => {
       // La ficha más antigua (la que aparece primero en el array) determina el estado.
       // Decisión documentada: consistencia con Array.find() — orden del caller define la prioridad.
       const fichas: Ficha[] = [
-        { ...fichaBase, id: 'ficha-primera', columnaId: 'col-abierto-1', creadoEn: '2026-01-01T00:00:00Z' },
-        { ...fichaBase, id: 'ficha-segunda', columnaId: 'col-ganado', creadoEn: '2026-01-02T00:00:00Z' },
+        { ...fichaBase, id: 'ficha-primera', columnaId: 'col-abierto-1', actualizadoEn: '2026-01-01T00:00:00Z' },
+        { ...fichaBase, id: 'ficha-segunda', columnaId: 'col-ganado', actualizadoEn: '2026-01-02T00:00:00Z' },
       ];
       const resultado = deriveEstadoTrato('trato-1', fichas, columnas);
       expect(resultado).toBe('ABIERTO'); // primera ficha = col-abierto-1 → ABIERTO

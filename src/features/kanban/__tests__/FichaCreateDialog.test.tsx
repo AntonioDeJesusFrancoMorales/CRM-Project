@@ -158,9 +158,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
             tipoFicha: 'TAREA',
             tratoId: null,
             tareaId: TAREA_SIN_FICHA.id,
-            responsableId: USUARIO.id,
-            creadoPor: '00000000-0000-0000-0000-000000000001',
-            creadoEn: '2026-05-01T10:00:00Z',
             actualizadoEn: '2026-05-01T10:00:00Z',
           },
           { status: 201 },
@@ -176,8 +173,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
       tipoFicha: 'TAREA',
       tareaId: TAREA_SIN_FICHA.id,
       tratoId: null,
-      responsableId: USUARIO.id,
-      creadoPor: '00000000-0000-0000-0000-000000000001',
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -188,7 +183,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
         tareaId: TAREA_SIN_FICHA.id,
         tratoId: null,
         columnaId: COLUMNA_ID,
-        creadoPor: '00000000-0000-0000-0000-000000000001',
       }),
     );
   });
@@ -212,9 +206,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
             tipoFicha: 'TRATO',
             tratoId: TRATO_SIN_FICHA.id,
             tareaId: null,
-            responsableId: USUARIO.id,
-            creadoPor: '00000000-0000-0000-0000-000000000001',
-            creadoEn: '2026-05-01T10:00:00Z',
             actualizadoEn: '2026-05-01T10:00:00Z',
           },
           { status: 201 },
@@ -230,8 +221,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
       tipoFicha: 'TRATO',
       tratoId: TRATO_SIN_FICHA.id,
       tareaId: null,
-      responsableId: USUARIO.id,
-      creadoPor: '00000000-0000-0000-0000-000000000001',
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -242,7 +231,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
         tratoId: TRATO_SIN_FICHA.id,
         tareaId: null,
         columnaId: COLUMNA_ID,
-        creadoPor: '00000000-0000-0000-0000-000000000001',
       }),
     );
   });
@@ -265,9 +253,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
             tipoFicha: 'TAREA',
             tratoId: null,
             tareaId: TAREA_SIN_FICHA.id,
-            responsableId: USUARIO.id,
-            creadoPor: '00000000-0000-0000-0000-000000000001',
-            creadoEn: '2026-05-01T10:00:00Z',
             actualizadoEn: '2026-05-01T10:00:00Z',
           },
           { status: 201 },
@@ -287,8 +272,6 @@ describe('FichaCreateDialog — body mapping (via useCreateFicha)', () => {
       tipoFicha: 'TAREA',
       tareaId: TAREA_SIN_FICHA.id,
       tratoId: null,
-      responsableId: USUARIO.id,
-      creadoPor: '00000000-0000-0000-0000-000000000001',
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

@@ -23,9 +23,6 @@ const FICHA_TAREA: Ficha = {
   tipoFicha: 'TAREA',
   tratoId: null,
   tareaId: 'e1111111-eeee-1111-eeee-111111111111', // existe en tareasFixture
-  responsableId: 'usr-001',
-  creadoPor: 'usr-001',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -36,9 +33,6 @@ const FICHA_TRATO_SIN_TAREAS: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd3333333-dddd-3333-dddd-333333333333',
   tareaId: null,
-  responsableId: 'usr-001',
-  creadoPor: 'usr-001',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -49,9 +43,6 @@ const FICHA_TRATO_CON_TAREAS: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: 'usr-001',
-  creadoPor: 'usr-001',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
