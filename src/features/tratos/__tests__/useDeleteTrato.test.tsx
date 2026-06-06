@@ -47,6 +47,65 @@ describe('useDeleteTrato', () => {
     expect(queryClient.getQueryData(tratosKeys.detail(TRATO_ID_SIN_TAREAS))).toBeUndefined();
   });
 
+  it('borra TAMBIÉN la ficha asociada (el back no cascadea)', async () => {
+    const FICHA_ID = 'f-trato-3333';
+    let fichaDeleteUrl: string | null = null;
+
+    server.use(
+      http.get('/api/fichas/get-all', () =>
+        HttpResponse.json([
+          {
+            id: FICHA_ID,
+            columnaId: 'col-1',
+            tipoFicha: 'TRATO',
+            tratoId: TRATO_ID_SIN_TAREAS,
+            tareaId: null,
+            actualizadoEn: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+      ),
+      http.delete('/api/tratos/delete', () => new HttpResponse(null, { status: 204 })),
+      http.delete('/api/fichas/delete', ({ request }) => {
+        fichaDeleteUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useDeleteTrato(), { wrapper: Wrapper });
+
+    result.current.mutate(TRATO_ID_SIN_TAREAS);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(fichaDeleteUrl).toContain(`/fichas/delete?id=${FICHA_ID}`);
+  });
+
+  it('NO borra ficha si el trato falla con 409 (no se llega a la cascada)', async () => {
+    let fichaDeleteCalled = false;
+    server.use(
+      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
+      http.delete('/api/tratos/delete', () =>
+        HttpResponse.json(
+          { status: 409, error: 'CONFLICT', message: 'El trato tiene 2 tareas asociadas' },
+          { status: 409 },
+        ),
+      ),
+      http.delete('/api/fichas/delete', () => {
+        fichaDeleteCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useDeleteTrato(), { wrapper: Wrapper });
+
+    result.current.mutate(TRATO_ID_CON_TAREAS);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(fichaDeleteCalled).toBe(false);
+  });
+
   it('DELETE responde 409 cuando el trato tiene tareas — expone error con mensaje', async () => {
     // El handler MSW real de B4 enviará 409 para d1111111 que tiene tareas.
     // Aquí mockeamos directamente para que el test sea independiente de B4.

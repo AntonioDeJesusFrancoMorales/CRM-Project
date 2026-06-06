@@ -1,6 +1,10 @@
 // useCreateTarea — POST /tareas/create con tratoId en el body (contrato RPC del back).
 // El schema TareaCreateInput ya usa camelCase y enums del back — se pasa el body tal cual.
 // onSuccess invalida tareasKeys.all para refrescar todas las listas de tareas.
+//
+// IMPORTANTE: el back AUTO-CREA una ficha TAREA al crear la tarea
+// (CreateTareaService.java). Por eso el front NO debe crear otra ficha (sería duplicada)
+// y SÍ debe invalidar ['fichas'] para que el Kanban muestre la ficha creada por el back.
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,6 +14,7 @@ import { isHttpError } from '@/api/http-error';
 import type { Tarea } from '@/api/types';
 import type { TareaCreateInput } from '../schemas/tarea.schema';
 import { tareasKeys } from './useTareas';
+import { fichasKeys } from '@/features/kanban/hooks/useFichas';
 
 export function useCreateTarea(): UseMutationResult<Tarea, Error, TareaCreateInput> {
   const queryClient = useQueryClient();
@@ -21,6 +26,8 @@ export function useCreateTarea(): UseMutationResult<Tarea, Error, TareaCreateInp
     },
     onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: tareasKeys.all });
+      // El back creó la ficha asociada — refrescar el Kanban.
+      void queryClient.invalidateQueries({ queryKey: fichasKeys.all });
       toast.success(`Tarea "${created.titulo}" creada`);
     },
     onError: (error) => {

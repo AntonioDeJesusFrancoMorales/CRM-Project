@@ -1,9 +1,8 @@
-// TareaCreateDialog — wrapper sobre TareaForm + useCrearTareaConFicha.
+// TareaCreateDialog — wrapper sobre TareaForm + useCreateTarea.
 // Acepta tratoIdFijo? para pre-cargar el trato cuando se crea desde el tab de un trato.
 // Homologa TratoCreateDialog.
-// Al crear una tarea se crea automáticamente una ficha TAREA en el tablero de tareas
-// (primera columna), usando useCrearTareaConFicha. Si no hay tablero TAREAS, la ficha
-// se omite y la tarea se crea igual (degradación elegante).
+// La ficha TAREA la crea el BACK automáticamente (CreateTareaService.java); el front
+// NO la crea para evitar duplicados. useCreateTarea invalida ['fichas'] tras crear.
 
 import { isHttpError } from '@/api/http-error';
 import {
@@ -17,7 +16,7 @@ import {
   TAREA_EMPTY_DEFAULTS,
   type TareaCreateInput,
 } from '../schemas/tarea.schema';
-import { useCrearTareaConFicha } from '../hooks/useCrearTareaConFicha';
+import { useCreateTarea } from '../hooks/useCreateTarea';
 import { TareaForm } from './TareaForm';
 
 interface TareaCreateDialogProps {
@@ -33,17 +32,15 @@ export function TareaCreateDialog({
   tratoIdFijo,
   defaultValues,
 }: TareaCreateDialogProps) {
-  const { crear, isPending, error } = useCrearTareaConFicha();
+  const mutation = useCreateTarea();
 
   const serverErrors =
-    isHttpError(error) && error.status === 422 && error.details
-      ? error.details
+    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
+      ? mutation.error.details
       : undefined;
 
   function handleSubmit(values: TareaCreateInput) {
-    void crear(values).then(() => onOpenChange(false)).catch(() => {
-      // El error queda en `error` del hook; el form mostrará serverErrors si aplica
-    });
+    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
   }
 
   const initial: Partial<TareaCreateInput> = {
@@ -66,7 +63,7 @@ export function TareaCreateDialog({
           defaultValues={initial}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
-          isSubmitting={isPending}
+          isSubmitting={mutation.isPending}
           serverErrors={serverErrors}
           tratoIdFijo={tratoIdFijo}
         />

@@ -1,3 +1,6 @@
+// La ficha TRATO la crea el BACK automáticamente (CreateTratoService.java); el front
+// NO la crea para evitar duplicados. useCreateTrato invalida ['fichas'] tras crear.
+
 import { isHttpError } from '@/api/http-error';
 import {
   Dialog,
@@ -6,11 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { TratoCreatePayload } from '@/api/types';
 import {
   TRATO_EMPTY_DEFAULTS,
   type TratoCreateInput,
 } from '../schemas/trato.schema';
-import { useCrearTratoConFicha } from '../hooks/useCrearTratoConFicha';
+import { useCreateTrato } from '../hooks/useCreateTrato';
 import { TratoForm } from './TratoForm';
 
 interface TratoCreateDialogProps {
@@ -24,21 +28,29 @@ export function TratoCreateDialog({
   onOpenChange,
   defaultValues,
 }: TratoCreateDialogProps) {
-  const { crear, isPending, error } = useCrearTratoConFicha();
+  const mutation = useCreateTrato();
 
   const serverErrors =
-    isHttpError(error) &&
-    error.status === 422 &&
-    error.details
-      ? error.details
+    isHttpError(mutation.error) &&
+    mutation.error.status === 422 &&
+    mutation.error.details
+      ? mutation.error.details
       : undefined;
 
   function handleSubmit(values: TratoCreateInput) {
-    crear(values)
-      .then(() => onOpenChange(false))
-      .catch(() => {
-        // El error ya queda en `error` del hook; serverErrors lo mapea si es 422
-      });
+    // Normaliza opcionales del form (undefined/'' ) a null para el contrato del back.
+    const payload: TratoCreatePayload = {
+      contactoId: values.contactoId,
+      responsableId: values.responsableId,
+      nombre: values.nombre,
+      tipoContrato: values.tipoContrato,
+      valorEstimado: values.valorEstimado ?? null,
+      probabilidad: values.probabilidad ?? null,
+      fechaCierreEsperada: values.fechaCierreEsperada?.trim()
+        ? values.fechaCierreEsperada
+        : null,
+    };
+    mutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
   }
 
   const initial: Partial<TratoCreateInput> = {
@@ -60,7 +72,7 @@ export function TratoCreateDialog({
           defaultValues={initial}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
-          isSubmitting={isPending}
+          isSubmitting={mutation.isPending}
           serverErrors={serverErrors}
         />
       </DialogContent>
