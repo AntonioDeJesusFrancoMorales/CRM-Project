@@ -15,6 +15,7 @@ import { TareasListPage } from '@/features/tareas/pages/TareasListPage';
 import { TareaDetailPage } from '@/features/tareas/pages/TareaDetailPage';
 import { KanbanListPage } from '@/features/kanban/pages/KanbanListPage';
 import { KanbanPage } from '@/features/kanban/pages/KanbanPage';
+import { AgendaListPage } from '@/features/agenda/pages/AgendaListPage';
 
 function AuthLayout() {
   return (
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
               { path: 'tareas/:id', element: <TareaDetailPage /> },
               { path: 'tableros', element: <KanbanListPage /> },
               { path: 'tableros/:id', element: <KanbanPage /> },
+              { path: 'agenda', element: <AgendaListPage /> },
               // /usuarios y /configuracion NO van detrás de un guard de rol:
               // el back no enforza autorización por rol (solo autenticación), así que
               // gatear acá sería falsa seguridad. Cualquier autenticado accede, igual

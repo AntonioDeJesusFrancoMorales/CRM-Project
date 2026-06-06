@@ -46,6 +46,14 @@ export const endpoints = {
       `/tableros/eliminar-columna?id=${tableroId}&columnaId=${columnaId}`,
     reordenarColumnas: (tableroId: string) => `/tableros/reordenar-columnas?id=${tableroId}`,
   },
+  agendas: {
+    // get-all-by-user: el back filtra por el usuario autenticado (JWT). Es "mi agenda".
+    getAllByUser: () => '/agendas/get-all-by-user',
+    getById: (id: string) => `/agendas/get-by-id?id=${id}`,
+    create: () => '/agendas/create',
+    edit: (id: string) => `/agendas/edit?id=${id}`,
+    delete: (id: string) => `/agendas/delete?id=${id}`,
+  },
   columnas: {
     getAll: () => '/columnas/get-all',
     getById: (id: string) => `/columnas/get-by-id?id=${id}`,

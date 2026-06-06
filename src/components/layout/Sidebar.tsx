@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, ShieldCheck, ClipboardList, Settings, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -16,6 +16,7 @@ const items: NavItem[] = [
   { label: 'Contactos', to: '/contactos', icon: Contact2 },
   { label: 'Tratos', to: '/tratos', icon: Handshake },
   { label: 'Tableros', to: '/tableros', icon: KanbanSquare },
+  { label: 'Agenda', to: '/agenda', icon: CalendarClock },
   { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck },
   { label: 'Configuración', to: '/configuracion', icon: Settings },
 ];
