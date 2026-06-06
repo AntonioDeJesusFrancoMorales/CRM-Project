@@ -216,6 +216,8 @@ El schema Zod MUST marcar `fechaLimite` como **requerido** (no nullable, no opci
 
 `tareaUpdateSchema` MUST validar los mismos campos excepto `tratoId` (no se envia en edit segun `EditTareaRequest`). MUST NOT incluir campo `estado` en ninguno de los dos schemas (no existe en el back).
 
+`tareaUpdateSchema` MUST NOT usar `.partial()`: los campos `responsableId`, `titulo`, `tipo`, `prioridad` y `fechaLimite` son requeridos (todos `@NotNull`/`@NotBlank` en `EditTareaRequest.java`); `descripcion` MAY ser opcional/nullable. MUST NOT incluir `fechaCompletada` (no existe en `EditTareaRequest` — el back lo ignora). Alineado en Change 1 `alinear-contrato-fixes`.
+
 #### Scenario: Input valido completo pasa validacion [unit test]
 
 - GIVEN `{ tratoId: 'd1111111', responsableId: 'u2222222', titulo: 'Llamar al CTO', tipo: 'SEGUIMIENTO', prioridad: 'ALTA', fechaLimite: '2026-06-15T00:00:00' }`
