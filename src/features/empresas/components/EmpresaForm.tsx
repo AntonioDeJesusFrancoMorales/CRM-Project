@@ -11,6 +11,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { nullsToStrings } from '@/lib/form-utils';
 import {
   empresaCreateSchema,
@@ -30,10 +38,12 @@ const EMPTY_DEFAULTS: EmpresaCreateInput = {
   nombre: '',
   sector: '',
   telefono: '',
-  pagina_web: '',
+  paginaWeb: '',
   facebook: '',
   instagram: '',
   twitter: '',
+  estadoRelacion: 'PROSPECTO',
+  notas: '',
 };
 
 export function EmpresaForm({
@@ -110,7 +120,7 @@ export function EmpresaForm({
 
         <FormField
           control={form.control}
-          name="pagina_web"
+          name="paginaWeb"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Sitio Web</FormLabel>
@@ -158,6 +168,47 @@ export function EmpresaForm({
               <FormLabel>Twitter / X</FormLabel>
               <FormControl>
                 <Input placeholder="https://twitter.com/empresa" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="estadoRelacion"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estado de relación</FormLabel>
+              <Select value={field.value ?? 'PROSPECTO'} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger aria-label="Estado de relación">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="PROSPECTO">Prospecto</SelectItem>
+                  <SelectItem value="ACTIVO">Activo</SelectItem>
+                  <SelectItem value="INACTIVO">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notas"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notas</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Notas internas sobre la empresa..."
+                  {...field}
+                  value={field.value ?? ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -11,10 +11,13 @@ export const empresaCreateSchema = z.object({
     .regex(phoneRegex, { message: 'Teléfono inválido' })
     .optional()
     .or(z.literal('')),
-  pagina_web: z.string().url({ message: 'URL inválida' }).optional().or(z.literal('')),
+  paginaWeb: z.string().url({ message: 'URL inválida' }).optional().or(z.literal('')),
   facebook: z.string().max(150).optional().or(z.literal('')),
   instagram: z.string().max(150).optional().or(z.literal('')),
   twitter: z.string().max(150).optional().or(z.literal('')),
+  // Campos que Create/EditEmpresaRequest aceptan (opcionales).
+  estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']).optional(),
+  notas: z.string().max(2000).optional().or(z.literal('')),
 });
 
 export const empresaUpdateSchema = empresaCreateSchema.partial();
