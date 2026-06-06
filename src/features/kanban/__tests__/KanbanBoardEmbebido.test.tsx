@@ -20,7 +20,6 @@ import {
   fichasFixture,
   columnasFixture,
 } from '@/mocks/fixtures/tableros';
-import { COLUMN_PALETTE } from '../lib/columnPalette';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -296,9 +295,9 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
     expect(screen.queryByRole('combobox', { name: /^columna$/i })).not.toBeInTheDocument();
   });
 
-  it('(k2) submit válido invoca create + asignar y cierra el dialog', async () => {
+  it('(k2) submit válido invoca agregar-columna y cierra el dialog', async () => {
     let createCalled = false;
-    let asignarCalled = false;
+    let agregarCalled = false;
 
     server.use(
       http.get('/api/tableros/get-by-id', () =>
@@ -308,17 +307,11 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
       http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
       http.post('/api/columnas/create', () => {
         createCalled = true;
-        return HttpResponse.json({
-          id: 'new-col-emb',
-          nombre: 'Revisión',
-          color: COLUMN_PALETTE[0],
-          tipoTablero: 'TRATOS',
-          tipoColumna: 'PERSONALIZADA',
-        }, { status: 201 });
+        return HttpResponse.json({ id: 'x' }, { status: 201 });
       }),
-      http.post('/api/tableros/asignar-columna', () => {
-        asignarCalled = true;
-        return HttpResponse.json(tableroTratosFixture);
+      http.post('/api/tableros/agregar-columna', () => {
+        agregarCalled = true;
+        return HttpResponse.json(tableroTratosFixture, { status: 201 });
       }),
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
     );
@@ -353,11 +346,10 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
     await user.click(submitBtn!);
 
     await waitFor(() => {
-      expect(createCalled).toBe(true);
+      expect(agregarCalled).toBe(true);
     });
 
-    await waitFor(() => {
-      expect(asignarCalled).toBe(true);
-    });
+    // Flujo de una sola llamada: NO se usa el endpoint viejo de catálogo
+    expect(createCalled).toBe(false);
   });
 });

@@ -359,25 +359,19 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
     expect(conTrato.error?.flatten().fieldErrors.estadoTrato).toBeDefined();
   });
 
-  it('(j) nueva columna success invoca POST /columnas/create + POST asignar-columna y cierra el form', async () => {
+  it('(j) nueva columna success invoca POST /tableros/agregar-columna y cierra el form', async () => {
     const user = userEvent.setup();
     let createCalled = false;
-    let asignarCalled = false;
+    let agregarCalled = false;
 
     server.use(
       http.post('/api/columnas/create', () => {
         createCalled = true;
-        return HttpResponse.json({
-          id: 'nueva-col-001',
-          nombre: 'Revisión',
-          color: COLUMN_PALETTE[1],
-          tipoTablero: 'TRATOS',
-          tipoColumna: 'PERSONALIZADA',
-        }, { status: 201 });
+        return HttpResponse.json({ id: 'x' }, { status: 201 });
       }),
-      http.post('/api/tableros/asignar-columna', () => {
-        asignarCalled = true;
-        return HttpResponse.json(tableroTratosFixture);
+      http.post('/api/tableros/agregar-columna', () => {
+        agregarCalled = true;
+        return HttpResponse.json(tableroTratosFixture, { status: 201 });
       }),
       http.get('/api/columnas/get-all', () => HttpResponse.json([])),
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
@@ -416,11 +410,10 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
     await user.click(submitBtn!);
 
     await waitFor(() => {
-      expect(createCalled).toBe(true);
+      expect(agregarCalled).toBe(true);
     });
 
-    await waitFor(() => {
-      expect(asignarCalled).toBe(true);
-    });
+    // Flujo de una sola llamada: NO se usa el endpoint viejo de catálogo
+    expect(createCalled).toBe(false);
   });
 });

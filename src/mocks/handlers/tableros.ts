@@ -126,6 +126,33 @@ export const tablerosHandlers = [
     return HttpResponse.json(t);
   }),
 
+  // POST /tableros/agregar-columna?id= — crea la columna del catálogo Y la agrega al
+  // tablero en una sola operación (flujo vigente del front). Devuelve el tablero.
+  http.post(`${API}/tableros/agregar-columna`, async ({ request }) => {
+    await withDelay();
+    const tableroId = new URL(request.url).searchParams.get('id');
+    const t = tablerosFixture.find((x) => x.id === tableroId);
+    if (!t) return errors.notFound();
+
+    const body = (await request.json()) as Partial<
+      Pick<ColumnaTablero, 'nombre' | 'color' | 'limiteWip' | 'nota' | 'estadoTarea' | 'estadoTrato' | 'totalValorEstimado'>
+    >;
+
+    const nuevaId = crypto.randomUUID();
+    const nueva: ColumnaTablero = {
+      id: nuevaId,
+      nombre: body.nombre ?? 'Nueva columna',
+      color: body.color ?? '#FFFFFF',
+      limiteWip: body.limiteWip ?? null,
+      nota: body.nota ?? null,
+      estadoTarea: body.estadoTarea ?? null,
+      estadoTrato: body.estadoTrato ?? null,
+      totalValorEstimado: body.totalValorEstimado ?? 0,
+    };
+    t.columnas.push(nueva);
+    return HttpResponse.json(t, { status: 201 });
+  }),
+
   // DELETE /tableros/eliminar-columna?id=&columnaId= — quita la columna del tablero.
   // El back rechaza con 409 si la columna tiene fichas activas (hay que moverlas antes).
   http.delete(`${API}/tableros/eliminar-columna`, async ({ request }) => {

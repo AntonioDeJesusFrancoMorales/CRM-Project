@@ -314,18 +314,18 @@ describe('ColumnaCreateDialog — bloqueo de duplicados', () => {
 // ---------------------------------------------------------------------------
 
 describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
-  it('(k) submit válido llama POST /columnas/create y POST /tableros/asignar-columna, luego cierra', async () => {
+  it('(k) submit válido llama POST /tableros/agregar-columna, luego cierra', async () => {
     let createCalled = false;
-    let asignarBody: unknown = null;
+    let agregarBody: unknown = null;
 
     server.use(
       http.post('/api/columnas/create', () => {
         createCalled = true;
         return HttpResponse.json(COLUMNA_CREADA, { status: 201 });
       }),
-      http.post('/api/tableros/asignar-columna', async ({ request }) => {
-        asignarBody = await request.json();
-        return HttpResponse.json(tableroTratosFixture);
+      http.post('/api/tableros/agregar-columna', async ({ request }) => {
+        agregarBody = await request.json();
+        return HttpResponse.json(tableroTratosFixture, { status: 201 });
       }),
       http.get('/api/columnas/get-all', () => HttpResponse.json([])),
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
@@ -358,17 +358,18 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
     await waitFor(() => {
-      expect(createCalled).toBe(true);
+      expect(agregarBody).toBeTruthy();
     });
 
-    await waitFor(() => {
-      expect(asignarBody).toBeTruthy();
-    });
+    // Flujo de UNA llamada: NO se usa el endpoint viejo de catálogo
+    expect(createCalled).toBe(false);
 
-    // El payload de asignación TRATOS siempre envía totalValorEstimado: 0
-    // (el valor real es derivado en runtime, no se persiste desde el form)
-    const asignarPayload = asignarBody as Record<string, unknown>;
-    expect(asignarPayload?.totalValorEstimado).toBe(0);
+    // El body de agregar lleva la definición + config; totalValorEstimado siempre 0
+    // (valor derivado en runtime, no se persiste desde el form)
+    const agregarPayload = agregarBody as Record<string, unknown>;
+    expect(agregarPayload?.nombre).toBe('Mi columna nueva');
+    expect(agregarPayload?.totalValorEstimado).toBe(0);
+    expect(agregarPayload?.estadoTrato).toBeDefined();
 
     // El dialog debe cerrarse al completarse el flujo
     await waitFor(() => {
@@ -382,21 +383,21 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
 // ---------------------------------------------------------------------------
 
 describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
-  it('(l) tablero TAREAS: submit válido llama las dos APIs con estadoTarea', async () => {
-    let createBody: unknown = null;
-    let asignarBody: unknown = null;
+  it('(l) tablero TAREAS: submit válido llama agregar-columna con estadoTarea', async () => {
+    let createCalled = false;
+    let agregarBody: unknown = null;
 
     server.use(
-      http.post('/api/columnas/create', async ({ request }) => {
-        createBody = await request.json();
+      http.post('/api/columnas/create', () => {
+        createCalled = true;
         return HttpResponse.json(
           { ...COLUMNA_CREADA, tipoTablero: 'TAREAS' },
           { status: 201 },
         );
       }),
-      http.post('/api/tableros/asignar-columna', async ({ request }) => {
-        asignarBody = await request.json();
-        return HttpResponse.json(tableroTareasFixture);
+      http.post('/api/tableros/agregar-columna', async ({ request }) => {
+        agregarBody = await request.json();
+        return HttpResponse.json(tableroTareasFixture, { status: 201 });
       }),
       http.get('/api/columnas/get-all', () => HttpResponse.json([])),
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTareasFixture])),
@@ -433,15 +434,17 @@ describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
     await waitFor(() => {
-      expect(createBody).toBeTruthy();
-      expect(asignarBody).toBeTruthy();
+      expect(agregarBody).toBeTruthy();
     });
 
-    // El payload de asignación para TAREAS no debe tener totalValorEstimado != 0
-    const asignarPayload = asignarBody as Record<string, unknown>;
-    expect(asignarPayload?.totalValorEstimado).toBe(0);
-    expect(asignarPayload?.estadoTarea).toBeDefined();
-    expect(asignarPayload?.estadoTrato).toBeUndefined();
+    // Flujo de UNA llamada: NO se usa el endpoint viejo de catálogo
+    expect(createCalled).toBe(false);
+
+    // El body de agregar para TAREAS: totalValorEstimado 0, estadoTarea presente, sin estadoTrato
+    const agregarPayload = agregarBody as Record<string, unknown>;
+    expect(agregarPayload?.totalValorEstimado).toBe(0);
+    expect(agregarPayload?.estadoTarea).toBeDefined();
+    expect(agregarPayload?.estadoTrato).toBeUndefined();
 
     // El dialog cierra
     await waitFor(() => {

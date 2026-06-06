@@ -36,13 +36,15 @@ export const endpoints = {
     create: () => '/tableros/create',
     edit: (id: string) => `/tableros/edit?id=${id}`,
     delete: (id: string) => `/tableros/delete?id=${id}`,
+    // agregar-columna: crea la columna del catálogo Y la agrega al tablero en UNA
+    // sola llamada (body AgregarColumnaRequest). Reemplaza el flujo de 2 pasos
+    // create + asignar-columna.
+    agregarColumna: (tableroId: string) => `/tableros/agregar-columna?id=${tableroId}`,
     asignarColumna: (tableroId: string, columnaId: string) =>
       `/tableros/asignar-columna?id=${tableroId}&columnaId=${columnaId}`,
     eliminarColumna: (tableroId: string, columnaId: string) =>
       `/tableros/eliminar-columna?id=${tableroId}&columnaId=${columnaId}`,
     reordenarColumnas: (tableroId: string) => `/tableros/reordenar-columnas?id=${tableroId}`,
-    // Nota: /tableros/agregar-columna existe en el back pero está @Deprecated;
-    // el flujo vigente es asignar-columna (sobre columnas del catálogo).
   },
   columnas: {
     getAll: () => '/columnas/get-all',

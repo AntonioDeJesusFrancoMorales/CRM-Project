@@ -368,10 +368,9 @@ describe('useUpdateColumna', () => {
 });
 
 // ---------------------------------------------------------------------------
-// useCrearColumnaEnTablero — orquestador crear + asignar
-// Flujo: POST /columnas/create → POST /tableros/asignar-columna
-// Invalida ['columnas'] + ['tableros'] en éxito total.
-// Fallo parcial (crear OK + asignar falla): toast específico + error propagado.
+// useCrearColumnaEnTablero — UNA llamada: POST /tableros/agregar-columna?id=
+// El back crea la columna del catálogo Y la agrega al tablero en una operación.
+// Invalida ['columnas'] + ['tableros'] en éxito.
 // ---------------------------------------------------------------------------
 
 describe('useCrearColumnaEnTablero', () => {
@@ -382,20 +381,20 @@ describe('useCrearColumnaEnTablero', () => {
     totalValorEstimado: 0,
   };
 
-  it('encadena POST /columnas/create → POST /tableros/asignar-columna en éxito total', async () => {
+  it('hace UNA sola llamada a POST /tableros/agregar-columna con el body combinado', async () => {
     let createCalled = false;
-    let asignarCalled = false;
-    let asignarUrl: string | null = null;
+    let agregarUrl: string | null = null;
+    let agregarBody: Record<string, unknown> | null = null;
 
     server.use(
       http.post('/api/columnas/create', () => {
         createCalled = true;
         return HttpResponse.json(COLUMNA_FIXTURE, { status: 201 });
       }),
-      http.post('/api/tableros/asignar-columna', ({ request }) => {
-        asignarCalled = true;
-        asignarUrl = request.url;
-        return HttpResponse.json(TABLERO_FIXTURE);
+      http.post('/api/tableros/agregar-columna', async ({ request }) => {
+        agregarUrl = request.url;
+        agregarBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(TABLERO_FIXTURE, { status: 201 });
       }),
     );
 
@@ -404,27 +403,29 @@ describe('useCrearColumnaEnTablero', () => {
     const { result } = renderHook(() => useCrearColumnaEnTablero(), { wrapper: Wrapper });
 
     await act(async () => {
-      result.current.mutate({
-        columna: CREATE_PAYLOAD,
-        asignacion: ASIGNAR_DATA,
-      });
+      result.current.mutate({ columna: CREATE_PAYLOAD, asignacion: ASIGNAR_DATA });
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(createCalled).toBe(true);
-    expect(asignarCalled).toBe(true);
-    expect(asignarUrl).toContain(`columnaId=${COLUMNA_ID}`);
-    expect(asignarUrl).toContain(`id=${TABLERO_ID}`);
+    // Ya NO se llama al endpoint viejo de catálogo
+    expect(createCalled).toBe(false);
+    expect(agregarUrl).toContain(`id=${TABLERO_ID}`);
+    expect(agregarBody).toMatchObject({
+      nombre: CREATE_PAYLOAD.nombre,
+      tipoColumna: CREATE_PAYLOAD.tipoColumna,
+      limiteWip: 5,
+      estadoTrato: 'ABIERTO',
+      totalValorEstimado: 0,
+    });
+    // tipoTablero NO se envía (el back lo deriva del tablero)
+    expect(agregarBody).not.toHaveProperty('tipoTablero');
   });
 
-  it('invalida ["columnas"] y ["tableros"] en onSuccess total', async () => {
+  it('invalida ["columnas"] y ["tableros"] en onSuccess', async () => {
     server.use(
-      http.post('/api/columnas/create', () =>
-        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
-      ),
-      http.post('/api/tableros/asignar-columna', () =>
-        HttpResponse.json(TABLERO_FIXTURE),
+      http.post('/api/tableros/agregar-columna', () =>
+        HttpResponse.json(TABLERO_FIXTURE, { status: 201 }),
       ),
     );
 
@@ -435,10 +436,7 @@ describe('useCrearColumnaEnTablero', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
     await act(async () => {
-      result.current.mutate({
-        columna: CREATE_PAYLOAD,
-        asignacion: ASIGNAR_DATA,
-      });
+      result.current.mutate({ columna: CREATE_PAYLOAD, asignacion: ASIGNAR_DATA });
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -451,16 +449,13 @@ describe('useCrearColumnaEnTablero', () => {
     );
   });
 
-  it('muestra toast de éxito en onSuccess total', async () => {
+  it('muestra toast de éxito en onSuccess', async () => {
     const { toast } = await import('sonner');
     const toastSuccessSpy = vi.spyOn(toast, 'success');
 
     server.use(
-      http.post('/api/columnas/create', () =>
-        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
-      ),
-      http.post('/api/tableros/asignar-columna', () =>
-        HttpResponse.json(TABLERO_FIXTURE),
+      http.post('/api/tableros/agregar-columna', () =>
+        HttpResponse.json(TABLERO_FIXTURE, { status: 201 }),
       ),
     );
 
@@ -469,10 +464,7 @@ describe('useCrearColumnaEnTablero', () => {
     const { result } = renderHook(() => useCrearColumnaEnTablero(), { wrapper: Wrapper });
 
     await act(async () => {
-      result.current.mutate({
-        columna: CREATE_PAYLOAD,
-        asignacion: ASIGNAR_DATA,
-      });
+      result.current.mutate({ columna: CREATE_PAYLOAD, asignacion: ASIGNAR_DATA });
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -480,49 +472,14 @@ describe('useCrearColumnaEnTablero', () => {
     expect(toastSuccessSpy).toHaveBeenCalledWith('Columna creada y agregada al tablero');
   });
 
-  it('fallo parcial: crear OK + asignar falla → isError + toast específico', async () => {
+  it('si agregar falla → isError, toast de error y NO marca success', async () => {
     const { toast } = await import('sonner');
     const toastErrorSpy = vi.spyOn(toast, 'error');
 
     server.use(
-      http.post('/api/columnas/create', () =>
-        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
-      ),
-      http.post('/api/tableros/asignar-columna', () =>
+      http.post('/api/tableros/agregar-columna', () =>
         HttpResponse.json(
-          { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error al asignar' },
-          { status: 500 },
-        ),
-      ),
-    );
-
-    const { Wrapper } = setupTestWrapper();
-    const { useCrearColumnaEnTablero } = await import('../hooks/useCrearColumnaEnTablero');
-    const { result } = renderHook(() => useCrearColumnaEnTablero(), { wrapper: Wrapper });
-
-    await act(async () => {
-      result.current.mutate({
-        columna: CREATE_PAYLOAD,
-        asignacion: ASIGNAR_DATA,
-      });
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-
-    // Toast específico de fallo parcial — NO el genérico
-    expect(toastErrorSpy).toHaveBeenCalledWith(
-      'La columna se creó pero no se pudo agregar al tablero',
-    );
-  });
-
-  it('fallo parcial: crear OK + asignar falla → la mutación queda en estado de error (dialog NO cierra)', async () => {
-    server.use(
-      http.post('/api/columnas/create', () =>
-        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
-      ),
-      http.post('/api/tableros/asignar-columna', () =>
-        HttpResponse.json(
-          { status: 409, error: 'CONFLICT', message: 'Conflicto al asignar' },
+          { status: 409, error: 'CONFLICT', message: 'Conflicto al agregar' },
           { status: 409 },
         ),
       ),
@@ -533,15 +490,12 @@ describe('useCrearColumnaEnTablero', () => {
     const { result } = renderHook(() => useCrearColumnaEnTablero(), { wrapper: Wrapper });
 
     await act(async () => {
-      result.current.mutate({
-        columna: CREATE_PAYLOAD,
-        asignacion: ASIGNAR_DATA,
-      });
+      result.current.mutate({ columna: CREATE_PAYLOAD, asignacion: ASIGNAR_DATA });
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // isSuccess debe seguir siendo false (el dialog lee isSuccess para cerrarse)
     expect(result.current.isSuccess).toBe(false);
+    expect(toastErrorSpy).toHaveBeenCalledWith('Conflicto al agregar');
   });
 });
