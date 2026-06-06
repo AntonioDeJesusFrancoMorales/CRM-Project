@@ -20,6 +20,7 @@ export const endpoints = {
     getById: (id: string) => `/contactos/get-by-id?id=${id}`,
     create: () => '/contactos/create',
     edit: (id: string) => `/contactos/edit?id=${id}`,
+    cambiarEstado: (id: string) => `/contactos/cambiar-estado?id=${id}`,
     delete: (id: string) => `/contactos/delete?id=${id}`,
   },
   tratos: {
@@ -55,6 +56,7 @@ export const endpoints = {
     create: () => '/fichas/create',
     edit: (id: string) => `/fichas/edit?id=${id}`,
     delete: (id: string) => `/fichas/delete?id=${id}`,
+    moverColumna: (id: string) => `/fichas/mover-columna?id=${id}`,
   },
   usuarios: {
     getAll: () => '/usuarios/get-all',
