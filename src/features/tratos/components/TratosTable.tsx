@@ -1,5 +1,14 @@
 import { useNavigate } from 'react-router';
+import { MoreHorizontal } from 'lucide-react';
 import type { Contacto, TipoContrato, Trato, Usuario } from '@/api/types';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -32,6 +41,8 @@ interface TratosTableProps {
   contactos?: Contacto[];
   usuarios?: Usuario[];
   searchTerm?: string;
+  onEdit?: (trato: Trato) => void;
+  onDelete?: (trato: Trato) => void;
 }
 
 export function TratosTable({
@@ -39,6 +50,8 @@ export function TratosTable({
   contactos = [],
   usuarios = [],
   searchTerm,
+  onEdit,
+  onDelete,
 }: TratosTableProps) {
   const navigate = useNavigate();
 
@@ -52,6 +65,8 @@ export function TratosTable({
       )
     : tratos;
 
+  const showActions = !!(onEdit || onDelete);
+
   return (
     <Table>
       <TableHeader>
@@ -62,12 +77,13 @@ export function TratosTable({
           <TableHead>Contacto</TableHead>
           <TableHead>Responsable</TableHead>
           <TableHead>Cierre esperado</TableHead>
+          {showActions && <TableHead className="w-10" />}
         </TableRow>
       </TableHeader>
       <TableBody>
         {filtered.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+            <TableCell colSpan={showActions ? 7 : 6} className="py-8 text-center text-muted-foreground">
               {searchTerm
                 ? `No se encontraron tratos con "${searchTerm}"`
                 : 'No hay tratos registrados'}
@@ -93,6 +109,33 @@ export function TratosTable({
                 <TableCell>{contacto?.nombre ?? '—'}</TableCell>
                 <TableCell>{responsable?.nombre ?? '—'}</TableCell>
                 <TableCell>{formatDate(trato.fechaCierreEsperada)}</TableCell>
+                {showActions && (
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Acciones">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(trato)}>
+                            Editar
+                          </DropdownMenuItem>
+                        )}
+                        {onEdit && onDelete && <DropdownMenuSeparator />}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(trato)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })

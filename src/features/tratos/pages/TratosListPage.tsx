@@ -6,26 +6,49 @@
 
 import { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import type { Trato } from '@/api/types';
+import { isHttpError } from '@/api/http-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTabSync } from '@/lib/useTabSync';
 import { useTratos } from '../hooks/useTratos';
+import { useDeleteTrato } from '../hooks/useDeleteTrato';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TratosTable } from '../components/TratosTable';
 import { TratoCreateDialog } from '../components/TratoCreateDialog';
+import { TratoEditDialog } from '../components/TratoEditDialog';
+import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
 import { KanbanTabContent } from '@/features/kanban/components/KanbanTabContent';
 
 export function TratosListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Trato | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Trato | null>(null);
 
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
   const { data: tratos, isLoading, isError, refetch } = useTratos();
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
+  const deleteMutation = useDeleteTrato();
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+      onError: (err) => {
+        // 409: el trato tiene tareas asociadas; mostramos el mensaje del back.
+        if (isHttpError(err) && err.status === 409) {
+          toast.error(err.message);
+        }
+        setDeleteTarget(null);
+      },
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -96,6 +119,8 @@ export function TratosListPage() {
                 contactos={contactos}
                 usuarios={usuarios}
                 searchTerm={searchTerm}
+                onEdit={(trato) => setEditTarget(trato)}
+                onDelete={(trato) => setDeleteTarget(trato)}
               />
             </div>
           )}
@@ -109,6 +134,24 @@ export function TratosListPage() {
 
       {/* Dialog crear trato */}
       <TratoCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      {/* Dialog editar trato */}
+      {editTarget && (
+        <TratoEditDialog
+          open={!!editTarget}
+          onOpenChange={(open) => !open && setEditTarget(null)}
+          trato={editTarget}
+        />
+      )}
+
+      {/* Dialog eliminar trato */}
+      <TratoDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        nombre={deleteTarget?.nombre ?? ''}
+        onConfirm={handleConfirmDelete}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }
