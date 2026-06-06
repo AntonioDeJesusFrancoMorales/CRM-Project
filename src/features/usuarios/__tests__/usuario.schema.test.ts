@@ -63,7 +63,9 @@ describe('usuarioCreateSchema', () => {
 });
 
 describe('usuarioUpdateSchema', () => {
-  it('valida un objeto de edición sin initialPassword', () => {
+  // REQ-4: nombre y correo son REQUERIDOS; rolId es opcional.
+
+  it('valida un objeto de edición completo (nombre + correo + rolId)', () => {
     const result = usuarioUpdateSchema.safeParse({
       nombre: 'Carlos Actualizado',
       correo: 'carlos@crm.test',
@@ -72,9 +74,24 @@ describe('usuarioUpdateSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('acepta objeto parcial (solo nombre)', () => {
-    const result = usuarioUpdateSchema.safeParse({ nombre: 'Solo nombre' });
+  it('valida nombre + correo sin rolId (rolId es opcional)', () => {
+    const result = usuarioUpdateSchema.safeParse({ nombre: 'Juan', correo: 'j@j.com' });
     expect(result.success).toBe(true);
+  });
+
+  it('RECHAZA objeto solo con nombre (correo es requerido)', () => {
+    const result = usuarioUpdateSchema.safeParse({ nombre: 'Solo nombre' });
+    expect(result.success).toBe(false);
+  });
+
+  it('RECHAZA objeto solo con correo (nombre es requerido)', () => {
+    const result = usuarioUpdateSchema.safeParse({ correo: 'x@x.com' });
+    expect(result.success).toBe(false);
+  });
+
+  it('RECHAZA objeto vacío', () => {
+    const result = usuarioUpdateSchema.safeParse({});
+    expect(result.success).toBe(false);
   });
 
   it('NO tiene campo initialPassword', () => {
