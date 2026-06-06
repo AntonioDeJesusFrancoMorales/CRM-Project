@@ -15,6 +15,7 @@ import { useCambiarEstadoContacto } from '../hooks/useCambiarEstadoContacto';
 import { useFichas } from '@/features/kanban/hooks/useFichas';
 import { useTableros } from '@/features/kanban/hooks/useTableros';
 import { deriveEstadoTrato } from '@/features/kanban/lib/deriveEstadoTrato';
+import { getTableroPrincipal } from '@/features/kanban/lib/getTableroPrincipal';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -50,9 +51,9 @@ export function ContactoDetailPage() {
   const { data: tableros } = useTableros();
   const cambiarEstadoMutation = useCambiarEstadoContacto();
 
-  // Supuesto (NO CONFIRMADO): se asume que existe un único tablero de tipo TRATOS.
-  // Si hubiera varios, se toma el primero encontrado. Documentado en design.md §Open Questions.
-  const tableroTratos = tableros?.find((t) => t.tipoTablero === 'TRATOS');
+  // Si hay varios tableros TRATOS, se usa el principal (primero por creación),
+  // mismo criterio que el Kanban embebido — ver getTableroPrincipal.
+  const tableroTratos = getTableroPrincipal(tableros ?? [], 'TRATOS');
   const columnasTablTratos = tableroTratos?.columnas ?? [];
 
   const [editOpen, setEditOpen] = useState(false);

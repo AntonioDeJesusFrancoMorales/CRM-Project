@@ -198,66 +198,72 @@ describe('KanbanTabContent — 1 tablero del tipo', () => {
 // ---------------------------------------------------------------------------
 
 describe('KanbanTabContent — más de 1 tablero del tipo', () => {
+  // El segundo tablero se crea DESPUÉS (creadoEn posterior) y se coloca PRIMERO en
+  // el array de get-all, para probar que la selección es por FECHA DE CREACIÓN
+  // (primero por creación) y no por el orden en que vienen en la lista.
   const tableroTratos2 = {
     ...tableroTratosFixture,
     id: 'f2222222-ffff-2222-ffff-222222222222',
     nombre: 'Pipeline de Tratos 2',
+    creadoEn: '2026-05-01T08:00:00',
   };
 
-  it('(h) TRATOS: 2 tableros → muestra lista con links a /tableros/:id', async () => {
+  function mockBoards(): () => string | null {
+    let requestedId: string | null = null;
     server.use(
+      // tratos2 (creado después) viene PRIMERO en el array a propósito
       http.get('/api/tableros/get-all', () =>
-        HttpResponse.json([tableroTratosFixture, tableroTratos2]),
+        HttpResponse.json([tableroTratos2, tableroTratosFixture]),
       ),
+      http.get('/api/tableros/get-by-id', ({ request }) => {
+        const id = new URL(request.url).searchParams.get('id');
+        requestedId = id;
+        const t = [tableroTratosFixture, tableroTratos2].find((b) => b.id === id);
+        return HttpResponse.json(t ?? tableroTratosFixture);
+      }),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
     );
+    return () => requestedId;
+  }
+
+  it('(h) 2 tableros → renderiza el board del PRIMERO por creación, ignora el resto', async () => {
+    const getRequestedId = mockBoards();
 
     renderTabContent('TRATOS');
 
     await waitFor(() => {
-      expect(screen.getByText('Pipeline de Tratos')).toBeInTheDocument();
+      expect(screen.getByText('Por contactar')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Pipeline de Tratos 2')).toBeInTheDocument();
+    // El board cargado es el primero por creación (tableroTratosFixture, 2026-04-01),
+    // aunque venga DESPUÉS en el array.
+    expect(getRequestedId()).toBe(tableroTratosFixture.id);
+  });
 
-    // Los links deben apuntar a /tableros/:id
-    const links = screen.getAllByRole('link');
+  it('(i) 2 tableros → NO muestra lista de links a /tableros/:id', async () => {
+    mockBoards();
+
+    renderTabContent('TRATOS');
+
+    await waitFor(() => {
+      expect(screen.getByText('Por contactar')).toBeInTheDocument();
+    });
+
+    const links = screen.queryAllByRole('link');
     const tableroLinks = links.filter(
       (l) => l.getAttribute('href')?.startsWith('/tableros/'),
     );
-    expect(tableroLinks).toHaveLength(2);
-    expect(tableroLinks[0]).toHaveAttribute('href', `/tableros/${tableroTratosFixture.id}`);
-    expect(tableroLinks[1]).toHaveAttribute('href', `/tableros/${tableroTratos2.id}`);
+    expect(tableroLinks).toHaveLength(0);
   });
 
-  it('(i) TRATOS: 2 tableros → NO renderiza KanbanBoardEmbebido directamente', async () => {
-    server.use(
-      http.get('/api/tableros/get-all', () =>
-        HttpResponse.json([tableroTratosFixture, tableroTratos2]),
-      ),
-    );
+  it('(j) 2 tableros → EmptyState NO se muestra (hay tableros)', async () => {
+    mockBoards();
 
     renderTabContent('TRATOS');
 
     await waitFor(() => {
-      expect(screen.getByText('Pipeline de Tratos')).toBeInTheDocument();
-    });
-
-    // El board inline no debe estar activo — no hay columnas del tablero renderizadas
-    expect(screen.queryByText('Por contactar')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /asignar columna/i })).not.toBeInTheDocument();
-  });
-
-  it('(j) TRATOS: 2 tableros → EmptyState NO se muestra (hay tableros)', async () => {
-    server.use(
-      http.get('/api/tableros/get-all', () =>
-        HttpResponse.json([tableroTratosFixture, tableroTratos2]),
-      ),
-    );
-
-    renderTabContent('TRATOS');
-
-    await waitFor(() => {
-      expect(screen.getByText('Pipeline de Tratos')).toBeInTheDocument();
+      expect(screen.getByText('Por contactar')).toBeInTheDocument();
     });
 
     expect(screen.queryByText(/no hay tableros de este tipo/i)).not.toBeInTheDocument();
