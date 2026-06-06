@@ -51,7 +51,6 @@ export function useCrearTareaConFicha(): UseCrearTareaConFichaResult {
       // Paso 2: crear la ficha automáticamente (best-effort, degradación elegante)
       await crearFichaPara({
         id: createdTarea.id,
-        responsableId: createdTarea.responsableId,
       });
 
       return createdTarea;

@@ -82,6 +82,20 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
         </CardContent>
       </Card>
 
+      {/* Notas */}
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-base">Notas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {empresa.notas ? (
+            <p className="whitespace-pre-wrap text-sm">{empresa.notas}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin notas registradas.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Registro */}
       <Card className="lg:col-span-2">
         <CardHeader>

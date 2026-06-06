@@ -44,8 +44,10 @@ export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogPr
   };
 
   function handleSubmit(values: TareaCreateInput) {
-    // En edit, tratoId y responsableId no se incluyen en el update (solo campos editables).
+    // EditTareaRequest requiere responsableId, titulo, tipo, prioridad, fechaLimite.
+    // tratoId es inmutable — se pasa como prop fijo pero no se incluye en el update.
     const updateData: TareaUpdateInput = {
+      responsableId: values.responsableId,
       titulo: values.titulo,
       descripcion: values.descripcion,
       tipo: values.tipo,

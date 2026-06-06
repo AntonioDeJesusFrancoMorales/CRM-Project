@@ -184,9 +184,6 @@ export const fichasFixture: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd1111111-dddd-1111-dddd-111111111111',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-10T08:00:00Z',
     actualizadoEn: '2026-04-10T08:00:00Z',
   },
   {
@@ -195,9 +192,6 @@ export const fichasFixture: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-11T09:00:00Z',
     actualizadoEn: '2026-04-11T09:00:00Z',
   },
   {
@@ -206,9 +200,6 @@ export const fichasFixture: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd3333333-dddd-3333-dddd-333333333333',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-12T10:00:00Z',
     actualizadoEn: '2026-04-12T10:00:00Z',
   },
   // TAREA fichas — apuntan a columnas del tablero TAREAS
@@ -220,9 +211,6 @@ export const fichasFixture: Ficha[] = [
     tipoFicha: 'TAREA',
     tratoId: null,
     tareaId: 'e1111111-eeee-1111-eeee-111111111111',
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-13T08:00:00Z',
     actualizadoEn: '2026-04-13T08:00:00Z',
   },
   {
@@ -231,9 +219,6 @@ export const fichasFixture: Ficha[] = [
     tipoFicha: 'TAREA',
     tratoId: null,
     tareaId: 'e2222222-eeee-2222-eeee-222222222222',
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-14T09:00:00Z',
     actualizadoEn: '2026-04-14T09:00:00Z',
   },
 ];

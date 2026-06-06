@@ -24,8 +24,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
-import type { Ficha, FichaEditInput, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
-import { useUpdateFicha } from '@/features/kanban/hooks/useUpdateFicha';
+import type { Ficha, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
+import { useMoverFicha, type MoverFichaVars } from '@/features/kanban/hooks/useMoverFicha';
 import { useReordenarColumnas } from '@/features/kanban/hooks/useReordenarColumnas';
 import { ArrastreRecienteContext } from './arrastreReciente';
 import { KanbanColumn } from './KanbanColumn';
@@ -36,13 +36,13 @@ import { KanbanColumn } from './KanbanColumn';
 
 interface DragEndHandlerParams {
   fichas: Ficha[];
-  mutate: (vars: { id: string; data: FichaEditInput }) => void;
+  mutate: (vars: MoverFichaVars) => void;
 }
 
 /**
  * Función pura de lógica de drag-end exportada para testeo aislado.
  * Acepta DragEndEvent directamente (UniqueIdentifier = string | number).
- * Si la ficha se soltó en OTRA columna → llama mutate con el nuevo columnaId.
+ * Si la ficha se soltó en OTRA columna → llama mutate con el nuevo targetColumnaId.
  * Si misma columna o sin destino → no-op.
  */
 export function buildDragEndHandler({ fichas, mutate }: DragEndHandlerParams) {
@@ -60,16 +60,7 @@ export function buildDragEndHandler({ fichas, mutate }: DragEndHandlerParams) {
     // No-op si se soltó en la misma columna
     if (ficha.columnaId === columnaDestinoId) return;
 
-    // Construye FichaEditInput (sin creadoPor — inmutable en el back)
-    const data: FichaEditInput = {
-      columnaId: columnaDestinoId,
-      tipoFicha: ficha.tipoFicha,
-      tratoId: ficha.tratoId,
-      tareaId: ficha.tareaId,
-      responsableId: ficha.responsableId,
-    };
-
-    mutate({ id: fichaId, data });
+    mutate({ id: fichaId, targetColumnaId: columnaDestinoId });
   };
 }
 
@@ -128,7 +119,7 @@ interface KanbanBoardProps {
 // ---------------------------------------------------------------------------
 
 export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }: KanbanBoardProps) {
-  const { mutate } = useUpdateFicha();
+  const { mutate } = useMoverFicha();
   const { mutate: reordenarColumnas } = useReordenarColumnas();
 
   // Filtrar fichas por tipo (no hardcodear 'TRATO')

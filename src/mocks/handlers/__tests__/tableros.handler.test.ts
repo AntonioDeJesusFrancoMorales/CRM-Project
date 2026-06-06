@@ -200,7 +200,8 @@ describe('tableros MSW handler — POST /api/tableros/asignar-columna', () => {
 
 describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => {
   it('retorna el tablero con 200 cuando el id existe', async () => {
-    const nuevoOrden = tableroTratosFixture.columnas.map((c) => c.id);
+    // El wire format real del back usa List<ColumnaId> → [{value: uuid}], NO [uuid]
+    const nuevoOrden = tableroTratosFixture.columnas.map((c) => ({ value: c.id }));
     const res = await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -214,10 +215,11 @@ describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => 
   it('aplica el nuevoOrden: el tablero vuelve con las columnas reordenadas', async () => {
     const ordenOriginal = tableroTratosFixture.columnas.map((c) => c.id);
     const invertido = [...ordenOriginal].reverse();
+    // Enviar en wire format: [{value: uuid}]
     const res = await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoOrden: invertido }),
+      body: JSON.stringify({ nuevoOrden: invertido.map((id) => ({ value: id })) }),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as { columnas: { id: string }[] };
@@ -227,7 +229,7 @@ describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => 
     await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoOrden: ordenOriginal }),
+      body: JSON.stringify({ nuevoOrden: ordenOriginal.map((id) => ({ value: id })) }),
     });
   });
 
@@ -329,8 +331,9 @@ describe('fichas MSW handler — GET /api/fichas/get-all', () => {
       expect('columnaId' in f).toBe(true);
       expect('tipoFicha' in f).toBe(true);
       expect('tratoId' in f).toBe(true);
-      expect('creadoEn' in f).toBe(true);
       expect('actualizadoEn' in f).toBe(true);
+      // creadoEn no existe en FichaResponse real del back
+      expect('creadoEn' in f).toBe(false);
       // Sin snake_case
       expect('tipo_ficha' in f).toBe(false);
       expect('columna_id' in f).toBe(false);
@@ -358,8 +361,6 @@ describe('fichas MSW handler — POST /api/fichas/create', () => {
       tipoFicha: 'TRATO',
       tratoId: 'd1111111-dddd-1111-dddd-111111111111',
       tareaId: null,
-      responsableId: 'MOCK_USER',
-      creadoPor: 'MOCK_USER',
     };
     const res = await fetch('/api/fichas/create', {
       method: 'POST',
@@ -371,12 +372,12 @@ describe('fichas MSW handler — POST /api/fichas/create', () => {
       id: string;
       columnaId: string;
       tipoFicha: string;
-      creadoEn: string;
+      actualizadoEn: string;
     };
     expect(data.id).toBeTruthy();
     expect(data.columnaId).toBe(COLUMNA_ID_1);
     expect(data.tipoFicha).toBe('TRATO');
-    expect(data.creadoEn).toBeTruthy();
+    expect(data.actualizadoEn).toBeTruthy();
   });
 });
 
@@ -394,7 +395,6 @@ describe('fichas MSW handler — PUT /api/fichas/edit?id=', () => {
         tipoFicha: 'TRATO',
         tratoId: FICHA_1.tratoId,
         tareaId: null,
-        responsableId: FICHA_1.responsableId,
       }),
     });
     expect(res.status).toBe(200);
@@ -412,7 +412,6 @@ describe('fichas MSW handler — PUT /api/fichas/edit?id=', () => {
         tipoFicha: 'TRATO',
         tratoId: FICHA_2.tratoId,
         tareaId: null,
-        responsableId: FICHA_2.responsableId,
       }),
     });
     expect(res.status).toBe(200);

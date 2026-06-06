@@ -51,9 +51,6 @@ const FICHA_1: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   tareaId: null,
-  responsableId: 'usr1',
-  creadoPor: 'usr1',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 
@@ -63,9 +60,6 @@ const FICHA_2: Ficha = {
   tipoFicha: 'TRATO',
   tratoId: 'd2222222-dddd-2222-dddd-222222222222',
   tareaId: null,
-  responsableId: 'usr1',
-  creadoPor: 'usr1',
-  creadoEn: '2026-04-11T09:00:00Z',
   actualizadoEn: '2026-04-11T09:00:00Z',
 };
 
@@ -74,7 +68,7 @@ const FICHA_2: Ficha = {
 // ---------------------------------------------------------------------------
 
 describe('buildDragEndHandler — lógica pura de onDragEnd', () => {
-  it('(a) drag a OTRA columna llama mutate con el nuevo columnaId', () => {
+  it('(a) drag a OTRA columna llama mutate con el nuevo targetColumnaId', () => {
     const mutate = vi.fn();
     const fichas = [FICHA_1, FICHA_2];
 
@@ -88,7 +82,7 @@ describe('buildDragEndHandler — lógica pura de onDragEnd', () => {
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith({
       id: 'ficha-1',
-      data: expect.objectContaining({ columnaId: 'col-b' }),
+      targetColumnaId: 'col-b',
     });
   });
 
@@ -134,7 +128,7 @@ describe('buildDragEndHandler — lógica pura de onDragEnd', () => {
     expect(mutate).not.toHaveBeenCalled();
   });
 
-  it('(e) el payload incluye todos los campos de FichaEditInput (sin creadoPor)', () => {
+  it('(e) el payload usa MoverFichaVars: { id, targetColumnaId } (sin data extra)', () => {
     const mutate = vi.fn();
     const fichas = [FICHA_1];
 
@@ -145,13 +139,13 @@ describe('buildDragEndHandler — lógica pura de onDragEnd', () => {
       over: { id: 'col-b' },
     } as unknown as DragEndEvent);
 
-    const llamada = mutate.mock.calls[0]![0] as { id: string; data: Record<string, unknown> };
-    expect(llamada.id).toBe('ficha-1');
-    expect(llamada.data).toHaveProperty('columnaId', 'col-b');
-    expect(llamada.data).toHaveProperty('tipoFicha');
-    expect(llamada.data).toHaveProperty('responsableId');
-    // creadoPor NO debe estar en FichaEditInput
-    expect(llamada.data).not.toHaveProperty('creadoPor');
+    const llamada = mutate.mock.calls[0]![0] as Record<string, unknown>;
+    expect(llamada['id']).toBe('ficha-1');
+    expect(llamada['targetColumnaId']).toBe('col-b');
+    // No hay 'data' ni campos de FichaEditInput — el endpoint mover-columna solo necesita targetColumnaId
+    expect(llamada).not.toHaveProperty('data');
+    expect(llamada).not.toHaveProperty('responsableId');
+    expect(llamada).not.toHaveProperty('creadoPor');
   });
 });
 
@@ -236,9 +230,6 @@ describe('KanbanBoard — Batch 5: prop tipoFicha filtra fichas por tipo', () =>
         tipoFicha: 'TAREA',
         tratoId: null,
         tareaId: 'ta-abc',
-        responsableId: 'usr1',
-        creadoPor: 'usr1',
-        creadoEn: '2026-04-10T08:00:00Z',
         actualizadoEn: '2026-04-10T08:00:00Z',
       },
     ];
@@ -272,41 +263,35 @@ describe('KanbanBoard — Batch 5: prop tipoFicha filtra fichas por tipo', () =>
 // Test de integración HTTP: drag a otra columna → PUT fichas/edit
 // ---------------------------------------------------------------------------
 
-describe('KanbanBoard — integración HTTP (drag → PUT)', () => {
-  it('(i) drag a otra columna invoca PUT /api/fichas/edit?id= con nuevo columnaId', async () => {
+describe('KanbanBoard — integración HTTP (drag → PUT mover-columna)', () => {
+  it('(i) drag a otra columna invoca PUT /api/fichas/mover-columna?id= con { targetColumnaId }', async () => {
     const { Wrapper } = setupTestWrapper();
     let capturedBody: unknown = null;
+    let capturedUrl: string | null = null;
 
     server.use(
-      http.put('/api/fichas/edit', async ({ request }) => {
+      http.put('/api/fichas/mover-columna', async ({ request }) => {
+        capturedUrl = request.url;
         capturedBody = await request.json();
-        return HttpResponse.json({ ...FICHA_1, columnaId: 'col-b' });
+        return HttpResponse.json({ ...FICHA_1, columnaId: 'col-b', actualizadoEn: new Date().toISOString() });
       }),
       http.get('/api/fichas/get-all', () => HttpResponse.json([FICHA_1, FICHA_2])),
     );
 
     // Testeamos el handler directamente (no el drag DOM que jsdom no soporta)
-    // Importamos y usamos renderHook para obtener la mutación y simularla
     const { renderHook } = await import('@testing-library/react');
-    const { useUpdateFicha } = await import('../hooks/useUpdateFicha');
+    const { useMoverFicha } = await import('../hooks/useMoverFicha');
 
-    const { result } = renderHook(() => useUpdateFicha(), { wrapper: Wrapper });
+    const { result } = renderHook(() => useMoverFicha(), { wrapper: Wrapper });
 
     result.current.mutate({
       id: 'ficha-1',
-      data: {
-        columnaId: 'col-b',
-        tipoFicha: 'TRATO',
-        tratoId: 'd1111111-dddd-1111-dddd-111111111111',
-        tareaId: null,
-        responsableId: 'usr1',
-      },
+      targetColumnaId: 'col-b',
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(capturedBody).toEqual(
-      expect.objectContaining({ columnaId: 'col-b', tipoFicha: 'TRATO' }),
-    );
+    expect(capturedUrl).toContain('id=ficha-1');
+    expect(capturedBody).toEqual({ targetColumnaId: 'col-b' });
   });
 });

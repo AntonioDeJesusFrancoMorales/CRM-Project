@@ -84,7 +84,11 @@ El sistema MUST consumir `GET /api/tableros/get-by-id?id={tableroId}` para obten
 
 ### Requirement: Listar fichas del tablero
 
-El sistema MUST consumir `GET /api/fichas/get-all` y filtrar client-side las fichas cuyo `columnaId` este incluido en las columnas del tablero activo. La queryKey MUST ser `['fichas']`. En tableros TRATOS, las fichas con `tipoFicha !== 'TRATO'` MUST NOT mostrarse. En tableros TAREAS, las fichas con `tipoFicha !== 'TAREA'` MUST NOT mostrarse. El orden de fichas dentro de una columna MUST ser estable y derivado del back (campo `creadoEn` ascendente).
+El sistema MUST consumir `GET /api/fichas/get-all` y filtrar client-side las fichas cuyo `columnaId` este incluido en las columnas del tablero activo. La queryKey MUST ser `['fichas']`. En tableros TRATOS, las fichas con `tipoFicha !== 'TRATO'` MUST NOT mostrarse. En tableros TAREAS, las fichas con `tipoFicha !== 'TAREA'` MUST NOT mostrarse. El orden de fichas dentro de una columna MUST ser estable y derivado del back (campo `actualizadoEn` ascendente).
+
+**fichaSchema (FichaResponse del back — verificado contra `FichaResponse.java`):** El schema MUST incluir exactamente: `id`, `columnaId`, `tipoFicha`, `tratoId` (nullable), `tareaId` (nullable), `actualizadoEn`. El schema MUST NOT incluir `responsableId`, `creadoPor` ni `creadoEn` (esos campos no existen en `FichaResponse.java`; `FichaCommandMapper.java` los mapea a `Trato`/`Tarea`). Incluirlos provoca que `z.parse()` lance en CADA lectura real.
+
+**fichaCreateSchema / fichaEditSchema:** MUST NOT incluir `responsableId` ni `creadoPor`. Los campos de `CreateFichaRequest`/`EditFichaRequest` son: `columnaId`, `tipoFicha`, `tratoId`, `tareaId` unicamente.
 
 #### Scenario: Fichas se distribuyen en sus columnas correctas [integration test]
 
@@ -104,17 +108,23 @@ El sistema MUST consumir `GET /api/fichas/get-all` y filtrar client-side las fic
 - WHEN se renderiza el tablero TAREAS
 - THEN esa ficha NO aparece en ninguna columna
 
-#### Scenario: Orden de fichas es por creadoEn ascendente [component test]
+#### Scenario: fichaSchema.parse() exitoso con shape real de FichaResponse [unit test]
 
-- GIVEN dos fichas en la misma columna con `creadoEn` distintos
+- GIVEN la respuesta `{ id, columnaId, tipoFicha, tratoId, tareaId, actualizadoEn }` (sin responsableId, creadoPor, creadoEn)
+- WHEN se invoca `fichaSchema.parse(response)`
+- THEN no lanza error
+
+#### Scenario: Orden de fichas es por actualizadoEn ascendente [component test]
+
+- GIVEN dos fichas en la misma columna con `actualizadoEn` distintos
 - WHEN se renderiza la columna
-- THEN la ficha con `creadoEn` mas antiguo aparece primero
+- THEN la ficha con `actualizadoEn` mas antiguo aparece primero
 
 ---
 
 ### Requirement: Crear ficha de trato
 
-El sistema MUST exponer un dialog (`FichaCreateDialog`) abierto desde el botón "+" del header de cada `KanbanColumn`, con `columnaId` precargado. El formulario MUST incluir: selector de trato (solo tratos sin ficha activa, derivados de `useTratos()` filtrado contra `useFichas()`) y selector de responsable (`useUsuarios()`). El body enviado a `POST /api/fichas/create` MUST incluir `tipoFicha: 'TRATO'`, `tratoId`, `columnaId`, `responsableId`, y `creadoPor: '00000000-0000-0000-0000-000000000001'` (UUID fijo). Los errores 422 del servidor MUST mostrarse como `serverErrors` en el campo correspondiente. Tras éxito, la query `['fichas']` MUST invalidarse y el dialog cerrarse.
+El sistema MUST exponer un dialog (`FichaCreateDialog`) abierto desde el botón "+" del header de cada `KanbanColumn`, con `columnaId` precargado. El formulario MUST incluir: selector de trato (solo tratos sin ficha activa, derivados de `useTratos()` filtrado contra `useFichas()`). El body enviado a `POST /api/fichas/create` MUST incluir `tipoFicha: 'TRATO'`, `tratoId`, `columnaId`. MUST NOT incluir `responsableId` ni `creadoPor` (campos que no existen en `CreateFichaRequest.java` — el back los ignora via Jackson). Los errores 422 del servidor MUST mostrarse como `serverErrors` en el campo correspondiente. Tras éxito, la query `['fichas']` MUST invalidarse y el dialog cerrarse.
 
 #### Scenario: Dialog abre con columnaId precargado [component test]
 

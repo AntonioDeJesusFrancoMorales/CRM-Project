@@ -154,29 +154,74 @@ describe('tareaCreateSchema', () => {
 });
 
 describe('tareaUpdateSchema', () => {
-  it('(j) acepta objeto parcial sin tratoId', () => {
-    const result = tareaUpdateSchema.safeParse({
-      titulo: 'Nuevo título',
-    });
+  // REQ-3: tareaUpdateSchema requiere responsableId, titulo, tipo, prioridad, fechaLimite.
+  // NO incluye tratoId (inmutable) ni fechaCompletada (no existe en EditTareaRequest.java).
+  // descripcion es optional.
 
+  const VALID_UPDATE = {
+    responsableId: 'uuid-responsable-1111-1111-111111111111',
+    titulo: 'Título válido',
+    tipo: 'GENERAL' as const,
+    prioridad: 'MEDIA' as const,
+    fechaLimite: '2026-06-10T10:00:00',
+  };
+
+  it('(j) acepta objeto completo con todos los campos requeridos', () => {
+    const result = tareaUpdateSchema.safeParse(VALID_UPDATE);
     expect(result.success).toBe(true);
   });
 
-  it('(k) acepta objeto completamente vacío (todo opcional)', () => {
+  it('(k) rechaza objeto completamente vacío — requiere 5 campos', () => {
     const result = tareaUpdateSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
 
+  it('(j2) requiere responsableId', () => {
+    const { responsableId: _r, ...sin } = VALID_UPDATE;
+    expect(tareaUpdateSchema.safeParse(sin).success).toBe(false);
+  });
+
+  it('(j3) requiere titulo', () => {
+    const { titulo: _t, ...sin } = VALID_UPDATE;
+    expect(tareaUpdateSchema.safeParse(sin).success).toBe(false);
+  });
+
+  it('(j4) requiere tipo', () => {
+    const { tipo: _t, ...sin } = VALID_UPDATE;
+    expect(tareaUpdateSchema.safeParse(sin).success).toBe(false);
+  });
+
+  it('(j5) requiere prioridad', () => {
+    const { prioridad: _p, ...sin } = VALID_UPDATE;
+    expect(tareaUpdateSchema.safeParse(sin).success).toBe(false);
+  });
+
+  it('(j6) requiere fechaLimite', () => {
+    const { fechaLimite: _f, ...sin } = VALID_UPDATE;
+    expect(tareaUpdateSchema.safeParse(sin).success).toBe(false);
+  });
+
+  it('(j7) acepta descripcion opcional', () => {
+    const result = tareaUpdateSchema.safeParse({ ...VALID_UPDATE, descripcion: 'Texto' });
     expect(result.success).toBe(true);
+  });
+
+  it('(j8) acepta descripcion null', () => {
+    const result = tareaUpdateSchema.safeParse({ ...VALID_UPDATE, descripcion: null });
+    expect(result.success).toBe(true);
+  });
+
+  it('(j9) NO incluye fechaCompletada en el schema', () => {
+    expect('fechaCompletada' in tareaUpdateSchema.shape).toBe(false);
   });
 
   it('(l) rechaza si se incluye estado — campo no debe existir en update', () => {
     const result = tareaUpdateSchema.safeParse({
-      titulo: 'Nuevo título',
+      ...VALID_UPDATE,
       estado: 'pendiente', // NO debe estar en el schema de update
     });
 
     // Zod strip por defecto elimina campos extra sin rechazar;
-    // pero si el schema fue definido con .strict() o superRefine, fallará.
-    // En nuestro caso queremos que el campo sea silenciosamente eliminado (strip).
     // Lo que SÍ verificamos: el output parseado no incluye 'estado'.
     if (result.success) {
       expect(result.data).not.toHaveProperty('estado');
@@ -185,6 +230,7 @@ describe('tareaUpdateSchema', () => {
 
   it('(m) acepta tipo con enum del back en update', () => {
     const result = tareaUpdateSchema.safeParse({
+      ...VALID_UPDATE,
       tipo: 'SEGUIMIENTO',
       prioridad: 'ALTA',
     });
@@ -194,7 +240,8 @@ describe('tareaUpdateSchema', () => {
 
   it('(n) rechaza tipo con valor front-style en update', () => {
     const result = tareaUpdateSchema.safeParse({
-      tipo: 'demo', // front-style, debe fallar
+      ...VALID_UPDATE,
+      tipo: 'demo' as never, // front-style, debe fallar
     });
 
     expect(result.success).toBe(false);
@@ -202,7 +249,8 @@ describe('tareaUpdateSchema', () => {
 
   it('(o) rechaza prioridad numérica en update', () => {
     const result = tareaUpdateSchema.safeParse({
-      prioridad: 1, // numérico, debe fallar
+      ...VALID_UPDATE,
+      prioridad: 1 as never, // numérico, debe fallar
     });
 
     expect(result.success).toBe(false);

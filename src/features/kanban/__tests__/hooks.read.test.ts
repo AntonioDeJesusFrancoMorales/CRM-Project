@@ -72,9 +72,6 @@ const FICHAS_FIXTURE: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd1111111-dddd-1111-dddd-111111111111',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-10T08:00:00Z',
     actualizadoEn: '2026-04-10T08:00:00Z',
   },
   {
@@ -83,9 +80,6 @@ const FICHAS_FIXTURE: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-11T09:00:00Z',
     actualizadoEn: '2026-04-11T09:00:00Z',
   },
   {
@@ -94,9 +88,6 @@ const FICHAS_FIXTURE: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd3333333-dddd-3333-dddd-333333333333',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-12T10:00:00Z',
     actualizadoEn: '2026-04-12T10:00:00Z',
   },
 ];
@@ -410,7 +401,7 @@ describe('useFichas', () => {
     expect(deColumna.length).toBe(2);
   });
 
-  it('retorna campos del schema — id, columnaId, tipoFicha, tratoId, creadoEn', async () => {
+  it('retorna campos del schema — id, columnaId, tipoFicha, tratoId, actualizadoEn', async () => {
     server.use(
       http.get('/api/fichas/get-all', () => HttpResponse.json(FICHAS_FIXTURE)),
     );
@@ -426,7 +417,7 @@ describe('useFichas', () => {
     expect(ficha).toHaveProperty('columnaId');
     expect(ficha).toHaveProperty('tipoFicha');
     expect(ficha).toHaveProperty('tratoId');
-    expect(ficha).toHaveProperty('creadoEn');
+    expect(ficha).toHaveProperty('actualizadoEn');
   });
 });
 
@@ -443,9 +434,6 @@ const FICHAS_D1_D2: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd1111111-dddd-1111-dddd-111111111111',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-10T08:00:00Z',
     actualizadoEn: '2026-04-10T08:00:00Z',
   },
   {
@@ -454,9 +442,6 @@ const FICHAS_D1_D2: Ficha[] = [
     tipoFicha: 'TRATO',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
     tareaId: null,
-    responsableId: '22222222-2222-2222-2222-222222222222',
-    creadoPor: '22222222-2222-2222-2222-222222222222',
-    creadoEn: '2026-04-11T09:00:00Z',
     actualizadoEn: '2026-04-11T09:00:00Z',
   },
 ];
@@ -553,9 +538,6 @@ describe('useTratosSinFicha', () => {
         tipoFicha: 'TRATO',
         tratoId: 'd3333333-dddd-3333-dddd-333333333333',
         tareaId: null,
-        responsableId: '22222222-2222-2222-2222-222222222222',
-        creadoPor: '22222222-2222-2222-2222-222222222222',
-        creadoEn: '2026-04-13T11:00:00Z',
         actualizadoEn: '2026-04-13T11:00:00Z',
       },
     ];

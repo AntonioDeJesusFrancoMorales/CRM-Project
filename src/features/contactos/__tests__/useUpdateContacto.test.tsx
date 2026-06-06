@@ -14,7 +14,7 @@ describe('useUpdateContacto', () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useUpdateContacto(), { wrapper: Wrapper });
 
-    result.current.mutate({ id: EXISTING_ID, data: { nombre: 'Sofía Actualizada' } });
+    result.current.mutate({ id: EXISTING_ID, data: { nombre: 'Sofía Actualizada', estadoRelacion: 'ACTIVO' } });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -27,7 +27,7 @@ describe('useUpdateContacto', () => {
 
     const { result } = renderHook(() => useUpdateContacto(), { wrapper: Wrapper });
 
-    result.current.mutate({ id: EXISTING_ID, data: { nombre: 'Sofía Actualizada' } });
+    result.current.mutate({ id: EXISTING_ID, data: { nombre: 'Sofía Actualizada', estadoRelacion: 'ACTIVO' } });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -56,7 +56,7 @@ describe('useUpdateContacto', () => {
     // Intentar pasar empresaId y creadoPor — no deben llegar al back
     result.current.mutate({
       id: EXISTING_ID,
-      data: { nombre: 'Test' },
+      data: { nombre: 'Test', estadoRelacion: 'ACTIVO' },
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -79,7 +79,7 @@ describe('useUpdateContacto', () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useUpdateContacto(), { wrapper: Wrapper });
 
-    result.current.mutate({ id: 'id-inexistente', data: { nombre: 'X' } });
+    result.current.mutate({ id: 'id-inexistente', data: { nombre: 'X', estadoRelacion: 'ACTIVO' } });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect((result.current.error as Error & { status?: number }).status).toBe(404);

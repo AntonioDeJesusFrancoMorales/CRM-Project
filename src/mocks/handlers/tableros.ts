@@ -146,15 +146,17 @@ export const tablerosHandlers = [
     return HttpResponse.json(t);
   }),
 
-  // PUT /tableros/reordenar-columnas?id= — aplica nuevoOrden (permutación de ids)
+  // PUT /tableros/reordenar-columnas?id= — aplica nuevoOrden (permutación de ColumnaId records)
+  // El back usa List<ColumnaId> donde ColumnaId = record(UUID value).
+  // Jackson serializa/deserializa records con sus campos nominales → [{value: uuid}], NO [uuid].
   http.put(`${API}/tableros/reordenar-columnas`, async ({ request }) => {
     await withDelay();
     const id = new URL(request.url).searchParams.get('id');
     const t = tablerosFixture.find((x) => x.id === id);
     if (!t) return errors.notFound();
-    const body = (await request.json()) as { nuevoOrden?: string[] };
+    const body = (await request.json()) as { nuevoOrden?: Array<{ value: string }> };
     if (body.nuevoOrden && body.nuevoOrden.length > 0) {
-      const orden = body.nuevoOrden;
+      const orden = body.nuevoOrden.map((item) => item.value);
       // Reordena las columnas del tablero según la posición en nuevoOrden
       t.columnas = [...t.columnas].sort(
         (a, b) => orden.indexOf(a.id) - orden.indexOf(b.id),
@@ -281,7 +283,7 @@ export const tablerosHandlers = [
     return HttpResponse.json(fichasFixture);
   }),
 
-  // POST /fichas/create
+  // POST /fichas/create — responde con FichaResponse (sin responsableId/creadoPor/creadoEn)
   http.post(`${API}/fichas/create`, async ({ request }) => {
     await withDelay();
     const body = (await request.json()) as Record<string, unknown>;
@@ -291,9 +293,6 @@ export const tablerosHandlers = [
       tipoFicha: (body['tipoFicha'] as Ficha['tipoFicha']) ?? 'TRATO',
       tratoId: (body['tratoId'] as string | null) ?? null,
       tareaId: (body['tareaId'] as string | null) ?? null,
-      responsableId: String(body['responsableId'] ?? ''),
-      creadoPor: String(body['creadoPor'] ?? ''),
-      creadoEn: nowIso(),
       actualizadoEn: nowIso(),
     };
     fichasFixture.push(ficha);
@@ -319,5 +318,21 @@ export const tablerosHandlers = [
     if (idx === -1) return errors.notFound();
     fichasFixture.splice(idx, 1);
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // PUT /fichas/mover-columna?id= — endpoint dedicado para drag entre columnas
+  // body: { targetColumnaId: uuid }
+  // Responde con FichaResponse (sin responsableId/creadoPor/creadoEn)
+  http.put(`${API}/fichas/mover-columna`, async ({ request }) => {
+    await withDelay();
+    const id = new URL(request.url).searchParams.get('id');
+    const f = fichasFixture.find((x) => x.id === id);
+    if (!f) return errors.notFound();
+    const body = (await request.json()) as { targetColumnaId?: string };
+    if (body.targetColumnaId) {
+      f.columnaId = body.targetColumnaId;
+      f.actualizadoEn = nowIso();
+    }
+    return HttpResponse.json(f);
   }),
 ];

@@ -11,11 +11,13 @@ export const usuarioCreateSchema = z.object({
 });
 
 // Schema para editar usuario — alineado a EditUsuarioRequest.
+// nombre y correo: REQUERIDOS (back @NotBlank / @Email @NotBlank).
+// rolId: opcional (sin @NotNull en el back).
 // Sin initialPassword (no se edita por este endpoint).
 // Sin activo (READ-ONLY desde el back).
 export const usuarioUpdateSchema = z.object({
-  nombre: z.string().min(1, 'Nombre obligatorio').max(100, 'Nombre demasiado largo').optional(),
-  correo: z.string().email('Correo inválido').max(120, 'Correo demasiado largo').optional(),
+  nombre: z.string().min(1, 'Nombre obligatorio').max(100, 'Nombre demasiado largo'),
+  correo: z.string().email('Correo inválido').max(120, 'Correo demasiado largo'),
   rolId: z.string().min(1, 'El rol es requerido').optional(),
 });
 

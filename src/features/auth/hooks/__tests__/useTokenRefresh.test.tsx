@@ -75,7 +75,7 @@ describe('useTokenRefresh', () => {
     const { unmount } = renderHook(() => useTokenRefresh(), { wrapper });
 
     expect(registerOnTokenExpired).toHaveBeenCalledTimes(1);
-    const cleanup = (registerOnTokenExpired as Mock).mock.results[0].value as Mock;
+    const cleanup = (registerOnTokenExpired as Mock).mock.results[0]!.value as Mock;
 
     unmount();
 

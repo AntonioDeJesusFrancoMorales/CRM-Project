@@ -4,6 +4,7 @@
 // entidadId → tratoId / tareaId según tipoFicha al enviar al back.
 // Items (tratos o tareas sin ficha, ya mapeados a {id,label}) son pasados por el padre.
 // FichaForm ya NO importa useTratosSinFicha directamente.
+// responsableId NO existe en CreateFichaRequest — el back infiere el actor del JWT (ActorContext).
 // Homologa el patrón de TratoForm: rhf + zodResolver + serverErrors 422 via setError.
 
 import { useEffect } from 'react';
@@ -26,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import type { TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 
 // ---------------------------------------------------------------------------
@@ -41,7 +41,6 @@ export type ItemSinFicha = { id: string; label: string };
 
 export const fichaFormSchema = z.object({
   entidadId: z.string().min(1, 'Selecciona un trato'),
-  responsableId: z.string().min(1, 'Selecciona un responsable'),
 });
 
 export type FichaFormValues = z.infer<typeof fichaFormSchema>;
@@ -79,7 +78,6 @@ function resolveEntitySchema(tipoFicha: TipoFicha) {
   const msg = tipoFicha === 'TAREA' ? 'Selecciona una tarea' : 'Selecciona un trato';
   return z.object({
     entidadId: z.string().min(1, msg),
-    responsableId: z.string().min(1, 'Selecciona un responsable'),
   });
 }
 
@@ -97,15 +95,12 @@ export function FichaForm({
   isSubmitting = false,
   serverErrors,
 }: FichaFormProps) {
-  const { data: usuarios = [], isLoading: usuariosLoading } = useUsuarios();
-
   const schema = resolveEntitySchema(tipoFicha);
 
   const form = useForm<FichaFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       entidadId: '',
-      responsableId: '',
     },
   });
 
@@ -155,43 +150,6 @@ export function FichaForm({
                       {item.label}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Responsable — selector de usuarios activos */}
-        <FormField
-          control={form.control}
-          name="responsableId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Responsable{' '}
-                <span aria-hidden="true" className="text-destructive">*</span>
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? ''}
-                disabled={usuariosLoading}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={usuariosLoading ? 'Cargando responsables...' : 'Selecciona un responsable'}
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {usuarios
-                    .filter((u) => u.activo)
-                    .map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.nombre}
-                      </SelectItem>
-                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />

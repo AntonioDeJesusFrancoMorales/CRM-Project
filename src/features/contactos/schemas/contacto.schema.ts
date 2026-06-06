@@ -30,13 +30,17 @@ export const contactoCreateSchema = z.object({
     .string()
     .uuid({ message: 'ID de empresa inválido' }),
   estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']),
+  cargo: z.string().max(150).nullable().optional(),
   comoNosConocio: z.string().max(200).nullable().optional(),
   responsableId: z.string().uuid().nullable().optional(),
 });
 
 // empresaId y creadoPor son inmutables en el back — no van en el schema de edición.
+// nombre y estadoRelacion son REQUERIDOS: EditContactoRequest los marca
+// @NotBlank/@NotNull y el PUT /edit es reemplazo total. Para cambiar solo el
+// estado usar useCambiarEstadoContacto (endpoint dedicado).
 export const contactoUpdateSchema = z.object({
-  nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(150).optional(),
+  nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(150),
   correo: z
     .string()
     .email({ message: 'Correo inválido' })
@@ -47,7 +51,8 @@ export const contactoUpdateSchema = z.object({
     .regex(phoneRegex, { message: 'Teléfono inválido' })
     .nullable()
     .optional(),
-  estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']).optional(),
+  estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']),
+  cargo: z.string().max(150).nullable().optional(),
   comoNosConocio: z.string().max(200).nullable().optional(),
   responsableId: z.string().uuid().nullable().optional(),
 });
@@ -59,6 +64,7 @@ export const CONTACTO_EMPTY_DEFAULTS = {
   telefono: null,
   empresaId: '',
   estadoRelacion: 'PROSPECTO' as const,
+  cargo: null,
   comoNosConocio: null,
   responsableId: null,
 } satisfies z.input<typeof contactoCreateSchema>;

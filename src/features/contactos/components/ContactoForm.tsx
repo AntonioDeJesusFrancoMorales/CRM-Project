@@ -125,6 +125,26 @@ export function ContactoForm({
           )}
         />
 
+        {/* cargo */}
+        <FormField
+          control={form.control}
+          name="cargo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="contacto-cargo">Cargo</FormLabel>
+              <FormControl>
+                <Input
+                  id="contacto-cargo"
+                  placeholder="Ej. Gerente de Compras"
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* empresaId — requerido (@NotNull en el back) */}
         <FormField
           control={form.control}

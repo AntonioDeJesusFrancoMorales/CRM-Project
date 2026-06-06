@@ -36,6 +36,7 @@ export const contactosHandlers = [
       telefono: (body['telefono'] as string | null) ?? null,
       empresaId: String(body['empresaId'] ?? ''),
       estadoRelacion: ((body['estadoRelacion'] as Contacto['estadoRelacion']) ?? 'PROSPECTO'),
+      cargo: (body['cargo'] as string | null) ?? null,
       comoNosConocio: (body['comoNosConocio'] as string | null) ?? null,
       responsableId: (body['responsableId'] as string | null) ?? null,
       creadoPor: (body['creadoPor'] as string | null) ?? null,
@@ -46,7 +47,9 @@ export const contactosHandlers = [
     return HttpResponse.json(contacto, { status: 201 });
   }),
 
-  // PUT /api/contactos/edit?id= — actualiza contacto por query param (no PATCH)
+  // PUT /api/contactos/edit?id= — actualiza contacto por query param (no PATCH).
+  // El back hace REEMPLAZO TOTAL y valida nombre @NotBlank + estadoRelacion @NotNull.
+  // El mock replica esa validación para no enmascarar payloads incompletos.
   http.put(`${API}/contactos/edit`, async ({ request }) => {
     await withDelay();
     const url = new URL(request.url);
@@ -54,6 +57,22 @@ export const contactosHandlers = [
     const idx = contactosFixture.findIndex((c) => c.id === id);
     if (idx === -1) return errors.notFound();
     const body = (await request.json()) as Record<string, unknown>;
+
+    // Espejo de @NotBlank/@NotNull del back: si falta nombre o estadoRelacion → 400.
+    const nombre = body['nombre'];
+    if (typeof nombre !== 'string' || nombre.trim() === '') {
+      return HttpResponse.json(
+        { status: 400, error: 'BAD_REQUEST', message: 'nombre is required' },
+        { status: 400 },
+      );
+    }
+    if (!body['estadoRelacion']) {
+      return HttpResponse.json(
+        { status: 400, error: 'BAD_REQUEST', message: 'estadoRelacion is required' },
+        { status: 400 },
+      );
+    }
+
     // empresaId y creadoPor son inmutables — no se permiten en el body de edición.
     const { empresaId: _eid, creadoPor: _cp, ...safeBody } = body;
     void _eid;
@@ -63,6 +82,28 @@ export const contactosHandlers = [
       ...safeBody,
       actualizadoEn: nowIso(),
     } as Contacto;
+    return HttpResponse.json(contactosFixture[idx]);
+  }),
+
+  // PUT /api/contactos/cambiar-estado?id= — cambia SOLO estadoRelacion (body { nuevoEstado }).
+  http.put(`${API}/contactos/cambiar-estado`, async ({ request }) => {
+    await withDelay();
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    const idx = contactosFixture.findIndex((c) => c.id === id);
+    if (idx === -1) return errors.notFound();
+    const body = (await request.json()) as { nuevoEstado?: Contacto['estadoRelacion'] };
+    if (!body.nuevoEstado) {
+      return HttpResponse.json(
+        { status: 400, error: 'BAD_REQUEST', message: 'nuevoEstado is required' },
+        { status: 400 },
+      );
+    }
+    contactosFixture[idx] = {
+      ...contactosFixture[idx]!,
+      estadoRelacion: body.nuevoEstado,
+      actualizadoEn: nowIso(),
+    };
     return HttpResponse.json(contactosFixture[idx]);
   }),
 

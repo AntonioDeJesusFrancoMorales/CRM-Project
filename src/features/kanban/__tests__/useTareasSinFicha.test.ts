@@ -47,9 +47,6 @@ const FICHA_DE_TAREA: Ficha = {
   tipoFicha: 'TAREA',
   tratoId: null,
   tareaId: 'ta2222222-tttt-2222-tttt-222222222222', // referencia a TAREA_CON_FICHA
-  responsableId: '22222222-2222-2222-2222-222222222222',
-  creadoPor: '22222222-2222-2222-2222-222222222222',
-  creadoEn: '2026-04-10T08:00:00Z',
   actualizadoEn: '2026-04-10T08:00:00Z',
 };
 

@@ -145,9 +145,6 @@ describe('ContactoDetailPage', () => {
       tipoFicha: 'TRATO',
       tratoId: 'd3333333-dddd-3333-dddd-333333333333',
       tareaId: null,
-      responsableId: '22222222-2222-2222-2222-222222222222',
-      creadoPor: '22222222-2222-2222-2222-222222222222',
-      creadoEn: '2026-04-12T10:00:00Z',
       actualizadoEn: '2026-04-12T10:00:00Z',
     };
 

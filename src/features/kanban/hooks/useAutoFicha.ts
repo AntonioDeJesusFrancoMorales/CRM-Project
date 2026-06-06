@@ -14,13 +14,11 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { tableroSchema, type Tablero, type TipoTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { FichaCreateInput, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
-import { MOCK_USER_ID } from '@/features/kanban/lib/mockUser';
 import { tablerosKeys } from './useTableros';
 import { useCreateFicha } from './useCreateFicha';
 
 export interface AutoFichaEntity {
   id: string;
-  responsableId?: string;
 }
 
 export interface UseAutoFichaResult {
@@ -62,14 +60,12 @@ export function useAutoFicha(tipoTablero: TipoTablero, tipoFicha: TipoFicha): Us
       return;
     }
 
-    // Construir payload según tipoFicha
+    // Construir payload según tipoFicha (sin responsableId/creadoPor — back infiere del JWT)
     const fichaPayload: FichaCreateInput = {
       columnaId: primeraColumna.id,
       tipoFicha,
       tratoId: tipoFicha === 'TRATO' ? entity.id : null,
       tareaId: tipoFicha === 'TAREA' ? entity.id : null,
-      responsableId: entity.responsableId ?? MOCK_USER_ID,
-      creadoPor: MOCK_USER_ID,
     };
 
     // La creación de ficha es best-effort: si falla, la entidad ya fue creada

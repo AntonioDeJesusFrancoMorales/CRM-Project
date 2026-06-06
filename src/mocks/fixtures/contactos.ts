@@ -15,6 +15,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 111 0001',
     empresaId: 'a1111111-aaaa-1111-aaaa-111111111111', // Innovatech Solutions
     estadoRelacion: 'PROSPECTO',
+    cargo: null,
     comoNosConocio: null,
     responsableId: null,
     creadoPor: null,
@@ -29,6 +30,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 222 0002',
     empresaId: 'a2222222-aaaa-2222-aaaa-222222222222', // Corporativo Maya
     estadoRelacion: 'PROSPECTO',
+    cargo: 'Gerente de Compras',
     comoNosConocio: 'Referido',
     responsableId: '11111111-1111-1111-1111-111111111111',
     creadoPor: '11111111-1111-1111-1111-111111111111',
@@ -43,6 +45,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 333 0003',
     empresaId: 'a1111111-aaaa-1111-aaaa-111111111111', // Innovatech Solutions
     estadoRelacion: 'ACTIVO',
+    cargo: 'Directora de TI',
     comoNosConocio: 'Conferencia de tecnología 2025',
     responsableId: '22222222-2222-2222-2222-222222222222',
     creadoPor: '22222222-2222-2222-2222-222222222222',
@@ -57,6 +60,7 @@ export const contactosFixture: Contacto[] = [
     telefono: null,
     empresaId: 'a3333333-aaaa-3333-aaaa-333333333333', // Distribuidora del Sur
     estadoRelacion: 'ACTIVO',
+    cargo: null,
     comoNosConocio: 'Redes sociales',
     responsableId: null,
     creadoPor: null,
@@ -71,6 +75,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 555 0005',
     empresaId: 'a3333333-aaaa-3333-aaaa-333333333333', // Distribuidora del Sur
     estadoRelacion: 'INACTIVO',
+    cargo: 'Coordinadora de Logística',
     comoNosConocio: 'Búsqueda web',
     responsableId: null,
     creadoPor: null,
@@ -85,6 +90,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 555 1001',
     empresaId: 'a1111111-aaaa-1111-aaaa-111111111111', // Innovatech Solutions
     estadoRelacion: 'ACTIVO',
+    cargo: 'CEO',
     comoNosConocio: 'Evento',
     responsableId: '22222222-2222-2222-2222-222222222222',
     creadoPor: '11111111-1111-1111-1111-111111111111',
@@ -99,6 +105,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 555 1002',
     empresaId: 'a2222222-aaaa-2222-aaaa-222222222222', // Corporativo Maya
     estadoRelacion: 'ACTIVO',
+    cargo: 'Gerente General',
     comoNosConocio: 'Referido',
     responsableId: '22222222-2222-2222-2222-222222222222',
     creadoPor: '11111111-1111-1111-1111-111111111111',
@@ -115,6 +122,7 @@ export const contactosFixture: Contacto[] = [
     telefono: '+52 961 666 0006',
     empresaId: 'a2222222-aaaa-2222-aaaa-222222222222', // Corporativo Maya
     estadoRelacion: 'INACTIVO',
+    cargo: null,
     comoNosConocio: 'Evento',
     responsableId: '11111111-1111-1111-1111-111111111111',
     creadoPor: '11111111-1111-1111-1111-111111111111',

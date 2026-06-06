@@ -6,8 +6,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { http, HttpResponse } from 'msw';
-import { server } from '@/test/server';
 
 import { FichaForm } from '../components/FichaForm';
 
@@ -37,23 +35,6 @@ function renderForm(
     onSubmit: vi.fn(),
     ...props,
   };
-
-  // Stub usuarios endpoint so responsable selector works
-  server.use(
-    http.get('/api/usuarios/get-all', () =>
-      HttpResponse.json([
-        {
-          id: 'usr-1',
-          nombre: 'Ana López',
-          correo: 'ana@test.com',
-          rol_sistema: 'usuario',
-          rol_empresa: 'Ventas',
-          activo: true,
-          creado_en: '2026-01-01T00:00:00Z',
-        },
-      ]),
-    ),
-  );
 
   return render(
     <QueryClientProvider client={qc}>

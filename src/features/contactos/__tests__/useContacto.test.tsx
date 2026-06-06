@@ -16,6 +16,7 @@ const KNOWN_CONTACTO: Contacto = {
   telefono: '+52 961 111 0001',
   empresaId: 'a1111111-aaaa-1111-aaaa-111111111111',
   estadoRelacion: 'PROSPECTO',
+  cargo: null,
   comoNosConocio: null,
   responsableId: null,
   creadoPor: null,

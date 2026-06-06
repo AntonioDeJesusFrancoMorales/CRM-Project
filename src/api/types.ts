@@ -58,6 +58,7 @@ export interface Contacto {
   telefono: string | null;
   empresaId: string;
   estadoRelacion: EstadoRelacion;
+  cargo: string | null;
   comoNosConocio: string | null;
   responsableId: string | null;
   creadoPor: string | null;
@@ -72,17 +73,29 @@ export interface ContactoCreatePayload {
   telefono?: string | null;
   empresaId: string;
   estadoRelacion: EstadoRelacion;
+  cargo?: string | null;
   comoNosConocio?: string | null;
   responsableId?: string | null;
 }
 
+// EditContactoRequest del back: nombre (@NotBlank) y estadoRelacion (@NotNull) son
+// REQUERIDOS. El PUT /contactos/edit es REEMPLAZO TOTAL, no PATCH parcial — por eso
+// el payload no puede dejarlos opcionales. Para cambiar SOLO el estado, usar el
+// endpoint dedicado /contactos/cambiar-estado (useCambiarEstadoContacto).
 export interface ContactoUpdatePayload {
-  nombre?: string;
+  nombre: string;
+  estadoRelacion: EstadoRelacion;
   correo?: string | null;
   telefono?: string | null;
-  estadoRelacion?: EstadoRelacion;
+  cargo?: string | null;
   comoNosConocio?: string | null;
   responsableId?: string | null;
+}
+
+// Body de PUT /contactos/cambiar-estado?id= (endpoint dedicado de contactos).
+// La empresa cambia su estado vía el form de edición (PUT /empresas/edit), no por este endpoint.
+export interface CambiarEstadoPayload {
+  nuevoEstado: EstadoRelacion;
 }
 
 export interface Trato {

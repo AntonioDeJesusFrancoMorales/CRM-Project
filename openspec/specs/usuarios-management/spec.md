@@ -233,6 +233,8 @@ El sistema MUST enviar `POST /api/usuarios/create` con body segun `CreateUsuario
 
 El sistema MUST enviar `PUT /api/usuarios/edit?id={uuid}` via `endpoints.usuarios.edit(id)` para editar. El body MUST seguir `EditUsuarioRequest`: `nombre`, `correo`, `rolId` (opcional, preserva existente si null), `keycloakId` (opcional). MUST NOT enviar `activo` ni `initialPassword` en el body de edicion. El hook se llama `useEditUsuario`.
 
+`usuarioUpdateSchema` MUST validar `nombre` (`z.string().min(1).max(100)`, SIN `.optional()`) y `correo` (`z.string().email().max(120)`, SIN `.optional()`) como requeridos — ambos son `@NotBlank`/`@Email` en `EditUsuarioRequest.java`. `rolId` MAY continuar como `.optional()`. Alineado en Change 1 `alinear-contrato-fixes`.
+
 #### Scenario: Edicion exitosa invoca PUT con id como query param [integration test]
 
 - GIVEN existe usuario `u1111111` con nombre "Carlos"

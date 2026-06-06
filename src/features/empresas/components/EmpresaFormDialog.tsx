@@ -84,10 +84,12 @@ function EditDialog({
     nombre: empresa.nombre,
     sector: empresa.sector ?? '',
     telefono: empresa.telefono ?? '',
-    pagina_web: empresa.paginaWeb ?? '',
+    paginaWeb: empresa.paginaWeb ?? '',
     facebook: empresa.facebook ?? '',
     instagram: empresa.instagram ?? '',
     twitter: empresa.twitter ?? '',
+    estadoRelacion: empresa.estadoRelacion,
+    notas: empresa.notas ?? '',
   };
 
   function handleSubmit(values: EmpresaCreateInput) {

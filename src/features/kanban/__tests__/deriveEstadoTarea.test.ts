@@ -50,9 +50,6 @@ const fichaBase: Ficha = {
   tipoFicha: 'TAREA',
   tratoId: null,
   tareaId: 'tarea-1',
-  responsableId: 'user-1',
-  creadoPor: 'user-1',
-  creadoEn: '2026-01-01T00:00:00Z',
   actualizadoEn: '2026-01-01T00:00:00Z',
 };
 

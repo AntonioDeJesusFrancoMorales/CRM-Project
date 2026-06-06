@@ -11,8 +11,9 @@ export const tipoFicha = z.enum(['TRATO', 'TAREA']);
 export type TipoFicha = z.infer<typeof tipoFicha>;
 
 // ---------------------------------------------------------------------------
-// FichaResponse — shape del back para lectura
-// creadoEn / actualizadoEn: Instant del back, serializado como string ISO
+// FichaResponse — shape del back para lectura (alineado a FichaResponse.java)
+// El back devuelve exactamente: id, columnaId, tipoFicha, tratoId, tareaId, actualizadoEn
+// responsableId, creadoPor, creadoEn NO existen en FichaResponse.java
 // tratoId / tareaId: nullable — TRATO requiere tratoId, TAREA requiere tareaId
 // ---------------------------------------------------------------------------
 
@@ -22,17 +23,15 @@ export const fichaSchema = z.object({
   tipoFicha,
   tratoId: z.string().nullable(),
   tareaId: z.string().nullable(),
-  responsableId: z.string(),
-  creadoPor: z.string(),
-  creadoEn: z.string(),
   actualizadoEn: z.string(),
 });
 
 export type Ficha = z.infer<typeof fichaSchema>;
 
 // ---------------------------------------------------------------------------
-// CreateFichaRequest — payload para POST /fichas/create
-// creadoPor REQUERIDO (inmutable una vez creado — no en EditFichaRequest)
+// CreateFichaRequest — payload para POST /fichas/create (alineado a CreateFichaRequest.java)
+// responsableId y creadoPor NO existen en CreateFichaRequest.java
+// El back infiere el actor del JWT (ActorContext)
 // ---------------------------------------------------------------------------
 
 export const fichaCreateSchema = z.object({
@@ -40,15 +39,13 @@ export const fichaCreateSchema = z.object({
   tipoFicha,
   tratoId: z.string().nullable().optional(),
   tareaId: z.string().nullable().optional(),
-  responsableId: z.string(),
-  creadoPor: z.string(),
 });
 
 export type FichaCreateInput = z.infer<typeof fichaCreateSchema>;
 
 // ---------------------------------------------------------------------------
-// EditFichaRequest — payload para PUT /fichas/edit?id=
-// Sin creadoPor (inmutable en el back — el comment del DTO lo aclara)
+// EditFichaRequest — payload para PUT /fichas/edit?id= (alineado a EditFichaRequest.java)
+// Sin creadoPor (inmutable) ni responsableId (no está en EditFichaRequest.java)
 // Se usa para mover ficha (cambiar columnaId) y para otras ediciones
 // ---------------------------------------------------------------------------
 
@@ -57,7 +54,6 @@ export const fichaEditSchema = z.object({
   tipoFicha,
   tratoId: z.string().nullable().optional(),
   tareaId: z.string().nullable().optional(),
-  responsableId: z.string(),
 });
 
 export type FichaEditInput = z.infer<typeof fichaEditSchema>;
