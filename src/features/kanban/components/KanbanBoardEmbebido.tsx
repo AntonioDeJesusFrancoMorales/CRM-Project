@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTablero } from '../hooks/useTablero';
 import { useFichas } from '../hooks/useFichas';
-import { useBackfillFichas } from '../hooks/useBackfillFichas';
 import { KanbanBoard } from './KanbanBoard';
 import { ColumnaCreateDialog } from './ColumnaCreateDialog';
 import type { TipoFicha } from '../schemas/ficha.schema';
@@ -34,9 +33,9 @@ export function KanbanBoardEmbebido({ tableroId }: KanbanBoardEmbebidoProps) {
   const tipoTableroActual = tablero?.tipoTablero ?? 'TRATOS';
   const tipoFicha: TipoFicha = tipoTableroActual === 'TAREAS' ? 'TAREA' : 'TRATO';
 
-  // Backfill automático: crea fichas en silencio para entidades sin ficha.
-  // Corre en segundo plano — no bloquea el render del board.
-  useBackfillFichas(tipoTableroActual, tipoFicha);
+  // NOTA: ya no se hace backfill de fichas en el front. El back crea la ficha al crear
+  // la tarea/trato (CreateTareaService/CreateTratoService). El backfill client-side
+  // duplicaba fichas por una race con la invalidación de ['fichas'].
 
   // Fichas filtradas: por tipoFicha derivado del tipo de tablero + columnaId presente
   const columnaIds = new Set(tablero?.columnas.map((c) => c.id) ?? []);
