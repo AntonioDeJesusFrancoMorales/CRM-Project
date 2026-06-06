@@ -3,7 +3,11 @@
 // Bloqueo de duplicados client-side: compara contra nombresExistentes (excluye la propia).
 // Color legacy: si el color actual no está en la paleta, se muestra como swatch adicional
 // en ColorPaletteField (via prop legacyColor). El usuario puede mantenerlo o elegir otro.
-// Submit: useUpdateColumna.mutate({ id, data: { nombre, color } }).
+// Submit: useUpdateColumna.mutate({ id, data: { nombre, color, tipoTablero, tipoColumna } }).
+// tipoTablero/tipoColumna: el back los EXIGE en EditColumnaCommand (no @NotNull en el DTO,
+//   pero el dominio valida). El board (ColumnaTableroDto) NO los expone, así que se resuelven
+//   cruzando columna.id contra el catálogo (useColumnas → ColumnaResponse). Hay que mandar
+//   los valores REALES: el back hace reconstitute() y mandar un tipo erróneo corrompe la columna.
 // onSuccess → cierra el dialog. onError → queda abierto (el hook emite el toast).
 
 import { useEffect } from 'react';
@@ -30,6 +34,7 @@ import { z } from 'zod';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import { ColorPaletteField } from './ColorPaletteField';
 import { useUpdateColumna } from '../hooks/useUpdateColumna';
+import { useColumnas } from '../hooks/useColumnas';
 
 // ---------------------------------------------------------------------------
 // Schema interno del form — nombre + color (hex cualquiera)
@@ -77,6 +82,11 @@ export function ColumnaEditDialog({
 }: ColumnaEditDialogProps) {
   const updateMutation = useUpdateColumna();
 
+  // El board (ColumnaTableroDto) no expone tipoTablero/tipoColumna, pero el back los EXIGE
+  // en el edit. Se resuelven cruzando el id contra el catálogo (mismo id que la columna del board).
+  const { data: catalogo = [] } = useColumnas();
+  const columnaCatalogo = catalogo.find((c) => c.id === columna.id);
+
   const colorInicial = columna.color ?? '#94a3b8';
   const nombreInicial = columna.nombre ?? '';
 
@@ -112,12 +122,24 @@ export function ColumnaEditDialog({
       return;
     }
 
+    // El back valida tipoTablero/tipoColumna en EditColumnaCommand. Sin la entrada del
+    // catálogo no podemos resolverlos; abortamos con un error de form en vez de mandar
+    // un PUT que el back rechazaría (o peor, corromper el tipo con un valor inventado).
+    if (!columnaCatalogo) {
+      form.setError('nombre', {
+        message: 'No se pudo resolver el tipo de la columna. Recargá la página e intentá de nuevo.',
+      });
+      return;
+    }
+
     updateMutation.mutate(
       {
         id: columna.id,
         data: {
           nombre: values.nombre.trim(),
           color: values.color,
+          tipoTablero: columnaCatalogo.tipoTablero,
+          tipoColumna: columnaCatalogo.tipoColumna,
         },
       },
       {

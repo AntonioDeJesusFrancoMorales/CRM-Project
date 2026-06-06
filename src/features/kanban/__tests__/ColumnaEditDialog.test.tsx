@@ -12,7 +12,7 @@ import { MemoryRouter } from 'react-router';
 
 import { ColumnaEditDialog } from '../components/ColumnaEditDialog';
 import { server } from '@/test/server';
-import { columnasTablTratosIds } from '@/mocks/fixtures/tableros';
+import { columnasTablTratosIds, columnasFixture } from '@/mocks/fixtures/tableros';
 import { COLUMN_PALETTE } from '../lib/columnPalette';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 
@@ -286,7 +286,9 @@ describe('ColumnaEditDialog — submit OK', () => {
           tipoColumna: 'PERSONALIZADA',
         });
       }),
-      http.get('/api/columnas/get-all', () => HttpResponse.json([])),
+      // El catálogo debe traer la columna editada — el dialog cruza el id para
+      // resolver tipoTablero/tipoColumna (el back los exige en el PUT).
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
       http.get('/api/tableros/get-all', () => HttpResponse.json([])),
     );
 
@@ -318,6 +320,10 @@ describe('ColumnaEditDialog — submit OK', () => {
     const body = capturedBody as Record<string, unknown>;
     expect(body.nombre).toBe('Nombre modificado');
     expect(body.color).toBe(COLUMNA_PALETTE_COLOR.color);
+    // tipoTablero/tipoColumna resueltos desde el catálogo — el back los EXIGE.
+    // enNegociacion en el catálogo es TRATOS / PERSONALIZADA.
+    expect(body.tipoTablero).toBe('TRATOS');
+    expect(body.tipoColumna).toBe('PERSONALIZADA');
 
     // El dialog debe cerrarse
     await waitFor(() => {
