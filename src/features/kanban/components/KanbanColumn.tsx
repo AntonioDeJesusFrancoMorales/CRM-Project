@@ -32,7 +32,7 @@ import { esPredeterminada } from '@/features/kanban/lib/esPredeterminada';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { TIPO_TAREA_OPTIONS, PRIORIDAD_OPTIONS } from '@/features/tareas/schemas/tarea.schema';
-import { formatDate } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
 import { FichaCreateDialog } from './FichaCreateDialog';
 import { ColumnaEditDialog } from './ColumnaEditDialog';
 import { KanbanCard } from './KanbanCard';
@@ -104,11 +104,6 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
   return [...fichas].sort(
     (a, b) => new Date(a.actualizadoEn).getTime() - new Date(b.actualizadoEn).getTime(),
   );
-}
-
-/** Formatea un número como moneda USD en español. */
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('es', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 }
 
 /**
