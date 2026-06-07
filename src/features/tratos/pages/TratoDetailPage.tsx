@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isHttpError } from '@/api/http-error';
 import { useTabSync } from '@/lib/useTabSync';
@@ -79,9 +81,26 @@ export function TratoDetailPage() {
 
   if (isLoading) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        Cargando trato...
-      </p>
+      <div className="space-y-6" aria-busy="true" aria-label="Cargando trato">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-9 w-9 rounded-md" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64" />
+            <Skeleton className="h-5 w-10 rounded-full" />
+          </div>
+        </div>
+        <Skeleton className="h-9 w-48 rounded-md" />
+        <Card>
+          <CardContent className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-1">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -95,12 +114,14 @@ export function TratoDetailPage() {
 
   if (error || !trato || !id) {
     return (
-      <div className="space-y-4 py-12 text-center">
-        <p className="text-sm text-destructive">No fue posible cargar el trato.</p>
-        <Button variant="outline" onClick={() => navigate('/tratos')}>
-          Volver al listado
-        </Button>
-      </div>
+      <Card>
+        <CardContent className="space-y-4 py-12 text-center">
+          <p className="text-sm text-destructive">No fue posible cargar el trato.</p>
+          <Button variant="outline" onClick={() => navigate('/tratos')}>
+            Volver al listado
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -159,12 +180,16 @@ export function TratoDetailPage() {
         </TabsList>
 
         <TabsContent value="info" className="mt-4">
-          <TratoInfoTab
-            trato={trato}
-            contactoNombre={contacto?.nombre}
-            contactoId={contacto?.id}
-            responsableNombre={responsable?.nombre}
-          />
+          <Card>
+            <CardContent className="p-6">
+              <TratoInfoTab
+                trato={trato}
+                contactoNombre={contacto?.nombre}
+                contactoId={contacto?.id}
+                responsableNombre={responsable?.nombre}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* TratoTareasTab se monta solo cuando el tab está activo — lazy load por montaje */}

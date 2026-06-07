@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { TareasTable } from '@/features/tareas/components/TareasTable';
 import { TareaCreateDialog } from '@/features/tareas/components/TareaCreateDialog';
@@ -44,9 +45,11 @@ export function TratoTareasTab({ tratoId }: TratoTareasTabProps) {
 
       {/* Contenido */}
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          Cargando tareas...
-        </p>
+        <div className="space-y-2" aria-busy="true" aria-label="Cargando tareas">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-md" />
+          ))}
+        </div>
       ) : isError ? (
         <p className="py-8 text-center text-sm text-destructive">
           Error al cargar las tareas. Intenta de nuevo.

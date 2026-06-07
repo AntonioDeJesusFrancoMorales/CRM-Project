@@ -1,6 +1,8 @@
 import { Link } from 'react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -10,32 +12,25 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useEmpresaContactos } from '@/features/contactos/hooks/useEmpresaContactos';
-import type { EstadoRelacion } from '@/api/types';
+import {
+  estadoRelacionBadgeClass,
+  estadoRelacionLabels,
+} from '@/features/empresas/lib/estadoRelacion';
 
 interface EmpresaContactosTabProps {
   empresaId: string;
 }
-
-const ESTADO_LABELS: Record<EstadoRelacion, string> = {
-  PROSPECTO: 'Prospecto',
-  ACTIVO: 'Activo',
-  INACTIVO: 'Inactivo',
-};
-
-const ESTADO_VARIANT: Record<EstadoRelacion, 'default' | 'secondary' | 'outline'> = {
-  PROSPECTO: 'outline',
-  ACTIVO: 'default',
-  INACTIVO: 'secondary',
-};
 
 export function EmpresaContactosTab({ empresaId }: EmpresaContactosTabProps) {
   const { data, isLoading, isError } = useEmpresaContactos(empresaId);
 
   if (isLoading) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Cargando contactos...
-      </p>
+      <div className="space-y-2" aria-busy="true" aria-label="Cargando contactos">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </div>
     );
   }
 
@@ -81,8 +76,11 @@ export function EmpresaContactosTab({ empresaId }: EmpresaContactosTabProps) {
               </Link>
             </TableCell>
             <TableCell>
-              <Badge variant={ESTADO_VARIANT[contacto.estadoRelacion]}>
-                {ESTADO_LABELS[contacto.estadoRelacion]}
+              <Badge
+                variant="outline"
+                className={cn(estadoRelacionBadgeClass[contacto.estadoRelacion])}
+              >
+                {estadoRelacionLabels[contacto.estadoRelacion]}
               </Badge>
             </TableCell>
             <TableCell>{contacto.correo ?? '—'}</TableCell>

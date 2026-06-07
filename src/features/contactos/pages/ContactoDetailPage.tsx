@@ -4,8 +4,18 @@ import { toast } from 'sonner';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import type { Contacto } from '@/api/types';
+import {
+  estadoRelacionBadgeClass,
+  estadoRelacionLabels,
+} from '../lib/estadoRelacion';
+import {
+  tipoContratoBadgeClass,
+  tipoContratoLabels,
+} from '@/features/tratos/lib/tipoContrato';
 import { useContacto } from '../hooks/useContacto';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { ContactoFormDialog } from '../components/ContactoFormDialog';
@@ -18,18 +28,6 @@ import { deriveEstadoTrato } from '@/features/kanban/lib/deriveEstadoTrato';
 import { getTableroPrincipal } from '@/features/kanban/lib/getTableroPrincipal';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
-
-const ESTADO_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  PROSPECTO: 'outline',
-  ACTIVO: 'default',
-  INACTIVO: 'secondary',
-};
-
-const ESTADO_LABELS: Record<string, string> = {
-  PROSPECTO: 'Prospecto',
-  ACTIVO: 'Activo',
-  INACTIVO: 'Inactivo',
-};
 
 function InfoField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -72,9 +70,17 @@ export function ContactoDetailPage() {
 
   if (isLoading) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        Cargando contacto...
-      </p>
+      <div className="space-y-6" aria-busy="true" aria-label="Cargando contacto">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-5 w-20 rounded-md" />
+          </div>
+        </div>
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="h-56 w-full rounded-lg" />
+      </div>
     );
   }
 
@@ -136,8 +142,11 @@ export function ContactoDetailPage() {
               {contacto.nombre}
             </h1>
             <div className="mt-1 flex items-center gap-2">
-              <Badge variant={ESTADO_VARIANT[contacto.estadoRelacion]}>
-                {ESTADO_LABELS[contacto.estadoRelacion] ?? contacto.estadoRelacion}
+              <Badge
+                variant="outline"
+                className={cn(estadoRelacionBadgeClass[contacto.estadoRelacion])}
+              >
+                {estadoRelacionLabels[contacto.estadoRelacion]}
               </Badge>
             </div>
           </div>
@@ -201,7 +210,12 @@ export function ContactoDetailPage() {
                 {tratosDelContacto.map((trato) => (
                   <li key={trato.id} className="py-3 flex items-center justify-between">
                     <span className="text-sm font-medium">{trato.nombre}</span>
-                    <Badge variant="outline">{trato.tipoContrato}</Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn(tipoContratoBadgeClass[trato.tipoContrato])}
+                    >
+                      {tipoContratoLabels[trato.tipoContrato]}
+                    </Badge>
                   </li>
                 ))}
               </ul>
