@@ -14,6 +14,10 @@ import { vi } from 'vitest';
 vi.mock('@/features/auth/hooks/useLogout', () => ({
   useLogout: () => ({ mutate: vi.fn(), isPending: false }),
 }));
+// ThemeToggle requiere ThemeProvider — lo mockeamos con un stub sin-op para aislar el Topbar.
+vi.mock('@/components/theme/ThemeToggle', () => ({
+  ThemeToggle: () => null,
+}));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 const usuarioNombre = {
@@ -70,8 +74,8 @@ describe('Topbar — dropdown muestra email', () => {
     const user = userEvent.setup();
     useAuthStore.setState({ token: 'tok', usuario: usuarioNombre });
     render(<Topbar />);
-    // Abrir el dropdown con userEvent (Radix requiere pointer events reales)
-    const trigger = screen.getByRole('button');
+    // Abrir el dropdown del avatar — tiene texto con el username del usuario
+    const trigger = screen.getByRole('button', { name: /juan pérez/i });
     await user.click(trigger);
     // El contenido del dropdown ahora está en el DOM
     expect(screen.getByText('juan@crm.test')).toBeInTheDocument();
