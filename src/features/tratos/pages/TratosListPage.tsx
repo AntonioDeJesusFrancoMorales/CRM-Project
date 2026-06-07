@@ -4,14 +4,27 @@
 // Tab "Lista" = tabla + búsqueda. Tab "Kanban" = KanbanTabContent tipo="TRATOS".
 // useTabSync sincroniza el tab activo con ?tab= en la URL (URL limpia cuando activo = "kanban" — default).
 
-import { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  Handshake,
+  Layers,
+  Plus,
+  Receipt,
+  Search,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import type { Trato } from '@/api/types';
 import { isHttpError } from '@/api/http-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatCard } from '@/components/shared/StatCard';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { formatCurrency } from '@/lib/format';
 import { useTabSync } from '@/lib/useTabSync';
 import { useTratos } from '../hooks/useTratos';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
@@ -22,6 +35,18 @@ import { TratoCreateDialog } from '../components/TratoCreateDialog';
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
 import { KanbanTabContent } from '@/features/kanban/components/KanbanTabContent';
+
+/** KPIs del pipeline calculados sólo con la lista plana de tratos. */
+function computeKpis(tratos: Trato[]) {
+  const total = tratos.length;
+  const pipeline = tratos.reduce((acc, t) => acc + (t.valorEstimado ?? 0), 0);
+  const ponderado = tratos.reduce(
+    (acc, t) => acc + (t.valorEstimado ?? 0) * ((t.probabilidad ?? 0) / 100),
+    0,
+  );
+  const ticketPromedio = total > 0 ? pipeline / total : 0;
+  return { total, pipeline, ponderado, ticketPromedio };
+}
 
 export function TratosListPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +60,8 @@ export function TratosListPage() {
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
   const deleteMutation = useDeleteTrato();
+
+  const kpis = useMemo(() => computeKpis(tratos ?? []), [tratos]);
 
   function handleConfirmDelete() {
     if (!deleteTarget) return;
@@ -53,18 +80,48 @@ export function TratosListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tratos</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestiona los tratos comerciales del CRM.
-          </p>
+      <PageHeader
+        title="Tratos"
+        description="Gestiona los tratos comerciales del CRM."
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nuevo trato
+          </Button>
+        }
+      />
+
+      {/* Fila de KPIs del pipeline (oculta en error de carga) */}
+      {!isError && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Total de tratos"
+            value={String(kpis.total)}
+            icon={Layers}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Valor pipeline"
+            value={formatCurrency(kpis.pipeline)}
+            hint="Suma del valor estimado"
+            icon={Wallet}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Valor ponderado"
+            value={formatCurrency(kpis.ponderado)}
+            hint="Estimado × probabilidad"
+            icon={TrendingUp}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Ticket promedio"
+            value={formatCurrency(kpis.ticketPromedio)}
+            icon={Receipt}
+            loading={isLoading}
+          />
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Nuevo trato
-        </Button>
-      </header>
+      )}
 
       {/* Tabs Lista / Kanban */}
       <Tabs value={tab} onValueChange={setTab}>
@@ -92,11 +149,11 @@ export function TratosListPage() {
             </div>
           </div>
 
-          {/* Loading */}
+          {/* Loading: esqueleto de tabla en vez de texto plano */}
           {isLoading && (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              Cargando tratos...
-            </p>
+            <div className="rounded-md border">
+              <TableSkeleton columns={7} rows={6} />
+            </div>
           )}
 
           {/* Error */}
@@ -111,8 +168,23 @@ export function TratosListPage() {
             </div>
           )}
 
+          {/* Empty state rico: no hay tratos registrados */}
+          {!isLoading && !isError && tratos && tratos.length === 0 && (
+            <EmptyState
+              icon={Handshake}
+              title="Aún no hay tratos"
+              description="Creá tu primer trato para empezar a darle seguimiento a tu pipeline comercial."
+              action={
+                <Button onClick={() => setCreateOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Nuevo trato
+                </Button>
+              }
+            />
+          )}
+
           {/* Tabla */}
-          {!isLoading && !isError && tratos && (
+          {!isLoading && !isError && tratos && tratos.length > 0 && (
             <div className="rounded-md border">
               <TratosTable
                 tratos={tratos}

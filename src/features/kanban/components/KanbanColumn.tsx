@@ -56,9 +56,9 @@ interface KanbanColumnProps {
 // ---------------------------------------------------------------------------
 
 const estadoTratoBadgeClasses: Record<string, string> = {
-  ABIERTO: 'bg-blue-100 text-blue-800',
-  GANADO: 'bg-green-100 text-green-800',
-  PERDIDO: 'bg-red-100 text-red-800',
+  ABIERTO: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  GANADO: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  PERDIDO: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
 };
 
 const estadoTratoLabel: Record<string, string> = {
@@ -72,9 +72,9 @@ const estadoTratoLabel: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 const estadoTareaBadgeClasses: Record<string, string> = {
-  PENDIENTE: 'bg-yellow-100 text-yellow-800',
-  EN_CURSO: 'bg-blue-100 text-blue-800',
-  FINALIZADA: 'bg-green-100 text-green-800',
+  PENDIENTE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+  EN_CURSO: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  FINALIZADA: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
 };
 
 const estadoTareaLabel: Record<string, string> = {
@@ -88,10 +88,10 @@ const estadoTareaLabel: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 const prioridadBadgeClasses: Record<string, string> = {
-  BAJA: 'bg-slate-100 text-slate-700',
-  MEDIA: 'bg-yellow-100 text-yellow-700',
-  ALTA: 'bg-orange-100 text-orange-700',
-  URGENTE: 'bg-red-100 text-red-700',
+  BAJA: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300',
+  MEDIA: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+  ALTA: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  URGENTE: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
 // ---------------------------------------------------------------------------
@@ -110,6 +110,14 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('es', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 }
+
+/**
+ * Sufijo alpha hex fijo para el tinte de fondo del header de columna (≈25%).
+ * Valor fijo a propósito: funciona en light y dark sin leer el DOM en render
+ * (un cálculo dependiente del tema NO sería reactivo al togglear y desincronizaría
+ * el header). Si el dark mode sale de piloto, derivar de useTheme().resolvedTheme.
+ */
+const HEADER_TINT_ALPHA = '40';
 
 /** Label en español para tipo de tarea. */
 function tipoTareaLabel(tipo: string): string {
@@ -259,7 +267,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       {/* Header de la columna — dos filas: (1) nombre + acciones, (2) badges informativos */}
       <div
         className="flex flex-col gap-1.5 rounded-t-md px-3 py-2"
-        style={{ backgroundColor: color + '33' /* transparencia 20% */ }}
+        style={{ backgroundColor: color + HEADER_TINT_ALPHA /* tinte ~25%, fijo para light y dark */ }}
       >
         {/* Fila 1: handle + color + nombre (trunca) + acciones */}
         <div className="flex items-center justify-between gap-2">
@@ -284,6 +292,13 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
             <h3 className="truncate text-sm font-semibold text-foreground" title={nombre}>
               {nombre}
             </h3>
+            {/* Contador de fichas — visible junto al nombre (cuántas ocupa la columna) */}
+            <span
+              className="flex-shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+              aria-label={`${fichas.length} fichas`}
+            >
+              {fichas.length}
+            </span>
           </div>
 
           {/* Acciones — no se encogen */}
@@ -340,16 +355,11 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
             </span>
           )}
 
-          {/* Contador de fichas */}
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {fichas.length}
-          </span>
-
           {/* Total derivado — solo tableros TRATOS */}
           {totalDerivado !== null && (
             <span
               data-testid="columna-total-derivado"
-              className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+              className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300"
             >
               Total: {formatCurrency(totalDerivado)}
             </span>
@@ -366,7 +376,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           {wipExcedido && (
             <span
               data-testid="wip-exceeded"
-              className="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700"
+              className="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
               aria-label="Limite WIP superado"
             >
               ⚠ Limite superado
@@ -375,27 +385,35 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
         </div>
       )}
 
-      {/* Zona droppable para fichas — ref independiente del sortable de columna */}
+      {/* Zona droppable para fichas — ref independiente del sortable de columna.
+          min-h chico: la columna se ajusta a su contenido (sin bloque vacío forzado),
+          conservando una zona mínima para poder soltar fichas. */}
       <div
         ref={setDropRef}
         className={[
-          'flex min-h-32 flex-col gap-2 rounded-b-md border-2 p-2 transition-colors',
+          'flex min-h-16 flex-col gap-2 rounded-b-md border-2 p-2 transition-colors',
           isOver ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/30',
         ].join(' ')}
       >
-        {sortedFichas.map((ficha) => {
-          const { titulo, detalles, badge, to } = resolveCardProps(ficha);
-          return (
-            <KanbanCard
-              key={ficha.id}
-              ficha={ficha}
-              titulo={titulo}
-              detalles={detalles}
-              badge={badge}
-              to={to}
-            />
-          );
-        })}
+        {sortedFichas.length === 0 ? (
+          <p className="flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/20 px-2 py-3 text-center text-xs text-muted-foreground/60">
+            Suelta fichas aquí
+          </p>
+        ) : (
+          sortedFichas.map((ficha) => {
+            const { titulo, detalles, badge, to } = resolveCardProps(ficha);
+            return (
+              <KanbanCard
+                key={ficha.id}
+                ficha={ficha}
+                titulo={titulo}
+                detalles={detalles}
+                badge={badge}
+                to={to}
+              />
+            );
+          })
+        )}
       </div>
 
       {/* FichaCreateDialog — abierto desde el botón "+" */}
