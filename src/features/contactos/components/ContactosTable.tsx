@@ -18,62 +18,86 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-const ESTADO_LABELS: Record<string, string> = {
-  PROSPECTO: 'Prospecto',
-  ACTIVO: 'Activo',
-  INACTIVO: 'Inactivo',
-};
-
-const ESTADO_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  PROSPECTO: 'outline',
-  ACTIVO: 'default',
-  INACTIVO: 'secondary',
-};
+import { formatRelativeDate } from '@/lib/format';
+import {
+  estadoRelacionBadgeClass,
+  estadoRelacionLabels,
+} from '../lib/estadoRelacion';
 
 interface ContactosTableProps {
   contactos: Contacto[];
   onEdit: (contacto: Contacto) => void;
   onDelete: (contacto: Contacto) => void;
+  searchTerm?: string;
 }
 
-export function ContactosTable({ contactos, onEdit, onDelete }: ContactosTableProps) {
+export function ContactosTable({
+  contactos,
+  onEdit,
+  onDelete,
+  searchTerm,
+}: ContactosTableProps) {
+  const filtered = searchTerm
+    ? contactos.filter((c) => {
+        const term = searchTerm.toLowerCase();
+        return (
+          c.nombre.toLowerCase().includes(term) ||
+          (c.correo?.toLowerCase().includes(term) ?? false) ||
+          (c.cargo?.toLowerCase().includes(term) ?? false)
+        );
+      })
+    : contactos;
+
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="hover:bg-transparent">
           <TableHead>Nombre</TableHead>
           <TableHead>Estado</TableHead>
+          <TableHead>Cargo</TableHead>
           <TableHead>Correo</TableHead>
           <TableHead>¿Cómo nos conoció?</TableHead>
+          <TableHead>Creado</TableHead>
           <TableHead className="w-10" />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {contactos.length === 0 ? (
+        {filtered.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-              No hay contactos registrados
+            <TableCell
+              colSpan={7}
+              className="py-8 text-center text-muted-foreground"
+            >
+              {searchTerm
+                ? `No se encontraron contactos con "${searchTerm}"`
+                : 'No hay contactos registrados'}
             </TableCell>
           </TableRow>
         ) : (
-          contactos.map((contacto) => (
-            <TableRow key={contacto.id}>
+          filtered.map((contacto) => (
+            <TableRow key={contacto.id} className="group">
               <TableCell className="font-medium">
                 <Link
                   to={`/contactos/${contacto.id}`}
-                  className="text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                  className="text-left font-medium underline-offset-4 transition-colors hover:text-primary hover:underline focus:text-primary focus:underline focus:outline-none"
                 >
                   {contacto.nombre}
                 </Link>
               </TableCell>
               <TableCell>
-                <Badge variant={ESTADO_VARIANT[contacto.estadoRelacion]}>
-                  {ESTADO_LABELS[contacto.estadoRelacion] ?? contacto.estadoRelacion}
+                <Badge
+                  variant="outline"
+                  className={estadoRelacionBadgeClass[contacto.estadoRelacion]}
+                >
+                  {estadoRelacionLabels[contacto.estadoRelacion]}
                 </Badge>
               </TableCell>
+              <TableCell>{contacto.cargo ?? '—'}</TableCell>
               <TableCell>{contacto.correo ?? '—'}</TableCell>
               <TableCell>{contacto.comoNosConocio ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatRelativeDate(contacto.creadoEn)}
+              </TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

@@ -1,5 +1,6 @@
 import { MoreHorizontal } from 'lucide-react';
 import type { Empresa } from '@/api/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +18,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatRelativeDate } from '@/lib/format';
+import {
+  estadoRelacionBadgeClass,
+  estadoRelacionLabels,
+} from '../lib/estadoRelacion';
 
 interface EmpresasTableProps {
   empresas: Empresa[];
@@ -46,11 +51,12 @@ export function EmpresasTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="hover:bg-transparent">
           <TableHead>Nombre</TableHead>
+          <TableHead>Estado</TableHead>
           <TableHead>Sector</TableHead>
           <TableHead>Teléfono</TableHead>
-          <TableHead>Sitio Web</TableHead>
+          <TableHead>Sitio web</TableHead>
           <TableHead>Creado</TableHead>
           <TableHead className="w-10" />
         </TableRow>
@@ -58,7 +64,10 @@ export function EmpresasTable({
       <TableBody>
         {filtered.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+            <TableCell
+              colSpan={7}
+              className="py-8 text-center text-muted-foreground"
+            >
               {searchTerm
                 ? `No se encontraron empresas con "${searchTerm}"`
                 : 'No hay empresas registradas'}
@@ -66,15 +75,23 @@ export function EmpresasTable({
           </TableRow>
         ) : (
           filtered.map((empresa) => (
-            <TableRow key={empresa.id}>
+            <TableRow key={empresa.id} className="group">
               <TableCell className="font-medium">
                 <button
                   type="button"
                   onClick={() => onView(empresa)}
-                  className="text-left text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                  className="text-left font-medium underline-offset-4 transition-colors hover:text-primary hover:underline focus:text-primary focus:underline focus:outline-none"
                 >
                   {empresa.nombre}
                 </button>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={estadoRelacionBadgeClass[empresa.estadoRelacion]}
+                >
+                  {estadoRelacionLabels[empresa.estadoRelacion]}
+                </Badge>
               </TableCell>
               <TableCell>{empresa.sector ?? '—'}</TableCell>
               <TableCell>{empresa.telefono ?? '—'}</TableCell>
@@ -84,7 +101,7 @@ export function EmpresasTable({
                     href={empresa.paginaWeb}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary underline underline-offset-4 hover:text-primary/80"
+                    className="text-primary underline-offset-4 hover:underline hover:text-primary/80 focus:underline focus:outline-none"
                   >
                     {empresa.paginaWeb}
                   </a>
@@ -92,7 +109,9 @@ export function EmpresasTable({
                   '—'
                 )}
               </TableCell>
-              <TableCell>{formatRelativeDate(empresa.creadoEn)}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatRelativeDate(empresa.creadoEn)}
+              </TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
