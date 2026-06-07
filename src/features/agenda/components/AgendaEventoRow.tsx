@@ -14,10 +14,12 @@ interface AgendaEventoRowProps {
   onDelete: (agenda: Agenda) => void;
 }
 
+// Badges con variantes dark (bg-*-50/700 → dark:bg-*-900/40 dark:text-*-300),
+// alineado al patrón de estadoRelacion.ts.
 const recordatorioBadgeClasses: Record<string, string> = {
-  PENDIENTE: 'bg-blue-100 text-blue-800',
-  ENVIADO: 'bg-green-100 text-green-800',
-  FALLIDO: 'bg-red-100 text-red-800',
+  PENDIENTE: 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  ENVIADO: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  FALLIDO: 'bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
 /** Recorta "HH:mm:ss" → "HH:mm". */
@@ -31,7 +33,7 @@ export function AgendaEventoRow({ agenda, onEdit, onDelete }: AgendaEventoRowPro
   const fin = hhmm(agenda.horaFin);
 
   return (
-    <div className="flex items-start gap-3 rounded-md border px-3 py-2.5">
+    <div className="flex items-start gap-3 rounded-md border bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
       {/* Hora */}
       <div className="w-24 flex-shrink-0 pt-0.5 text-sm font-medium tabular-nums text-foreground">
         {inicio}
@@ -73,7 +75,8 @@ export function AgendaEventoRow({ agenda, onEdit, onDelete }: AgendaEventoRowPro
           <span
             className={[
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-              recordatorioBadgeClasses[agenda.recordatorioEstado] ?? 'bg-gray-100 text-gray-800',
+              recordatorioBadgeClasses[agenda.recordatorioEstado] ??
+                'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300',
             ].join(' ')}
           >
             <Bell className="h-3 w-3" aria-hidden="true" />

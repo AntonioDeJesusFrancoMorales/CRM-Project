@@ -4,8 +4,12 @@
 // Homologa el layout de TareasListPage (header + estados loading/error/empty).
 
 import { useMemo, useState } from 'react';
-import { CalendarClock, Plus } from 'lucide-react';
+import { CalendarClock, CalendarCheck2, CalendarDays, Plus, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatCard } from '@/components/shared/StatCard';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { useAgendas } from '../hooks/useAgendas';
 import { useDeleteAgenda } from '../hooks/useDeleteAgenda';
 import { AgendaEventoRow } from '../components/AgendaEventoRow';
@@ -50,6 +54,23 @@ interface GrupoAgenda {
   eventos: Agenda[];
 }
 
+/**
+ * KPIs derivados sólo de la lista de eventos, usando el campo real `fecha` (YYYY-MM-DD).
+ * - total: todos los eventos.
+ * - proximos: fecha >= hoy (incluye hoy y futuros).
+ * - hoy: fecha === hoy.
+ */
+function computeKpis(agendas: Agenda[]) {
+  const hoyKey = toFechaKey(new Date());
+  let proximos = 0;
+  let hoy = 0;
+  for (const evento of agendas) {
+    if (evento.fecha >= hoyKey) proximos += 1;
+    if (evento.fecha === hoyKey) hoy += 1;
+  }
+  return { total: agendas.length, proximos, hoy };
+}
+
 export function AgendaListPage() {
   const { data: agendas, isLoading, isError, refetch } = useAgendas();
   const deleteMutation = useDeleteAgenda();
@@ -57,6 +78,8 @@ export function AgendaListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editando, setEditando] = useState<Agenda | null>(null);
   const [eliminando, setEliminando] = useState<Agenda | null>(null);
+
+  const kpis = useMemo(() => computeKpis(agendas ?? []), [agendas]);
 
   // Agrupa por fecha y ordena cronológicamente (fecha asc, luego horaInicio asc).
   const grupos = useMemo<GrupoAgenda[]>(() => {
@@ -82,22 +105,67 @@ export function AgendaListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
-          <p className="text-sm text-muted-foreground">
-            Tus llamadas y reuniones, ordenadas por fecha.
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Nuevo evento
-        </Button>
-      </header>
+      <PageHeader
+        title="Agenda"
+        description="Tus llamadas y reuniones, ordenadas por fecha."
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nuevo evento
+          </Button>
+        }
+      />
 
-      {/* Loading */}
+      {/* Fila de KPIs derivados de la lista (oculta en error de carga) */}
+      {!isError && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Total de eventos"
+            value={String(kpis.total)}
+            icon={CalendarDays}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Próximos"
+            value={String(kpis.proximos)}
+            hint="Hoy y a futuro"
+            icon={CalendarCheck2}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Hoy"
+            value={String(kpis.hoy)}
+            hint="Eventos del día"
+            icon={Sun}
+            loading={isLoading}
+          />
+        </div>
+      )}
+
+      {/* Loading: esqueleto de la lista cronológica en vez de texto plano */}
       {isLoading && (
-        <p className="py-12 text-center text-sm text-muted-foreground">Cargando agenda...</p>
+        <div className="space-y-6" aria-hidden="true">
+          {Array.from({ length: 2 }).map((_, g) => (
+            <section key={g} className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, r) => (
+                  <div
+                    key={r}
+                    className="flex items-start gap-3 rounded-md border bg-card px-3 py-2.5"
+                  >
+                    <Skeleton className="h-4 w-16 flex-shrink-0" />
+                    <Skeleton className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       )}
 
       {/* Error */}
@@ -112,16 +180,19 @@ export function AgendaListPage() {
         </div>
       )}
 
-      {/* Empty */}
+      {/* Empty state rico: no hay eventos en la agenda */}
       {!isLoading && !isError && grupos.length === 0 && (
-        <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
-          <CalendarClock className="h-8 w-8" aria-hidden="true" />
-          <p className="text-sm">No tenés eventos en tu agenda.</p>
-          <Button variant="outline" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Crear el primero
-          </Button>
-        </div>
+        <EmptyState
+          icon={CalendarClock}
+          title="Aún no hay eventos"
+          description="Programá tu primera llamada o reunión para empezar a organizar tu agenda."
+          action={
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nuevo evento
+            </Button>
+          }
+        />
       )}
 
       {/* Lista cronológica agrupada por día */}

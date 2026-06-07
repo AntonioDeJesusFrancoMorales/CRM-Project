@@ -29,6 +29,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Input } from '@/components/ui/input';
 import { formatRelativeDate } from '@/lib/format';
 import { resolveRolNombre } from '../lib/rolLookup';
+import {
+  estadoUsuarioBadgeClass,
+  estadoUsuarioLabel,
+} from '../lib/estadoUsuario';
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
@@ -107,7 +111,7 @@ export function UsuariosTable({
 
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="hover:bg-transparent">
             <TableHead>Nombre</TableHead>
             <TableHead>Correo</TableHead>
             <TableHead>Rol</TableHead>
@@ -132,30 +136,25 @@ export function UsuariosTable({
               const rolNombre = resolveRolNombre(usuario.rolId, roles);
 
               return (
-                <TableRow key={usuario.id}>
+                <TableRow key={usuario.id} className="group">
                   <TableCell className="font-medium">{usuario.nombre}</TableCell>
-                  <TableCell>{usuario.correo}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {usuario.correo}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{rolNombre}</Badge>
                   </TableCell>
                   <TableCell>
-                    {usuario.activo ? (
-                      <Badge
-                        variant="outline"
-                        className="border-emerald-500 text-emerald-700"
-                      >
-                        Activo
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="border-muted-foreground text-muted-foreground"
-                      >
-                        Inactivo
-                      </Badge>
-                    )}
+                    <Badge
+                      variant="outline"
+                      className={estadoUsuarioBadgeClass(usuario.activo)}
+                    >
+                      {estadoUsuarioLabel(usuario.activo)}
+                    </Badge>
                   </TableCell>
-                  <TableCell>{formatRelativeDate(usuario.creadoEn)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatRelativeDate(usuario.creadoEn)}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
