@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { initKeycloak, loginWithKeycloak, getKeycloakUserFromToken } from '@/lib/keycloak';
 import { useAuthStore } from '@/store/authStore';
 import { useTokenRefresh } from '@/features/auth/hooks/useTokenRefresh';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -13,7 +13,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const setKeycloakSession = useAuthStore((s) => s.setKeycloakSession);
   const setKeycloakReady = useAuthStore((s) => s.setKeycloakReady);
   const navigate = useNavigate();
+  const location = useLocation();
   const loginRedirectStarted = useRef(false);
+  // Destino al montar la app, capturado UNA sola vez (antes de cualquier navegación).
+  // Si refrescaste parado en /tratos, esto guarda '/tratos' y nos deja respetarlo.
+  const initialPath = useRef(location.pathname);
 
   useTokenRefresh();
 
@@ -27,7 +31,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (user) {
           setKeycloakSession(user);
         }
-        navigate('/empresas', { replace: true });
+        // Solo mandamos al default cuando NO hay un destino real: entraste por la raíz
+        // o por /login. Si refrescaste estando en otra ruta, te quedás donde estabas.
+        const path = initialPath.current;
+        if (path === '/' || path === '/login') {
+          navigate('/empresas', { replace: true });
+        }
       } else if (!loginRedirectStarted.current) {
         loginRedirectStarted.current = true;
         await loginWithKeycloak();

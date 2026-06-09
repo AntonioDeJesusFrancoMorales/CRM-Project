@@ -11,6 +11,7 @@ import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import type { Rol } from '@/api/types';
+import { CambiarPasswordCard } from '@/features/usuarios/components/CambiarPasswordCard';
 import { useRoles } from '../hooks/useRoles';
 import { RolesTable } from '../components/RolesTable';
 import { RolFormDialog } from '../components/RolFormDialog';
@@ -109,6 +110,9 @@ export function RolesListPage() {
           />
         </div>
       )}
+
+      {/* Sección de seguridad de la cuenta — cambio de contraseña (flujo Keycloak) */}
+      <CambiarPasswordCard />
 
       {/* Dialog crear rol */}
       <RolFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />

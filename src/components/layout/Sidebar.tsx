@@ -11,15 +11,65 @@ interface NavItem {
   badge?: string;
 }
 
-const items: NavItem[] = [
+// Grupo principal. Tratos va al final para quedar pegado a "Mis tareas" (ítem dinámico).
+const mainItems: NavItem[] = [
   { label: 'Empresas', to: '/empresas', icon: Building2 },
   { label: 'Contactos', to: '/contactos', icon: Contact2 },
-  { label: 'Tratos', to: '/tratos', icon: Handshake },
-  { label: 'Tableros', to: '/tableros', icon: KanbanSquare },
   { label: 'Agenda', to: '/agenda', icon: CalendarClock },
+  { label: 'Tratos', to: '/tratos', icon: Handshake },
+];
+
+// "Tableros" va DEBAJO de "Mis tareas" (no en el grupo principal).
+const tablerosItem: NavItem = { label: 'Tableros', to: '/tableros', icon: KanbanSquare };
+
+// Administración: pineado al fondo del sidebar, separado del grupo principal.
+const adminItems: NavItem[] = [
   { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck },
   { label: 'Configuración', to: '/configuracion', icon: Settings },
 ];
+
+const baseClasses =
+  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors';
+
+function NavItemLink({ item }: { item: NavItem }) {
+  const Icon = item.icon;
+
+  if (item.disabled) {
+    return (
+      <div
+        className={cn(
+          baseClasses,
+          'text-muted-foreground/70 cursor-not-allowed select-none',
+        )}
+        aria-disabled="true"
+      >
+        <Icon className="h-4 w-4" />
+        <span className="flex-1">{item.label}</span>
+        {item.badge && (
+          <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted px-2 py-0.5">
+            {item.badge}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <NavLink
+      to={item.to}
+      className={({ isActive }) =>
+        cn(
+          baseClasses,
+          'text-foreground hover:bg-muted',
+          isActive && 'bg-muted font-medium',
+        )
+      }
+    >
+      <Icon className="h-4 w-4" />
+      <span>{item.label}</span>
+    </NavLink>
+  );
+}
 
 export function Sidebar() {
   // Todos los ítems se muestran a cualquier usuario autenticado. El back NO enforza
@@ -32,51 +82,10 @@ export function Sidebar() {
       <div className="h-14 flex items-center px-4 border-b">
         <span className="font-semibold tracking-tight">Pipely</span>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
-        {items
-          .map((item) => {
-            const Icon = item.icon;
-            const baseClasses =
-              'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors';
-
-            if (item.disabled) {
-              return (
-                <div
-                  key={item.to}
-                  className={cn(
-                    baseClasses,
-                    'text-muted-foreground/70 cursor-not-allowed select-none',
-                  )}
-                  aria-disabled="true"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge && (
-                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted px-2 py-0.5">
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-              );
-            }
-
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    baseClasses,
-                    'text-foreground hover:bg-muted',
-                    isActive && 'bg-muted font-medium',
-                  )
-                }
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+      <nav className="flex-1 p-3 flex flex-col space-y-1">
+        {mainItems.map((item) => (
+          <NavItemLink key={item.to} item={item} />
+        ))}
 
         {/* "Mis tareas" — ítem dinámico: filtra por responsable_id del usuario logueado (ADR-054) */}
         {usuario && (
@@ -84,7 +93,7 @@ export function Sidebar() {
             to={`/tareas?responsable_id=${usuario.usuario_id}`}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                baseClasses,
                 'text-foreground hover:bg-muted',
                 isActive && 'bg-muted font-medium',
               )
@@ -94,6 +103,16 @@ export function Sidebar() {
             <span>Mis tareas</span>
           </NavLink>
         )}
+
+        {/* Tableros — justo debajo de "Mis tareas" */}
+        <NavItemLink item={tablerosItem} />
+
+        {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
+        <div className="mt-auto pt-3 border-t space-y-1">
+          {adminItems.map((item) => (
+            <NavItemLink key={item.to} item={item} />
+          ))}
+        </div>
       </nav>
       <div className="p-3 border-t text-[11px] text-muted-foreground">
         <p>Pipely</p>
