@@ -60,11 +60,10 @@ export function useReordenarColumnas(): UseMutationResult<Tablero, Error, Reorde
         );
       }
 
-      // El back usa List<ColumnaId> donde ColumnaId = record(UUID value).
-      // Jackson requiere [{value: uuid}] porque ColumnaId no tiene @JsonValue/@JsonCreator.
-      // Long-term fix: back agrega @JsonValue → puede usar List<UUID> → front envía string[].
+      // El back ahora usa List<UUID> nuevoOrden (ReordenarColumnasRequest.java):
+      // JSON crudo ["uuid1","uuid2",...]. Ya NO se envuelve en { value: uuid }.
       return apiClient.put<Tablero>(endpoints.tableros.reordenarColumnas(tableroId), {
-        nuevoOrden: nuevoOrden.map((id) => ({ value: id })),
+        nuevoOrden,
       });
     },
     onSuccess: (_result, { tableroId }) => {

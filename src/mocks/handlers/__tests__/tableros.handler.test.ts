@@ -200,8 +200,8 @@ describe('tableros MSW handler — POST /api/tableros/asignar-columna', () => {
 
 describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => {
   it('retorna el tablero con 200 cuando el id existe', async () => {
-    // El wire format real del back usa List<ColumnaId> → [{value: uuid}], NO [uuid]
-    const nuevoOrden = tableroTratosFixture.columnas.map((c) => ({ value: c.id }));
+    // El wire format real del back es List<UUID> → ["uuid1","uuid2",...]
+    const nuevoOrden = tableroTratosFixture.columnas.map((c) => c.id);
     const res = await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -215,11 +215,11 @@ describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => 
   it('aplica el nuevoOrden: el tablero vuelve con las columnas reordenadas', async () => {
     const ordenOriginal = tableroTratosFixture.columnas.map((c) => c.id);
     const invertido = [...ordenOriginal].reverse();
-    // Enviar en wire format: [{value: uuid}]
+    // Enviar en wire format: ["uuid1","uuid2",...]
     const res = await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoOrden: invertido.map((id) => ({ value: id })) }),
+      body: JSON.stringify({ nuevoOrden: invertido }),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as { columnas: { id: string }[] };
@@ -229,7 +229,7 @@ describe('tableros MSW handler — PUT /api/tableros/reordenar-columnas', () => 
     await fetch(`/api/tableros/reordenar-columnas?id=${TABLERO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoOrden: ordenOriginal.map((id) => ({ value: id })) }),
+      body: JSON.stringify({ nuevoOrden: ordenOriginal }),
     });
   });
 

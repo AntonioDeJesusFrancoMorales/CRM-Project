@@ -36,10 +36,9 @@ export const endpoints = {
     create: () => '/tableros/create',
     edit: (id: string) => `/tableros/edit?id=${id}`,
     delete: (id: string) => `/tableros/delete?id=${id}`,
-    // agregar-columna: crea la columna del catálogo Y la agrega al tablero en UNA
-    // sola llamada (body AgregarColumnaRequest). Reemplaza el flujo de 2 pasos
-    // create + asignar-columna.
-    agregarColumna: (tableroId: string) => `/tableros/agregar-columna?id=${tableroId}`,
+    // asignar-columna: agrega una columna del catálogo (ya creada vía /columnas/create)
+    // a un tablero con su config contextual. El back NO tiene un endpoint atómico:
+    // el flujo "nueva columna" son 2 pasos (create + asignar) — ver useCrearColumnaEnTablero.
     asignarColumna: (tableroId: string, columnaId: string) =>
       `/tableros/asignar-columna?id=${tableroId}&columnaId=${columnaId}`,
     eliminarColumna: (tableroId: string, columnaId: string) =>

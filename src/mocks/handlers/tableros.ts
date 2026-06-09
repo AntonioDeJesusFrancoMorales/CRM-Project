@@ -126,33 +126,6 @@ export const tablerosHandlers = [
     return HttpResponse.json(t);
   }),
 
-  // POST /tableros/agregar-columna?id= — crea la columna del catálogo Y la agrega al
-  // tablero en una sola operación (flujo vigente del front). Devuelve el tablero.
-  http.post(`${API}/tableros/agregar-columna`, async ({ request }) => {
-    await withDelay();
-    const tableroId = new URL(request.url).searchParams.get('id');
-    const t = tablerosFixture.find((x) => x.id === tableroId);
-    if (!t) return errors.notFound();
-
-    const body = (await request.json()) as Partial<
-      Pick<ColumnaTablero, 'nombre' | 'color' | 'limiteWip' | 'nota' | 'estadoTarea' | 'estadoTrato' | 'totalValorEstimado'>
-    >;
-
-    const nuevaId = crypto.randomUUID();
-    const nueva: ColumnaTablero = {
-      id: nuevaId,
-      nombre: body.nombre ?? 'Nueva columna',
-      color: body.color ?? '#FFFFFF',
-      limiteWip: body.limiteWip ?? null,
-      nota: body.nota ?? null,
-      estadoTarea: body.estadoTarea ?? null,
-      estadoTrato: body.estadoTrato ?? null,
-      totalValorEstimado: body.totalValorEstimado ?? 0,
-    };
-    t.columnas.push(nueva);
-    return HttpResponse.json(t, { status: 201 });
-  }),
-
   // DELETE /tableros/eliminar-columna?id=&columnaId= — quita la columna del tablero.
   // El back rechaza con 409 si la columna tiene fichas activas (hay que moverlas antes).
   http.delete(`${API}/tableros/eliminar-columna`, async ({ request }) => {
@@ -173,17 +146,16 @@ export const tablerosHandlers = [
     return HttpResponse.json(t);
   }),
 
-  // PUT /tableros/reordenar-columnas?id= — aplica nuevoOrden (permutación de ColumnaId records)
-  // El back usa List<ColumnaId> donde ColumnaId = record(UUID value).
-  // Jackson serializa/deserializa records con sus campos nominales → [{value: uuid}], NO [uuid].
+  // PUT /tableros/reordenar-columnas?id= — aplica nuevoOrden (permutación de UUIDs)
+  // El back usa List<UUID> nuevoOrden → JSON crudo ["uuid1","uuid2",...].
   http.put(`${API}/tableros/reordenar-columnas`, async ({ request }) => {
     await withDelay();
     const id = new URL(request.url).searchParams.get('id');
     const t = tablerosFixture.find((x) => x.id === id);
     if (!t) return errors.notFound();
-    const body = (await request.json()) as { nuevoOrden?: Array<{ value: string }> };
+    const body = (await request.json()) as { nuevoOrden?: string[] };
     if (body.nuevoOrden && body.nuevoOrden.length > 0) {
-      const orden = body.nuevoOrden.map((item) => item.value);
+      const orden = body.nuevoOrden;
       // Reordena las columnas del tablero según la posición en nuevoOrden
       t.columnas = [...t.columnas].sort(
         (a, b) => orden.indexOf(a.id) - orden.indexOf(b.id),

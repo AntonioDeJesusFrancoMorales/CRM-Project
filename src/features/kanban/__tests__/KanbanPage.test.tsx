@@ -359,18 +359,18 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
     expect(conTrato.error?.flatten().fieldErrors.estadoTrato).toBeDefined();
   });
 
-  it('(j) nueva columna success invoca POST /tableros/agregar-columna y cierra el form', async () => {
+  it('(j) nueva columna success crea el catálogo, lo asigna al tablero y cierra el form', async () => {
     const user = userEvent.setup();
     let createCalled = false;
-    let agregarCalled = false;
+    let asignarCalled = false;
 
     server.use(
       http.post('/api/columnas/create', () => {
         createCalled = true;
         return HttpResponse.json({ id: 'x' }, { status: 201 });
       }),
-      http.post('/api/tableros/agregar-columna', () => {
-        agregarCalled = true;
+      http.post('/api/tableros/asignar-columna', () => {
+        asignarCalled = true;
         return HttpResponse.json(tableroTratosFixture, { status: 201 });
       }),
       http.get('/api/columnas/get-all', () => HttpResponse.json([])),
@@ -410,10 +410,10 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
     await user.click(submitBtn!);
 
     await waitFor(() => {
-      expect(agregarCalled).toBe(true);
+      expect(asignarCalled).toBe(true);
     });
 
-    // Flujo de una sola llamada: NO se usa el endpoint viejo de catálogo
-    expect(createCalled).toBe(false);
+    // Flujo de 2 pasos: primero se crea el catálogo, luego se asigna
+    expect(createCalled).toBe(true);
   });
 });

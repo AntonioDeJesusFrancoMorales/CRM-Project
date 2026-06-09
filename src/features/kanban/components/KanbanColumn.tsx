@@ -3,8 +3,9 @@
 // Usa @dnd-kit/sortable useSortable para reordenar columnas entre sí (drag desde el handle).
 // Coexistencia: useSortable da su propio setNodeRef para el wrapper de columna;
 //   useDroppable da su setNodeRef para el área interna de fichas. Son refs distintas.
-// Muestra: nombre (fallback 'Sin nombre'), badge estado (dual: estadoTarea o estadoTrato),
-//          contador fichas, indicador limiteWip, indicador WIP superado.
+// Muestra: nombre (fallback 'Sin nombre'), contador fichas, indicador limiteWip,
+//          indicador WIP superado. El badge de estado de columna se omite en AMBOS tipos
+//          (TRATO y TAREA): el nombre de la columna ya comunica el estado (decisión de UX).
 // Orden de fichas: creadoEn ASC (orden estable derivado del back).
 // Prop tipoFicha: discrimina badge dual y resolución de datos de cada ficha.
 //   - 'TRATO' (default): badge estadoTrato; resuelve trato.nombre, valorEstimado, probabilidad, fechaCierreEsperada
@@ -51,37 +52,9 @@ interface KanbanColumnProps {
   nombresHermanos?: string[];
 }
 
-// ---------------------------------------------------------------------------
-// Badge maps — TRATOS (columna)
-// ---------------------------------------------------------------------------
-
-const estadoTratoBadgeClasses: Record<string, string> = {
-  ABIERTO: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  GANADO: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-  PERDIDO: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-};
-
-const estadoTratoLabel: Record<string, string> = {
-  ABIERTO: 'Abierto',
-  GANADO: 'Ganado',
-  PERDIDO: 'Perdido',
-};
-
-// ---------------------------------------------------------------------------
-// Badge maps — TAREAS (columna)
-// ---------------------------------------------------------------------------
-
-const estadoTareaBadgeClasses: Record<string, string> = {
-  PENDIENTE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
-  EN_CURSO: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  FINALIZADA: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-};
-
-const estadoTareaLabel: Record<string, string> = {
-  PENDIENTE: 'Pendiente',
-  EN_CURSO: 'En curso',
-  FINALIZADA: 'Finalizada',
-};
+// Nota: NINGÚN tablero (ni TRATO ni TAREA) muestra badge de estado de columna — el nombre
+// de la columna ya comunica el estado (decisión de UX). Por eso no hay maps de
+// estadoTrato/estadoTarea acá. El único badge de tarjeta que sobrevive es el de PRIORIDAD.
 
 // ---------------------------------------------------------------------------
 // Badge maps — PRIORIDAD (tarjeta TAREA)
@@ -175,16 +148,6 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
   function handleQuitarColumna() {
     quitarColumna({ tableroId, columnaId: columna.id });
   }
-
-  // Badge dual de columna según tipoFicha
-  const columnaBadge =
-    tipoFicha === 'TAREA'
-      ? columna.estadoTarea
-        ? { text: estadoTareaLabel[columna.estadoTarea] ?? columna.estadoTarea, classes: estadoTareaBadgeClasses[columna.estadoTarea] ?? 'bg-gray-100 text-gray-800' }
-        : null
-      : columna.estadoTrato
-        ? { text: estadoTratoLabel[columna.estadoTrato] ?? columna.estadoTrato, classes: estadoTratoBadgeClasses[columna.estadoTrato] ?? 'bg-gray-100 text-gray-800' }
-        : null;
 
   // Resolver título, detalles, badge y to de cada ficha según tipoFicha
   function resolveCardProps(ficha: Ficha): {
@@ -336,30 +299,18 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           </div>
         </div>
 
-        {/* Fila 2: badges informativos (estado + contador + total), envuelven si no entran */}
-        <div className="flex flex-wrap items-center gap-1">
-          {/* Badge de estado de columna (dual: estadoTrato o estadoTarea según tipoFicha) */}
-          {columnaBadge && (
-            <span
-              className={[
-                'rounded-full px-2 py-0.5 text-xs font-medium',
-                columnaBadge.classes,
-              ].join(' ')}
-            >
-              {columnaBadge.text}
-            </span>
-          )}
-
-          {/* Total derivado — solo tableros TRATOS */}
-          {totalDerivado !== null && (
+        {/* Fila 2: Total derivado — SOLO tableros TRATOS. El estado de columna se omite
+            a propósito (el nombre ya lo comunica), así que esta fila no aparece en TAREA. */}
+        {totalDerivado !== null && (
+          <div className="flex flex-wrap items-center gap-1">
             <span
               data-testid="columna-total-derivado"
               className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300"
             >
               Total: {formatCurrency(totalDerivado)}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Indicador limiteWip */}

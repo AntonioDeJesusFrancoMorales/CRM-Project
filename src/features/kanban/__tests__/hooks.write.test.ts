@@ -479,12 +479,10 @@ describe('useReordenarColumnas', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(capturedUrl).toContain(`/tableros/reordenar-columnas?id=${TABLERO_ID}`);
-    // El body debe contener nuevoOrden como Array<{value: uuid}>, NO como string[]
-    // (back usa List<ColumnaId> donde ColumnaId = record(UUID value))
+    // El body debe contener nuevoOrden como string[] de UUIDs crudos
+    // (back usa List<UUID> nuevoOrden — ReordenarColumnasRequest.java)
     const body = capturedBody as { nuevoOrden: unknown[] };
-    expect(body.nuevoOrden).toHaveLength(NUEVO_ORDEN.length);
-    expect(body.nuevoOrden[0]).toMatchObject({ value: NUEVO_ORDEN[0] });
-    expect(body.nuevoOrden[1]).toMatchObject({ value: NUEVO_ORDEN[1] });
+    expect(body.nuevoOrden).toEqual(NUEVO_ORDEN);
   });
 
   it('invalida queryKey ["tableros", tableroId] en onSuccess', async () => {

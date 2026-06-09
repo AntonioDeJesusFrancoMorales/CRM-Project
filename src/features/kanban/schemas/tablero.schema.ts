@@ -36,8 +36,11 @@ export const columnaTableroSchema = z.object({
   color: z.string().nullable(),
   limiteWip: z.number().int().nullable(),
   nota: z.string().nullable(),
-  estadoTarea: estadoTarea.nullable(),
-  estadoTrato: estadoTrato.nullable(),
+  // nullish (= nullable + optional): el back puede omitir estas claves por
+  // completo en ColumnaTableroDto. .nullable() solo aceptaba null presente;
+  // si la clave falta (undefined) Zod lanzaba ZodError y el tablero no dibujaba.
+  estadoTarea: estadoTarea.nullish(),
+  estadoTrato: estadoTrato.nullish(),
   totalValorEstimado: z.number(),
 });
 

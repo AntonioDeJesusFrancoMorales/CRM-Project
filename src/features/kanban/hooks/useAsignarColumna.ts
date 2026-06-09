@@ -1,6 +1,7 @@
 // useAsignarColumna — POST /tableros/asignar-columna?id=&columnaId=
-// Asigna una columna del catálogo a un tablero con configuración contextual.
-// NUNCA usar agregar-columna (@Deprecated en el back).
+// Asigna una columna del catálogo (ya creada) a un tablero con configuración contextual.
+// El back NO expone /tableros/agregar-columna: el flujo "nueva columna" encadena
+// /columnas/create + este endpoint (ver useCrearColumnaEnTablero).
 // totalValorEstimado @NotNull en Java — usar 0 como default si no se especifica.
 // Invalida ['tableros', tableroId] para refrescar el tablero con la nueva columna.
 
