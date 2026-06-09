@@ -69,9 +69,12 @@ describe('TareaCreateDialog — mapeo de error 422', () => {
     await user.click(prioridadSelect);
     await user.click(await screen.findByRole('option', { name: /media/i }));
 
-    // Fecha límite (requerida)
-    const fechaInput = within(dialog).getByLabelText(/fecha límite/i);
-    await user.type(fechaInput, '2026-06-01');
+    // Fecha límite (requerida) — despliega el DateTimePicker inline y elige un día.
+    // La hora toma el default (09:00), produciendo un LocalDateTime válido.
+    const fechaTrigger = within(dialog).getByRole('button', { name: /fecha límite/i });
+    await user.click(fechaTrigger);
+    const dias = await within(dialog).findAllByLabelText(/^\d{4}-\d{2}-\d{2}$/);
+    await user.click(dias[14]!);
 
     await user.click(within(dialog).getByRole('button', { name: /crear tarea/i }));
 

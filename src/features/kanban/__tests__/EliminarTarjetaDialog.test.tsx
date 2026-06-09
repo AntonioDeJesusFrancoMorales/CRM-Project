@@ -210,12 +210,16 @@ describe('FichaDeleteDialog — estado bloqueado (trato con tareas)', () => {
 describe('KanbanCard — borrado TAREA vía orquestación', () => {
   it('(g) confirmar borrado de TAREA invoca DELETE /tareas/delete', async () => {
     let tareaDeleted = false;
+    let fichaDeleted = false;
     server.use(
       http.delete('/api/tareas/delete', () => {
         tareaDeleted = true;
         return new HttpResponse(null, { status: 204 });
       }),
-      http.delete('/api/fichas/delete', () => new HttpResponse(null, { status: 204 })),
+      http.delete('/api/fichas/delete', () => {
+        fichaDeleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
     );
 
     await openDeleteDialog(FICHA_TAREA);
@@ -227,12 +231,21 @@ describe('KanbanCard — borrado TAREA vía orquestación', () => {
     await waitFor(() => {
       expect(tareaDeleted).toBe(true);
     });
+    // Esperar a que el flujo orquestado complete AMBOS deletes, para no dejar
+    // una request in-flight que contamine tests posteriores (origen del flaky).
+    await waitFor(() => {
+      expect(fichaDeleted).toBe(true);
+    });
   });
 
   it('(h) confirmar borrado de TAREA también invoca DELETE /fichas/delete', async () => {
     let fichaDeleted = false;
+    let tareaDeleted = false;
     server.use(
-      http.delete('/api/tareas/delete', () => new HttpResponse(null, { status: 204 })),
+      http.delete('/api/tareas/delete', () => {
+        tareaDeleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
       http.delete('/api/fichas/delete', () => {
         fichaDeleted = true;
         return new HttpResponse(null, { status: 204 });
@@ -247,18 +260,26 @@ describe('KanbanCard — borrado TAREA vía orquestación', () => {
     await waitFor(() => {
       expect(fichaDeleted).toBe(true);
     });
+    // Esperar también el delete de la entidad para no dejar requests in-flight.
+    await waitFor(() => {
+      expect(tareaDeleted).toBe(true);
+    });
   });
 });
 
 describe('KanbanCard — borrado TRATO sin tareas vía orquestación', () => {
   it('(i) confirmar borrado de TRATO sin tareas invoca DELETE /tratos/delete', async () => {
     let tratoDeleted = false;
+    let fichaDeleted = false;
     server.use(
       http.delete('/api/tratos/delete', () => {
         tratoDeleted = true;
         return new HttpResponse(null, { status: 204 });
       }),
-      http.delete('/api/fichas/delete', () => new HttpResponse(null, { status: 204 })),
+      http.delete('/api/fichas/delete', () => {
+        fichaDeleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
     );
 
     await openDeleteDialog(FICHA_TRATO_SIN_TAREAS);
@@ -268,6 +289,11 @@ describe('KanbanCard — borrado TRATO sin tareas vía orquestación', () => {
 
     await waitFor(() => {
       expect(tratoDeleted).toBe(true);
+    });
+    // Esperar también el delete de la ficha para no dejar una request in-flight
+    // que contamine el test (k) posterior (origen del flaky).
+    await waitFor(() => {
+      expect(fichaDeleted).toBe(true);
     });
   });
 });

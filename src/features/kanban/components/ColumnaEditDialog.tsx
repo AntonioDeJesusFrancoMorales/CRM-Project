@@ -165,6 +165,7 @@ export function ColumnaEditDialog({
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
+            autoComplete="off"
           >
             {/* Nombre */}
             <FormField

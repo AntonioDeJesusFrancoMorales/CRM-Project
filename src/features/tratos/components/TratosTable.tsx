@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import { MoreHorizontal } from 'lucide-react';
-import type { Contacto, TipoContrato, Trato, Usuario } from '@/api/types';
+import type { Contacto, Trato, Usuario } from '@/api/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,24 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDate } from '@/lib/format';
-
-const tipoContratoLabels: Record<TipoContrato, string> = {
-  SERVICIO: 'Servicio',
-  LICENCIA: 'Licencia',
-  SUSCRIPCION: 'Suscripción',
-  PERMANENTE: 'Permanente',
-  OTRO: 'Otro',
-};
-
-function formatCurrency(value: number | null): string {
-  if (value === null) return '—';
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { formatCurrency, formatDate } from '@/lib/format';
+import {
+  tipoContratoBadgeClass,
+  tipoContratoLabels,
+} from '../lib/tipoContrato';
 
 interface TratosTableProps {
   tratos: Trato[];
@@ -70,9 +58,9 @@ export function TratosTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="hover:bg-transparent">
           <TableHead>Nombre</TableHead>
-          <TableHead>Valor estimado</TableHead>
+          <TableHead className="text-right">Valor estimado</TableHead>
           <TableHead>Tipo de contrato</TableHead>
           <TableHead>Contacto</TableHead>
           <TableHead>Responsable</TableHead>
@@ -94,21 +82,32 @@ export function TratosTable({
             const contacto = contactosById.get(trato.contactoId);
             const responsable = usuariosById.get(trato.responsableId);
             return (
-              <TableRow key={trato.id}>
+              <TableRow key={trato.id} className="group">
                 <TableCell className="font-medium">
                   <button
                     type="button"
                     onClick={() => void navigate(`/tratos/${trato.id}`)}
-                    className="text-left text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                    className="text-left font-medium underline-offset-4 transition-colors hover:text-primary hover:underline focus:text-primary focus:underline focus:outline-none"
                   >
                     {trato.nombre}
                   </button>
                 </TableCell>
-                <TableCell>{formatCurrency(trato.valorEstimado)}</TableCell>
-                <TableCell>{tipoContratoLabels[trato.tipoContrato]}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatCurrency(trato.valorEstimado)}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={tipoContratoBadgeClass[trato.tipoContrato]}
+                  >
+                    {tipoContratoLabels[trato.tipoContrato]}
+                  </Badge>
+                </TableCell>
                 <TableCell>{contacto?.nombre ?? '—'}</TableCell>
                 <TableCell>{responsable?.nombre ?? '—'}</TableCell>
-                <TableCell>{formatDate(trato.fechaCierreEsperada)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(trato.fechaCierreEsperada)}
+                </TableCell>
                 {showActions && (
                   <TableCell>
                     <DropdownMenu>

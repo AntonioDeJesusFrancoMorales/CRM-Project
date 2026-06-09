@@ -172,6 +172,7 @@ export function ColumnaCreateDialog({
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
+            autoComplete="off"
           >
             {/* Nombre */}
             <FormField

@@ -239,8 +239,11 @@ describe('TratoDetailPage', () => {
     const opcionMedia = await screen.findByRole('option', { name: /media/i });
     await user.click(opcionMedia);
 
-    const fechaInput = within(dialog).getByLabelText(/fecha límite/i);
-    await user.type(fechaInput, '2026-06-01');
+    // Fecha límite — despliega el DateTimePicker inline y elige un día (hora default 09:00).
+    const fechaTrigger = within(dialog).getByRole('button', { name: /fecha límite/i });
+    await user.click(fechaTrigger);
+    const dias = await within(dialog).findAllByLabelText(/^\d{4}-\d{2}-\d{2}$/);
+    await user.click(dias[14]!);
 
     await user.click(within(dialog).getByRole('button', { name: /crear tarea/i }));
 

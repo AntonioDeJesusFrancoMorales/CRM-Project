@@ -1,5 +1,5 @@
 // Tests de componente para KanbanColumn — Strict TDD B6.1 (RED).
-// Cubre: nombre/color/badge estadoTrato, limiteWip visual, indicador WIP superado.
+// Cubre: nombre/color, badge estado SOLO en TAREA (estadoTrato oculto), limiteWip visual, indicador WIP superado.
 // DnD (useDroppable) no se testea con jsdom — se testea la lógica del handler en KanbanBoard.
 // Fase 4: botón Pencil (siempre), Trash2 condicional (solo PERSONALIZADA).
 
@@ -114,7 +114,7 @@ function renderColumn(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('KanbanColumn — nombre y badge estadoTrato', () => {
+describe('KanbanColumn — nombre (estadoTrato oculto en tableros TRATO)', () => {
   it('(a) renderiza el nombre de la columna', () => {
     renderColumn(COL_BASE);
     expect(screen.getByText('Por contactar')).toBeInTheDocument();
@@ -125,28 +125,25 @@ describe('KanbanColumn — nombre y badge estadoTrato', () => {
     expect(screen.getByText('Sin nombre')).toBeInTheDocument();
   });
 
-  it('(c) muestra badge ABIERTO', () => {
+  it('(c) NO muestra badge de estado ABIERTO (el nombre alcanza)', () => {
     renderColumn(COL_BASE);
-    expect(screen.getByText(/abierto/i)).toBeInTheDocument();
+    // COL_BASE.estadoTrato = ABIERTO; el badge de estado NO debe renderizarse en TRATO
+    expect(screen.queryByText('Abierto')).not.toBeInTheDocument();
   });
 
-  it('(d) muestra badge GANADO', () => {
+  it('(d) NO muestra badge GANADO (solo el nombre de columna "Ganados")', () => {
     renderColumn(COL_GANADOS);
-    // El badge tiene el texto exacto 'Ganado' (sin la 's' del nombre 'Ganados')
-    const elements = screen.getAllByText(/ganado/i);
-    expect(elements.length).toBeGreaterThanOrEqual(1);
-    // Al menos uno de los elementos debe ser el badge (texto exacto 'Ganado')
-    const badge = elements.find((el) => el.textContent === 'Ganado');
-    expect(badge).toBeInTheDocument();
+    // El nombre "Ganados" sigue presente, pero el badge exacto "Ganado" no
+    const badge = screen.queryAllByText(/ganado/i).find((el) => el.textContent === 'Ganado');
+    expect(badge).toBeUndefined();
+    expect(screen.getByText('Ganados')).toBeInTheDocument();
   });
 
-  it('(e) muestra badge PERDIDO', () => {
+  it('(e) NO muestra badge PERDIDO (solo el nombre de columna "Perdidos")', () => {
     renderColumn(COL_PERDIDOS);
-    // El badge tiene el texto exacto 'Perdido' (sin la 's' del nombre 'Perdidos')
-    const elements = screen.getAllByText(/perdido/i);
-    expect(elements.length).toBeGreaterThanOrEqual(1);
-    const badge = elements.find((el) => el.textContent === 'Perdido');
-    expect(badge).toBeInTheDocument();
+    const badge = screen.queryAllByText(/perdido/i).find((el) => el.textContent === 'Perdido');
+    expect(badge).toBeUndefined();
+    expect(screen.getByText('Perdidos')).toBeInTheDocument();
   });
 
   it('(f) muestra contador de fichas', () => {
@@ -334,26 +331,26 @@ const COL_TAREA_FINALIZADA: ColumnaTablero = {
   estadoTarea: 'FINALIZADA',
 };
 
-describe('KanbanColumn — Batch 5: tipoFicha="TAREA" badge dual', () => {
-  it('(r) con tipoFicha="TAREA" y estadoTarea=PENDIENTE muestra badge PENDIENTE', () => {
+describe('KanbanColumn — Batch 5: el badge de estado de columna está oculto en AMBOS tipos', () => {
+  it('(r) con tipoFicha="TAREA" y estadoTarea=PENDIENTE NO muestra badge de estado', () => {
     renderColumn(COL_TAREA_PENDIENTE, [], TABLERO_ID, 'TAREA');
-    expect(screen.getByText(/pendiente/i)).toBeInTheDocument();
+    expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
   });
 
-  it('(s) con tipoFicha="TAREA" y estadoTarea=EN_CURSO muestra badge EN_CURSO', () => {
+  it('(s) con tipoFicha="TAREA" y estadoTarea=EN_CURSO NO muestra badge de estado', () => {
     renderColumn(COL_TAREA_EN_CURSO, [], TABLERO_ID, 'TAREA');
-    expect(screen.getByText(/en.curso/i)).toBeInTheDocument();
+    expect(screen.queryByText('En curso')).not.toBeInTheDocument();
   });
 
-  it('(t) con tipoFicha="TAREA" y estadoTarea=FINALIZADA muestra badge FINALIZADA', () => {
+  it('(t) con tipoFicha="TAREA" y estadoTarea=FINALIZADA NO muestra badge de estado', () => {
     renderColumn(COL_TAREA_FINALIZADA, [], TABLERO_ID, 'TAREA');
-    expect(screen.getByText(/finalizada/i)).toBeInTheDocument();
+    expect(screen.queryByText('Finalizada')).not.toBeInTheDocument();
   });
 
-  it('(u) con tipoFicha="TRATO" (default) sigue mostrando badge estadoTrato (backward-compat)', () => {
-    // COL_BASE tiene estadoTrato=ABIERTO
+  it('(u) con tipoFicha="TRATO" NO muestra badge estadoTrato (oculto: el nombre alcanza)', () => {
+    // COL_BASE tiene estadoTrato=ABIERTO; en tableros TRATO el estado se omite
     renderColumn(COL_BASE, [], TABLERO_ID, 'TRATO');
-    expect(screen.getByText(/abierto/i)).toBeInTheDocument();
+    expect(screen.queryByText('Abierto')).not.toBeInTheDocument();
   });
 });
 

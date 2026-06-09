@@ -5,16 +5,15 @@
 // Reglas:
 //   ACTIVO → PROSPECTO  : bloqueado
 //   INACTIVO → PROSPECTO: bloqueado
-//   * → INACTIVO con tieneTratosActivos: bloqueado
 //   Demás (incluyendo idempotencia): permitido
 //
-// "Trato activo" (Change 4 / W1 fix): el estado del trato se DERIVA de la columna del Kanban.
-// El campo `trato.estado` NO existe en el modelo. El caller computa:
-//   tieneTratosActivos = tratosDelContacto.some(t =>
-//     deriveEstadoTrato(t.id, fichas, columnasTablTratos) === 'ABIERTO'
-//   )
-// donde fichas viene de useFichas() (queryKey ['fichas']) y columnasTablTratos
-// son las columnas del primer tablero con tipoTablero === 'TRATOS'.
+// REGLA SUSPENDIDA (2026-06-09): "no inactivar contacto con tratos activos".
+// El back refactorizó el modelo ("simplify board column relation") y eliminó el
+// estado tipado del trato (ABIERTO/GANADO/PERDIDO): ya no viene en la columna ni
+// en TratoResponse. No hay forma fiable de derivar "trato activo", así que el
+// guard de INACTIVO se suspende hasta acordar el nuevo modelo con el back.
+// El parámetro tieneTratosActivos se conserva (firma + cableado intactos) para
+// restaurar la regla con un solo cambio cuando el contrato esté definido.
 
 import type { EstadoRelacion } from '@/api/types';
 
@@ -26,7 +25,7 @@ export interface TransicionResult {
 export function puedeTransicionar(
   actual: EstadoRelacion,
   nuevo: EstadoRelacion,
-  tieneTratosActivos: boolean,
+  _tieneTratosActivos: boolean,
 ): TransicionResult {
   // Idempotencia — siempre permitido
   if (actual === nuevo) return { ok: true };
@@ -39,13 +38,8 @@ export function puedeTransicionar(
     };
   }
 
-  // Bloquear pasar a INACTIVO si tiene tratos con estado 'abierto'
-  if (nuevo === 'INACTIVO' && tieneTratosActivos) {
-    return {
-      ok: false,
-      razon: 'No se puede inactivar un contacto con tratos activos',
-    };
-  }
+  // Guard de INACTIVO suspendido — ver nota de cabecera (REGLA SUSPENDIDA).
+  // Para restaurar: `if (nuevo === 'INACTIVO' && _tieneTratosActivos) { ... }`
 
   return { ok: true };
 }

@@ -34,5 +34,7 @@ export function deriveEstadoTrato(
   const columna = columnas.find((c) => c.id === ficha.columnaId);
   if (!columna) return null;
 
-  return columna.estadoTrato;
+  // El back dejó de exponer estadoTrato por columna (refactor "simplify board
+  // column relation"). Si la clave no viene, no hay estado derivable → null.
+  return columna.estadoTrato ?? null;
 }

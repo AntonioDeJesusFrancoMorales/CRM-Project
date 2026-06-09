@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Empresa } from '@/api/types';
 import { useEmpresa } from '../hooks/useEmpresa';
@@ -35,9 +36,20 @@ export function EmpresaDetailPage() {
 
   if (isLoading) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        Cargando empresa...
-      </p>
+      <div className="space-y-6" aria-busy="true" aria-label="Cargando empresa">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-9 w-48" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-48 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
+        </div>
+      </div>
     );
   }
 

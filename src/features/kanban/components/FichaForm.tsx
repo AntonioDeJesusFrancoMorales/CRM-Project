@@ -117,7 +117,7 @@ export function FichaForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
         {/* columnaId — read-only display (not editable by user) */}
         <div>
           <p className="text-sm font-medium text-muted-foreground">Columna</p>

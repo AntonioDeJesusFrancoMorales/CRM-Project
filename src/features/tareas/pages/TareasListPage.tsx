@@ -6,7 +6,13 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Plus, Search } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ListTodo,
+  Plus,
+  Search,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,6 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatCard } from '@/components/shared/StatCard';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { useTabSync } from '@/lib/useTabSync';
 import { useTareas } from '../hooks/useTareas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
@@ -26,7 +36,24 @@ import { TareasTable } from '../components/TareasTable';
 import { TareaCreateDialog } from '../components/TareaCreateDialog';
 import { PRIORIDAD_OPTIONS, TIPO_TAREA_OPTIONS } from '../schemas/tarea.schema';
 import { KanbanTabContent } from '@/features/kanban/components/KanbanTabContent';
-import type { EstadoTareaLocal, PrioridadTarea, TipoTarea } from '@/api/types';
+import type { EstadoTareaLocal, PrioridadTarea, Tarea, TipoTarea } from '@/api/types';
+
+/**
+ * KPIs derivados de la lista plana de tareas, sólo con datos reales del back.
+ * - total: cantidad de tareas.
+ * - completadas: con fechaCompletada (campo real del back).
+ * - vencidas: fechaLimite ya pasó y NO completada.
+ * No deriva del estado local (localStorage) para no depender de un dato volátil.
+ */
+function computeKpis(tareas: Tarea[]) {
+  const ahora = new Date();
+  const total = tareas.length;
+  const completadas = tareas.filter((t) => t.fechaCompletada !== null).length;
+  const vencidas = tareas.filter(
+    (t) => t.fechaCompletada === null && new Date(t.fechaLimite) < ahora,
+  ).length;
+  return { total, completadas, vencidas };
+}
 
 export function TareasListPage() {
   const [searchParams] = useSearchParams();
@@ -51,6 +78,9 @@ export function TareasListPage() {
 
   const usuariosById = Object.fromEntries(usuarios.map((u) => [u.id, u.nombre]));
   const tratosById = Object.fromEntries(tratos.map((t) => [t.id, t.nombre]));
+
+  // KPIs sobre el array COMPLETO (no sobre los filtros) — métrica de la cartera.
+  const kpis = useMemo(() => computeKpis(todasLasTareas ?? []), [todasLasTareas]);
 
   // Filtros client-side sobre el array completo
   const tareas = useMemo(() => {
@@ -108,18 +138,42 @@ export function TareasListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tareas</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestiona las tareas del CRM.
-          </p>
+      <PageHeader
+        title="Tareas"
+        description="Gestiona las tareas del CRM."
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nueva tarea
+          </Button>
+        }
+      />
+
+      {/* Fila de KPIs de la cartera (oculta en error de carga) */}
+      {!isError && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Total de tareas"
+            value={String(kpis.total)}
+            icon={ListTodo}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Completadas"
+            value={String(kpis.completadas)}
+            hint="Con fecha de completado"
+            icon={CheckCircle2}
+            loading={isLoading}
+          />
+          <StatCard
+            label="Vencidas"
+            value={String(kpis.vencidas)}
+            hint="Fecha límite pasada y sin completar"
+            icon={AlertTriangle}
+            loading={isLoading}
+          />
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Nueva tarea
-        </Button>
-      </header>
+      )}
 
       {/* Tabs Lista / Kanban */}
       <Tabs value={tab} onValueChange={setTab}>
@@ -247,11 +301,11 @@ export function TareasListPage() {
             </Select>
           </div>
 
-          {/* Loading */}
+          {/* Loading: esqueleto de tabla en vez de texto plano */}
           {isLoading && (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              Cargando tareas...
-            </p>
+            <div className="rounded-md border">
+              <TableSkeleton columns={8} rows={6} />
+            </div>
           )}
 
           {/* Error */}
@@ -266,8 +320,23 @@ export function TareasListPage() {
             </div>
           )}
 
+          {/* Empty state rico: no hay tareas registradas en absoluto */}
+          {!isLoading && !isError && todasLasTareas && todasLasTareas.length === 0 && (
+            <EmptyState
+              icon={ListTodo}
+              title="Aún no hay tareas"
+              description="Creá tu primera tarea para empezar a darle seguimiento al trabajo del equipo."
+              action={
+                <Button onClick={() => setCreateOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Nueva tarea
+                </Button>
+              }
+            />
+          )}
+
           {/* Tabla */}
-          {!isLoading && !isError && tareas && (
+          {!isLoading && !isError && todasLasTareas && todasLasTareas.length > 0 && (
             <div className="rounded-md border">
               <TareasTable
                 tareas={tareas}

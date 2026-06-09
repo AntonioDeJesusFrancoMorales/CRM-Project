@@ -32,5 +32,7 @@ export function deriveEstadoTarea(
   const columna = columnas.find((c) => c.id === ficha.columnaId);
   if (!columna) return null;
 
-  return columna.estadoTarea;
+  // El back dejó de exponer estadoTarea por columna (refactor "simplify board
+  // column relation"). Si la clave no viene, no hay estado derivable → null.
+  return columna.estadoTarea ?? null;
 }

@@ -3,8 +3,9 @@
 // Usa @dnd-kit/sortable useSortable para reordenar columnas entre sí (drag desde el handle).
 // Coexistencia: useSortable da su propio setNodeRef para el wrapper de columna;
 //   useDroppable da su setNodeRef para el área interna de fichas. Son refs distintas.
-// Muestra: nombre (fallback 'Sin nombre'), badge estado (dual: estadoTarea o estadoTrato),
-//          contador fichas, indicador limiteWip, indicador WIP superado.
+// Muestra: nombre (fallback 'Sin nombre'), contador fichas, indicador limiteWip,
+//          indicador WIP superado. El badge de estado de columna se omite en AMBOS tipos
+//          (TRATO y TAREA): el nombre de la columna ya comunica el estado (decisión de UX).
 // Orden de fichas: creadoEn ASC (orden estable derivado del back).
 // Prop tipoFicha: discrimina badge dual y resolución de datos de cada ficha.
 //   - 'TRATO' (default): badge estadoTrato; resuelve trato.nombre, valorEstimado, probabilidad, fechaCierreEsperada
@@ -32,7 +33,7 @@ import { esPredeterminada } from '@/features/kanban/lib/esPredeterminada';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { TIPO_TAREA_OPTIONS, PRIORIDAD_OPTIONS } from '@/features/tareas/schemas/tarea.schema';
-import { formatDate } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
 import { FichaCreateDialog } from './FichaCreateDialog';
 import { ColumnaEditDialog } from './ColumnaEditDialog';
 import { KanbanCard } from './KanbanCard';
@@ -51,47 +52,19 @@ interface KanbanColumnProps {
   nombresHermanos?: string[];
 }
 
-// ---------------------------------------------------------------------------
-// Badge maps — TRATOS (columna)
-// ---------------------------------------------------------------------------
-
-const estadoTratoBadgeClasses: Record<string, string> = {
-  ABIERTO: 'bg-blue-100 text-blue-800',
-  GANADO: 'bg-green-100 text-green-800',
-  PERDIDO: 'bg-red-100 text-red-800',
-};
-
-const estadoTratoLabel: Record<string, string> = {
-  ABIERTO: 'Abierto',
-  GANADO: 'Ganado',
-  PERDIDO: 'Perdido',
-};
-
-// ---------------------------------------------------------------------------
-// Badge maps — TAREAS (columna)
-// ---------------------------------------------------------------------------
-
-const estadoTareaBadgeClasses: Record<string, string> = {
-  PENDIENTE: 'bg-yellow-100 text-yellow-800',
-  EN_CURSO: 'bg-blue-100 text-blue-800',
-  FINALIZADA: 'bg-green-100 text-green-800',
-};
-
-const estadoTareaLabel: Record<string, string> = {
-  PENDIENTE: 'Pendiente',
-  EN_CURSO: 'En curso',
-  FINALIZADA: 'Finalizada',
-};
+// Nota: NINGÚN tablero (ni TRATO ni TAREA) muestra badge de estado de columna — el nombre
+// de la columna ya comunica el estado (decisión de UX). Por eso no hay maps de
+// estadoTrato/estadoTarea acá. El único badge de tarjeta que sobrevive es el de PRIORIDAD.
 
 // ---------------------------------------------------------------------------
 // Badge maps — PRIORIDAD (tarjeta TAREA)
 // ---------------------------------------------------------------------------
 
 const prioridadBadgeClasses: Record<string, string> = {
-  BAJA: 'bg-slate-100 text-slate-700',
-  MEDIA: 'bg-yellow-100 text-yellow-700',
-  ALTA: 'bg-orange-100 text-orange-700',
-  URGENTE: 'bg-red-100 text-red-700',
+  BAJA: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300',
+  MEDIA: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+  ALTA: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  URGENTE: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
 // ---------------------------------------------------------------------------
@@ -106,10 +79,13 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
   );
 }
 
-/** Formatea un número como moneda USD en español. */
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('es', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
+/**
+ * Sufijo alpha hex fijo para el tinte de fondo del header de columna (≈25%).
+ * Valor fijo a propósito: funciona en light y dark sin leer el DOM en render
+ * (un cálculo dependiente del tema NO sería reactivo al togglear y desincronizaría
+ * el header). Si el dark mode sale de piloto, derivar de useTheme().resolvedTheme.
+ */
+const HEADER_TINT_ALPHA = '40';
 
 /** Label en español para tipo de tarea. */
 function tipoTareaLabel(tipo: string): string {
@@ -172,16 +148,6 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
   function handleQuitarColumna() {
     quitarColumna({ tableroId, columnaId: columna.id });
   }
-
-  // Badge dual de columna según tipoFicha
-  const columnaBadge =
-    tipoFicha === 'TAREA'
-      ? columna.estadoTarea
-        ? { text: estadoTareaLabel[columna.estadoTarea] ?? columna.estadoTarea, classes: estadoTareaBadgeClasses[columna.estadoTarea] ?? 'bg-gray-100 text-gray-800' }
-        : null
-      : columna.estadoTrato
-        ? { text: estadoTratoLabel[columna.estadoTrato] ?? columna.estadoTrato, classes: estadoTratoBadgeClasses[columna.estadoTrato] ?? 'bg-gray-100 text-gray-800' }
-        : null;
 
   // Resolver título, detalles, badge y to de cada ficha según tipoFicha
   function resolveCardProps(ficha: Ficha): {
@@ -259,7 +225,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       {/* Header de la columna — dos filas: (1) nombre + acciones, (2) badges informativos */}
       <div
         className="flex flex-col gap-1.5 rounded-t-md px-3 py-2"
-        style={{ backgroundColor: color + '33' /* transparencia 20% */ }}
+        style={{ backgroundColor: color + HEADER_TINT_ALPHA /* tinte ~25%, fijo para light y dark */ }}
       >
         {/* Fila 1: handle + color + nombre (trunca) + acciones */}
         <div className="flex items-center justify-between gap-2">
@@ -284,6 +250,13 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
             <h3 className="truncate text-sm font-semibold text-foreground" title={nombre}>
               {nombre}
             </h3>
+            {/* Contador de fichas — visible junto al nombre (cuántas ocupa la columna) */}
+            <span
+              className="flex-shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+              aria-label={`${fichas.length} fichas`}
+            >
+              {fichas.length}
+            </span>
           </div>
 
           {/* Acciones — no se encogen */}
@@ -326,35 +299,18 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           </div>
         </div>
 
-        {/* Fila 2: badges informativos (estado + contador + total), envuelven si no entran */}
-        <div className="flex flex-wrap items-center gap-1">
-          {/* Badge de estado de columna (dual: estadoTrato o estadoTarea según tipoFicha) */}
-          {columnaBadge && (
-            <span
-              className={[
-                'rounded-full px-2 py-0.5 text-xs font-medium',
-                columnaBadge.classes,
-              ].join(' ')}
-            >
-              {columnaBadge.text}
-            </span>
-          )}
-
-          {/* Contador de fichas */}
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {fichas.length}
-          </span>
-
-          {/* Total derivado — solo tableros TRATOS */}
-          {totalDerivado !== null && (
+        {/* Fila 2: Total derivado — SOLO tableros TRATOS. El estado de columna se omite
+            a propósito (el nombre ya lo comunica), así que esta fila no aparece en TAREA. */}
+        {totalDerivado !== null && (
+          <div className="flex flex-wrap items-center gap-1">
             <span
               data-testid="columna-total-derivado"
-              className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+              className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300"
             >
               Total: {formatCurrency(totalDerivado)}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Indicador limiteWip */}
@@ -366,7 +322,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           {wipExcedido && (
             <span
               data-testid="wip-exceeded"
-              className="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700"
+              className="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
               aria-label="Limite WIP superado"
             >
               ⚠ Limite superado
@@ -375,27 +331,35 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
         </div>
       )}
 
-      {/* Zona droppable para fichas — ref independiente del sortable de columna */}
+      {/* Zona droppable para fichas — ref independiente del sortable de columna.
+          min-h chico: la columna se ajusta a su contenido (sin bloque vacío forzado),
+          conservando una zona mínima para poder soltar fichas. */}
       <div
         ref={setDropRef}
         className={[
-          'flex min-h-32 flex-col gap-2 rounded-b-md border-2 p-2 transition-colors',
+          'flex min-h-16 flex-col gap-2 rounded-b-md border-2 p-2 transition-colors',
           isOver ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/30',
         ].join(' ')}
       >
-        {sortedFichas.map((ficha) => {
-          const { titulo, detalles, badge, to } = resolveCardProps(ficha);
-          return (
-            <KanbanCard
-              key={ficha.id}
-              ficha={ficha}
-              titulo={titulo}
-              detalles={detalles}
-              badge={badge}
-              to={to}
-            />
-          );
-        })}
+        {sortedFichas.length === 0 ? (
+          <p className="flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/20 px-2 py-3 text-center text-xs text-muted-foreground/60">
+            Suelta fichas aquí
+          </p>
+        ) : (
+          sortedFichas.map((ficha) => {
+            const { titulo, detalles, badge, to } = resolveCardProps(ficha);
+            return (
+              <KanbanCard
+                key={ficha.id}
+                ficha={ficha}
+                titulo={titulo}
+                detalles={detalles}
+                badge={badge}
+                to={to}
+              />
+            );
+          })
+        )}
       </div>
 
       {/* FichaCreateDialog — abierto desde el botón "+" */}

@@ -37,3 +37,18 @@ export function formatDate(iso: string | null | undefined): string {
   if (Number.isNaN(date.getTime())) return '—';
   return dtf.format(date);
 }
+
+const currencyFmt = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  maximumFractionDigits: 0,
+});
+
+/**
+ * Formato de moneda en pesos mexicanos sin decimales.
+ * `null`/`undefined` → guion largo. Para KPIs y columnas de valor.
+ */
+export function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return currencyFmt.format(value);
+}

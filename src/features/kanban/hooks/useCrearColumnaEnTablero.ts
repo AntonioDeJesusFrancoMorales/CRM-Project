@@ -1,9 +1,13 @@
 // useCrearColumnaEnTablero — orquestador del flujo "Nueva columna desde el board".
 //
-// UNA sola llamada: POST /tableros/agregar-columna?id={tableroId}. El back crea la
-// columna del catálogo Y la agrega al tablero en una operación atómica
-// (AgregarColumnaTableroService). Reemplaza el flujo previo de 2 pasos
-// (create + asignar-columna), que dejaba estados parciales si el 2º paso fallaba.
+// DOS llamadas encadenadas (el back NO tiene endpoint atómico):
+//   1. POST /columnas/create        → crea la columna en el catálogo, devuelve su id.
+//   2. POST /tableros/asignar-columna?id={tableroId}&columnaId={columna.id}
+//                                    → agrega esa columna al tablero con su config contextual.
+//
+// El back AR-CRM no expone /tableros/agregar-columna: el ColumnaController crea el
+// catálogo y el TableroController.asignarColumna lo asocia al tablero. Son operaciones
+// separadas por diseño (catálogo vs. asignación contextual).
 //
 // onSuccess: invalida ['columnas'] + ['tableros'] + toast éxito.
 
@@ -12,7 +16,7 @@ import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
-import type { ColumnaCreateInput } from '@/features/kanban/schemas/columna.schema';
+import type { Columna, ColumnaCreateInput } from '@/features/kanban/schemas/columna.schema';
 import type { Tablero } from '@/features/kanban/schemas/tablero.schema';
 import { columnasKeys } from './useColumnas';
 import { tablerosKeys } from './useTableros';
@@ -28,22 +32,6 @@ export interface CrearColumnaEnTableroVars {
   asignacion: AsignacionInput;
 }
 
-// Body de POST /tableros/agregar-columna (AgregarColumnaRequest del back).
-// tipoTablero NO va: el back lo deriva del tablero.
-// existeOtraColumnaConMismoNombre es boolean PRIMITIVO en un record Java: si se omite,
-// Jackson le pasa null al constructor del record y revienta. Hay que enviarlo SIEMPRE.
-interface AgregarColumnaBody {
-  nombre: string;
-  color?: string;
-  tipoColumna: ColumnaCreateInput['tipoColumna'];
-  limiteWip: number;
-  nota?: string;
-  estadoTarea?: AsignarColumnaInput['estadoTarea'];
-  estadoTrato?: AsignarColumnaInput['estadoTrato'];
-  totalValorEstimado: number;
-  existeOtraColumnaConMismoNombre: boolean;
-}
-
 export function useCrearColumnaEnTablero(): UseMutationResult<
   Tablero,
   Error,
@@ -53,27 +41,28 @@ export function useCrearColumnaEnTablero(): UseMutationResult<
 
   return useMutation<Tablero, Error, CrearColumnaEnTableroVars>({
     mutationFn: async ({ columna, asignacion }) => {
-      const { tableroId, limiteWip, estadoTarea, estadoTrato, totalValorEstimado } =
+      const { tableroId, limiteWip, nota, estadoTarea, estadoTrato, totalValorEstimado } =
         asignacion;
 
-      const body: AgregarColumnaBody = {
-        nombre: columna.nombre,
-        color: columna.color,
-        tipoColumna: columna.tipoColumna,
+      // Paso 1: crear la columna en el catálogo. Devuelve la Columna con su id.
+      const columnaCreada = await apiClient.post<Columna>(
+        endpoints.columnas.create(),
+        columna,
+      );
+
+      // Paso 2: asignar la columna recién creada al tablero con su config contextual.
+      // Body = AsignarColumnaRequest del back (totalValorEstimado @NotNull).
+      const asignarBody: AsignarColumnaInput = {
         limiteWip,
+        nota,
         estadoTarea,
         estadoTrato,
         totalValorEstimado,
-        // El dialog ya bloquea nombres duplicados client-side antes de llamar,
-        // así que afirmamos que no hay duplicado. Obligatorio: el back lo exige
-        // como boolean primitivo (no puede ser null/ausente).
-        existeOtraColumnaConMismoNombre: false,
       };
 
-      // UNA llamada: el back crea la columna y la agrega al tablero.
       return apiClient.post<Tablero>(
-        endpoints.tableros.agregarColumna(tableroId),
-        body,
+        endpoints.tableros.asignarColumna(tableroId, columnaCreada.id),
+        asignarBody,
       );
     },
     onSuccess: () => {

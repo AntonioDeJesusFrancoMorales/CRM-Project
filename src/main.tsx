@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/globals.css';
 import App from './App';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
 
 async function enableMocks(): Promise<void> {
   if (import.meta.env.VITE_ENABLE_MSW !== 'true') return;
@@ -20,7 +21,9 @@ if (!rootElement) {
 void enableMocks().then(() => {
   createRoot(rootElement).render(
     <StrictMode>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </StrictMode>,
   );
 });

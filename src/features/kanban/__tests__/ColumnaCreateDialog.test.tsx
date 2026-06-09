@@ -314,17 +314,17 @@ describe('ColumnaCreateDialog — bloqueo de duplicados', () => {
 // ---------------------------------------------------------------------------
 
 describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
-  it('(k) submit válido llama POST /tableros/agregar-columna, luego cierra', async () => {
-    let createCalled = false;
-    let agregarBody: unknown = null;
+  it('(k) submit válido crea el catálogo y lo asigna al tablero, luego cierra', async () => {
+    let createBody: unknown = null;
+    let asignarBody: unknown = null;
 
     server.use(
-      http.post('/api/columnas/create', () => {
-        createCalled = true;
+      http.post('/api/columnas/create', async ({ request }) => {
+        createBody = await request.json();
         return HttpResponse.json(COLUMNA_CREADA, { status: 201 });
       }),
-      http.post('/api/tableros/agregar-columna', async ({ request }) => {
-        agregarBody = await request.json();
+      http.post('/api/tableros/asignar-columna', async ({ request }) => {
+        asignarBody = await request.json();
         return HttpResponse.json(tableroTratosFixture, { status: 201 });
       }),
       http.get('/api/columnas/get-all', () => HttpResponse.json([])),
@@ -358,18 +358,18 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
     await waitFor(() => {
-      expect(agregarBody).toBeTruthy();
+      expect(asignarBody).toBeTruthy();
     });
 
-    // Flujo de UNA llamada: NO se usa el endpoint viejo de catálogo
-    expect(createCalled).toBe(false);
+    // Paso 1: el nombre viaja en el create del catálogo
+    const createPayload = createBody as Record<string, unknown>;
+    expect(createPayload?.nombre).toBe('Mi columna nueva');
 
-    // El body de agregar lleva la definición + config; totalValorEstimado siempre 0
+    // Paso 2: el body de asignar lleva la config; totalValorEstimado siempre 0
     // (valor derivado en runtime, no se persiste desde el form)
-    const agregarPayload = agregarBody as Record<string, unknown>;
-    expect(agregarPayload?.nombre).toBe('Mi columna nueva');
-    expect(agregarPayload?.totalValorEstimado).toBe(0);
-    expect(agregarPayload?.estadoTrato).toBeDefined();
+    const asignarPayload = asignarBody as Record<string, unknown>;
+    expect(asignarPayload?.totalValorEstimado).toBe(0);
+    expect(asignarPayload?.estadoTrato).toBeDefined();
 
     // El dialog debe cerrarse al completarse el flujo
     await waitFor(() => {
@@ -383,9 +383,9 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
 // ---------------------------------------------------------------------------
 
 describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
-  it('(l) tablero TAREAS: submit válido llama agregar-columna con estadoTarea', async () => {
+  it('(l) tablero TAREAS: submit válido asigna con estadoTarea', async () => {
     let createCalled = false;
-    let agregarBody: unknown = null;
+    let asignarBody: unknown = null;
 
     server.use(
       http.post('/api/columnas/create', () => {
@@ -395,8 +395,8 @@ describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
           { status: 201 },
         );
       }),
-      http.post('/api/tableros/agregar-columna', async ({ request }) => {
-        agregarBody = await request.json();
+      http.post('/api/tableros/asignar-columna', async ({ request }) => {
+        asignarBody = await request.json();
         return HttpResponse.json(tableroTareasFixture, { status: 201 });
       }),
       http.get('/api/columnas/get-all', () => HttpResponse.json([])),
@@ -434,17 +434,17 @@ describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
     await waitFor(() => {
-      expect(agregarBody).toBeTruthy();
+      expect(asignarBody).toBeTruthy();
     });
 
-    // Flujo de UNA llamada: NO se usa el endpoint viejo de catálogo
-    expect(createCalled).toBe(false);
+    // Flujo de 2 pasos: primero se crea el catálogo
+    expect(createCalled).toBe(true);
 
-    // El body de agregar para TAREAS: totalValorEstimado 0, estadoTarea presente, sin estadoTrato
-    const agregarPayload = agregarBody as Record<string, unknown>;
-    expect(agregarPayload?.totalValorEstimado).toBe(0);
-    expect(agregarPayload?.estadoTarea).toBeDefined();
-    expect(agregarPayload?.estadoTrato).toBeUndefined();
+    // El body de asignar para TAREAS: totalValorEstimado 0, estadoTarea presente, sin estadoTrato
+    const asignarPayload = asignarBody as Record<string, unknown>;
+    expect(asignarPayload?.totalValorEstimado).toBe(0);
+    expect(asignarPayload?.estadoTarea).toBeDefined();
+    expect(asignarPayload?.estadoTrato).toBeUndefined();
 
     // El dialog cierra
     await waitFor(() => {

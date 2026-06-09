@@ -368,8 +368,10 @@ describe('useUpdateColumna', () => {
 });
 
 // ---------------------------------------------------------------------------
-// useCrearColumnaEnTablero — UNA llamada: POST /tableros/agregar-columna?id=
-// El back crea la columna del catálogo Y la agrega al tablero en una operación.
+// useCrearColumnaEnTablero — DOS llamadas encadenadas:
+//   1. POST /columnas/create        → crea la columna del catálogo, devuelve su id.
+//   2. POST /tableros/asignar-columna?id=&columnaId= → la agrega al tablero.
+// El back NO tiene endpoint atómico /tableros/agregar-columna.
 // Invalida ['columnas'] + ['tableros'] en éxito.
 // ---------------------------------------------------------------------------
 
@@ -381,19 +383,19 @@ describe('useCrearColumnaEnTablero', () => {
     totalValorEstimado: 0,
   };
 
-  it('hace UNA sola llamada a POST /tableros/agregar-columna con el body combinado', async () => {
-    let createCalled = false;
-    let agregarUrl: string | null = null;
-    let agregarBody: Record<string, unknown> | null = null;
+  it('encadena POST /columnas/create y POST /tableros/asignar-columna con el id devuelto', async () => {
+    let createBody: Record<string, unknown> | null = null;
+    let asignarUrl: string | null = null;
+    let asignarBody: Record<string, unknown> | null = null;
 
     server.use(
-      http.post('/api/columnas/create', () => {
-        createCalled = true;
+      http.post('/api/columnas/create', async ({ request }) => {
+        createBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(COLUMNA_FIXTURE, { status: 201 });
       }),
-      http.post('/api/tableros/agregar-columna', async ({ request }) => {
-        agregarUrl = request.url;
-        agregarBody = (await request.json()) as Record<string, unknown>;
+      http.post('/api/tableros/asignar-columna', async ({ request }) => {
+        asignarUrl = request.url;
+        asignarBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(TABLERO_FIXTURE, { status: 201 });
       }),
     );
@@ -408,25 +410,32 @@ describe('useCrearColumnaEnTablero', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Ya NO se llama al endpoint viejo de catálogo
-    expect(createCalled).toBe(false);
-    expect(agregarUrl).toContain(`id=${TABLERO_ID}`);
-    expect(agregarBody).toMatchObject({
+    // Paso 1: el catálogo recibe los datos de creación (CreateColumnaRequest)
+    expect(createBody).toMatchObject({
       nombre: CREATE_PAYLOAD.nombre,
       tipoColumna: CREATE_PAYLOAD.tipoColumna,
+      tipoTablero: CREATE_PAYLOAD.tipoTablero,
+    });
+
+    // Paso 2: asignar usa el id devuelto por create y manda solo config contextual
+    expect(asignarUrl).toContain(`id=${TABLERO_ID}`);
+    expect(asignarUrl).toContain(`columnaId=${COLUMNA_ID}`);
+    expect(asignarBody).toMatchObject({
       limiteWip: 5,
       estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
-      // boolean primitivo en el record del back: debe ir SIEMPRE (no null/ausente)
-      existeOtraColumnaConMismoNombre: false,
     });
-    // tipoTablero NO se envía (el back lo deriva del tablero)
-    expect(agregarBody).not.toHaveProperty('tipoTablero');
+    // Los datos de catálogo NO viajan en el body de asignar
+    expect(asignarBody).not.toHaveProperty('nombre');
+    expect(asignarBody).not.toHaveProperty('tipoColumna');
   });
 
   it('invalida ["columnas"] y ["tableros"] en onSuccess', async () => {
     server.use(
-      http.post('/api/tableros/agregar-columna', () =>
+      http.post('/api/columnas/create', () =>
+        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
+      ),
+      http.post('/api/tableros/asignar-columna', () =>
         HttpResponse.json(TABLERO_FIXTURE, { status: 201 }),
       ),
     );
@@ -456,7 +465,10 @@ describe('useCrearColumnaEnTablero', () => {
     const toastSuccessSpy = vi.spyOn(toast, 'success');
 
     server.use(
-      http.post('/api/tableros/agregar-columna', () =>
+      http.post('/api/columnas/create', () =>
+        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
+      ),
+      http.post('/api/tableros/asignar-columna', () =>
         HttpResponse.json(TABLERO_FIXTURE, { status: 201 }),
       ),
     );
@@ -474,14 +486,50 @@ describe('useCrearColumnaEnTablero', () => {
     expect(toastSuccessSpy).toHaveBeenCalledWith('Columna creada y agregada al tablero');
   });
 
-  it('si agregar falla → isError, toast de error y NO marca success', async () => {
+  it('si crear el catálogo falla → isError, toast de error y NO asigna', async () => {
+    const { toast } = await import('sonner');
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+    let asignarCalled = false;
+
+    server.use(
+      http.post('/api/columnas/create', () =>
+        HttpResponse.json(
+          { status: 409, error: 'CONFLICT', message: 'Nombre de columna duplicado' },
+          { status: 409 },
+        ),
+      ),
+      http.post('/api/tableros/asignar-columna', () => {
+        asignarCalled = true;
+        return HttpResponse.json(TABLERO_FIXTURE, { status: 201 });
+      }),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { useCrearColumnaEnTablero } = await import('../hooks/useCrearColumnaEnTablero');
+    const { result } = renderHook(() => useCrearColumnaEnTablero(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.mutate({ columna: CREATE_PAYLOAD, asignacion: ASIGNAR_DATA });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.isSuccess).toBe(false);
+    expect(asignarCalled).toBe(false);
+    expect(toastErrorSpy).toHaveBeenCalledWith('Nombre de columna duplicado');
+  });
+
+  it('si asignar al tablero falla → isError y toast de error', async () => {
     const { toast } = await import('sonner');
     const toastErrorSpy = vi.spyOn(toast, 'error');
 
     server.use(
-      http.post('/api/tableros/agregar-columna', () =>
+      http.post('/api/columnas/create', () =>
+        HttpResponse.json(COLUMNA_FIXTURE, { status: 201 }),
+      ),
+      http.post('/api/tableros/asignar-columna', () =>
         HttpResponse.json(
-          { status: 409, error: 'CONFLICT', message: 'Conflicto al agregar' },
+          { status: 409, error: 'CONFLICT', message: 'Conflicto al asignar' },
           { status: 409 },
         ),
       ),
@@ -498,6 +546,6 @@ describe('useCrearColumnaEnTablero', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.isSuccess).toBe(false);
-    expect(toastErrorSpy).toHaveBeenCalledWith('Conflicto al agregar');
+    expect(toastErrorSpy).toHaveBeenCalledWith('Conflicto al asignar');
   });
 });

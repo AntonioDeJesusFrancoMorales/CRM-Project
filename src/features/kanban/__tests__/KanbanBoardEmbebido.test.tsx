@@ -295,9 +295,9 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
     expect(screen.queryByRole('combobox', { name: /^columna$/i })).not.toBeInTheDocument();
   });
 
-  it('(k2) submit válido invoca agregar-columna y cierra el dialog', async () => {
+  it('(k2) submit válido crea el catálogo, lo asigna al tablero y cierra el dialog', async () => {
     let createCalled = false;
-    let agregarCalled = false;
+    let asignarCalled = false;
 
     server.use(
       http.get('/api/tableros/get-by-id', () =>
@@ -309,8 +309,8 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
         createCalled = true;
         return HttpResponse.json({ id: 'x' }, { status: 201 });
       }),
-      http.post('/api/tableros/agregar-columna', () => {
-        agregarCalled = true;
+      http.post('/api/tableros/asignar-columna', () => {
+        asignarCalled = true;
         return HttpResponse.json(tableroTratosFixture, { status: 201 });
       }),
       http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
@@ -346,10 +346,10 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
     await user.click(submitBtn!);
 
     await waitFor(() => {
-      expect(agregarCalled).toBe(true);
+      expect(asignarCalled).toBe(true);
     });
 
-    // Flujo de una sola llamada: NO se usa el endpoint viejo de catálogo
-    expect(createCalled).toBe(false);
+    // Flujo de 2 pasos: primero se crea el catálogo, luego se asigna
+    expect(createCalled).toBe(true);
   });
 });

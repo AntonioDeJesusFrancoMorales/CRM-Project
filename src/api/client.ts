@@ -63,7 +63,10 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
     throw new HttpError(payload);
   }
 
-  if (res.status === 204) return undefined as T;
+  // 204 No Content y 202 Accepted vienen SIN cuerpo (el back usa accepted().build() para
+  // flujos async como request-password-change). Parsear JSON sobre body vacío tiraría error,
+  // así que cortamos antes y devolvemos undefined.
+  if (res.status === 204 || res.status === 202) return undefined as T;
   return (await res.json()) as T;
 }
 

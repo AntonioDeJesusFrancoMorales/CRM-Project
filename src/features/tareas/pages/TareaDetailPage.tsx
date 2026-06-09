@@ -9,11 +9,14 @@ import { toast } from 'sonner';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { isHttpError } from '@/api/http-error';
 import { formatDate } from '@/lib/format';
-import type { TipoTarea } from '@/api/types';
 import { useTarea } from '../hooks/useTarea';
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
+import { prioridadBadgeClass, prioridadLabels, tipoLabels } from '../lib/tareaBadges';
 import { useTrato } from '@/features/tratos/hooks/useTrato';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TareaEditDialog } from '../components/TareaEditDialog';
@@ -22,21 +25,6 @@ import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
 import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
-
-const tipoLabels: Record<TipoTarea, string> = {
-  GENERAL: 'General',
-  SEGUIMIENTO: 'Seguimiento',
-  NEGOCIACION: 'Negociación',
-  CIERRE: 'Cierre',
-};
-
-const prioridadLabels: Record<string, string> = {
-  BAJA: 'Baja',
-  MEDIA: 'Media',
-  ALTA: 'Alta',
-  URGENTE: 'Urgente',
-};
-
 
 interface FieldProps {
   label: string;
@@ -93,9 +81,26 @@ export function TareaDetailPage() {
 
   if (isLoading) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        Cargando tarea...
-      </p>
+      <div className="space-y-6" aria-busy="true" aria-label="Cargando tarea">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-9 w-9 rounded-md" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64" />
+            <div className="flex gap-2">
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="space-y-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -109,12 +114,14 @@ export function TareaDetailPage() {
 
   if (error || !tarea || !id) {
     return (
-      <div className="space-y-4 py-12 text-center">
-        <p className="text-sm text-destructive">No fue posible cargar la tarea.</p>
-        <Button variant="outline" onClick={() => navigate('/tareas')}>
-          Volver al listado
-        </Button>
-      </div>
+      <Card>
+        <CardContent className="space-y-4 py-12 text-center">
+          <p className="text-sm text-destructive">No fue posible cargar la tarea.</p>
+          <Button variant="outline" onClick={() => navigate('/tareas')}>
+            Volver al listado
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -136,7 +143,7 @@ export function TareaDetailPage() {
             <h1 className="text-2xl font-semibold tracking-tight">{tarea.titulo}</h1>
             <div className="flex flex-wrap gap-2">
               <TareaEstadoBadge tareaId={tarea.id} />
-              <Badge variant="outline">
+              <Badge className={cn(prioridadBadgeClass[tarea.prioridad])}>
                 {prioridadLabels[tarea.prioridad]}
               </Badge>
             </div>
@@ -160,44 +167,50 @@ export function TareaDetailPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <Field label="Trato vinculado">
-          {trato ? (
-            <Link
-              to={`/tratos/${trato.id}`}
-              className="text-primary hover:underline"
-            >
-              {trato.nombre}
-            </Link>
-          ) : (
-            '—'
+      <Card>
+        <CardContent className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
+          <Field label="Trato vinculado">
+            {trato ? (
+              <Link
+                to={`/tratos/${trato.id}`}
+                className="text-primary hover:underline"
+              >
+                {trato.nombre}
+              </Link>
+            ) : (
+              '—'
+            )}
+          </Field>
+
+          <Field label="Responsable">{responsable?.nombre ?? '—'}</Field>
+
+          <Field label="Tipo">{tipoLabels[tarea.tipo]}</Field>
+
+          <Field label="Prioridad">
+            <Badge className={cn(prioridadBadgeClass[tarea.prioridad])}>
+              {prioridadLabels[tarea.prioridad]}
+            </Badge>
+          </Field>
+
+          <Field label="Fecha límite">{formatDate(tarea.fechaLimite)}</Field>
+
+          {tarea.fechaCompletada && (
+            <Field label="Fecha completada">{formatDate(tarea.fechaCompletada)}</Field>
           )}
-        </Field>
 
-        <Field label="Responsable">{responsable?.nombre ?? '—'}</Field>
+          {tarea.descripcion && (
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Descripción
+              </p>
+              <p className="whitespace-pre-wrap text-sm">{tarea.descripcion}</p>
+            </div>
+          )}
 
-        <Field label="Tipo">{tipoLabels[tarea.tipo]}</Field>
-
-        <Field label="Prioridad">{prioridadLabels[tarea.prioridad]}</Field>
-
-        <Field label="Fecha límite">{formatDate(tarea.fechaLimite)}</Field>
-
-        {tarea.fechaCompletada && (
-          <Field label="Fecha completada">{formatDate(tarea.fechaCompletada)}</Field>
-        )}
-
-        {tarea.descripcion && (
-          <div className="sm:col-span-2 space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Descripción
-            </p>
-            <p className="text-sm whitespace-pre-wrap">{tarea.descripcion}</p>
-          </div>
-        )}
-
-        <Field label="Creado">{formatDate(tarea.creadoEn)}</Field>
-        <Field label="Última actualización">{formatDate(tarea.actualizadoEn)}</Field>
-      </div>
+          <Field label="Creado">{formatDate(tarea.creadoEn)}</Field>
+          <Field label="Última actualización">{formatDate(tarea.actualizadoEn)}</Field>
+        </CardContent>
+      </Card>
 
       {/* Dialogs */}
       <TareaEditDialog

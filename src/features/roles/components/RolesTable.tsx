@@ -19,6 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { estadoRolBadgeClass, estadoRolLabel } from '../lib/estadoRol';
 
 interface RolesTableProps {
   roles: Rol[];
@@ -61,7 +62,7 @@ export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
 
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="hover:bg-transparent">
             <TableHead>Nombre</TableHead>
             <TableHead>Descripción</TableHead>
             <TableHead>Estado</TableHead>
@@ -77,24 +78,15 @@ export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
             </TableRow>
           ) : (
             filtered.map((rol) => (
-              <TableRow key={rol.id}>
+              <TableRow key={rol.id} className="group">
                 <TableCell className="font-medium">{rol.nombre}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {rol.descripcion ?? '—'}
                 </TableCell>
                 <TableCell>
-                  {rol.activo ? (
-                    <Badge variant="outline" className="border-emerald-500 text-emerald-700">
-                      Activo
-                    </Badge>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="border-muted-foreground text-muted-foreground"
-                    >
-                      Inactivo
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className={estadoRolBadgeClass(rol.activo)}>
+                    {estadoRolLabel(rol.activo)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

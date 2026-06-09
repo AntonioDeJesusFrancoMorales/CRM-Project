@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Pencil, Trash2 } from 'lucide-react';
-import type { Tarea, TipoTarea } from '@/api/types';
+import type { Tarea } from '@/api/types';
 import {
   Table,
   TableBody,
@@ -17,27 +17,19 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
 import { TareaEstadoMenu } from './TareaEstadoMenu';
 import { TareaEstadoBadge } from './TareaEstadoBadge';
 import { TareaEditDialog } from './TareaEditDialog';
 import { TareaDeleteDialog } from './TareaDeleteDialog';
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
+import { prioridadBadgeClass, prioridadLabels, tipoLabels } from '../lib/tareaBadges';
 
-const tipoLabels: Record<TipoTarea, string> = {
-  GENERAL: 'General',
-  SEGUIMIENTO: 'Seguimiento',
-  NEGOCIACION: 'Negociación',
-  CIERRE: 'Cierre',
-};
-
-const prioridadLabels: Record<string, string> = {
-  BAJA: 'Baja',
-  MEDIA: 'Media',
-  ALTA: 'Alta',
-  URGENTE: 'Urgente',
-};
-
+/** Una tarea está vencida si su fecha límite ya pasó y aún no fue completada. */
+function estaVencida(tarea: Tarea): boolean {
+  return tarea.fechaCompletada === null && new Date(tarea.fechaLimite) < new Date();
+}
 
 interface TareasTableProps {
   tareas: Tarea[];
@@ -98,20 +90,24 @@ export function TareasTable({
               </TableCell>
             </TableRow>
           ) : (
-            filtered.map((tarea) => (
-              <TableRow key={tarea.id}>
+            filtered.map((tarea) => {
+              const vencida = estaVencida(tarea);
+              return (
+              <TableRow key={tarea.id} className="group">
                 <TableCell className="font-medium">
                   <button
                     type="button"
                     onClick={() => void navigate(`/tareas/${tarea.id}`)}
-                    className="text-left text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                    className="text-left font-medium underline-offset-4 transition-colors hover:text-primary hover:underline focus:text-primary focus:underline focus:outline-none"
                   >
                     {tarea.titulo}
                   </button>
                 </TableCell>
-                <TableCell>{tipoLabels[tarea.tipo]}</TableCell>
+                <TableCell className="text-muted-foreground">{tipoLabels[tarea.tipo]}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{prioridadLabels[tarea.prioridad]}</Badge>
+                  <Badge variant="outline" className={prioridadBadgeClass[tarea.prioridad]}>
+                    {prioridadLabels[tarea.prioridad]}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -121,7 +117,16 @@ export function TareasTable({
                 </TableCell>
                 <TableCell>{usuariosById[tarea.responsableId] ?? '—'}</TableCell>
                 <TableCell>{tratosById[tarea.tratoId] ?? '—'}</TableCell>
-                <TableCell>{formatDate(tarea.fechaLimite)}</TableCell>
+                <TableCell
+                  className={cn(
+                    'tabular-nums',
+                    vencida
+                      ? 'font-medium text-red-600 dark:text-red-400'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {formatDate(tarea.fechaLimite)}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Button
@@ -144,7 +149,8 @@ export function TareasTable({
                   </div>
                 </TableCell>
               </TableRow>
-            ))
+              );
+            })
           )}
         </TableBody>
       </Table>

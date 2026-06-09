@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { DateTimePicker } from '@/components/ui/date-time-field';
 import {
   Select,
   SelectContent,
@@ -87,7 +88,7 @@ export function TareaForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
 
         {/* Select de Trato */}
         <FormField
@@ -299,10 +300,9 @@ export function TareaForm({
                 <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  value={field.value ?? ''}
+                <DateTimePicker
+                  value={field.value ?? null}
+                  onChange={field.onChange}
                 />
               </FormControl>
               <FormMessage />

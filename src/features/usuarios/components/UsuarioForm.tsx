@@ -83,6 +83,7 @@ function CreateForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-4"
         noValidate
+        autoComplete="off"
       >
         {/* Nombre completo */}
         <FormField
@@ -245,6 +246,7 @@ function EditForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-4"
         noValidate
+        autoComplete="off"
       >
         {/* Nombre completo */}
         <FormField

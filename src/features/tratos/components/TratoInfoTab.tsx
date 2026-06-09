@@ -3,25 +3,9 @@
 // Presentational: recibe datos resueltos desde TratoDetailPage.
 
 import { Link } from 'react-router';
-import type { TipoContrato, Trato } from '@/api/types';
-import { formatDate } from '@/lib/format';
-
-const tipoContratoLabels: Record<TipoContrato, string> = {
-  SERVICIO: 'Servicio',
-  LICENCIA: 'Licencia',
-  SUSCRIPCION: 'Suscripción',
-  PERMANENTE: 'Permanente',
-  OTRO: 'Otro',
-};
-
-function formatCurrency(value: number | null): string {
-  if (value === null) return '—';
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import type { Trato } from '@/api/types';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { tipoContratoLabels } from '../lib/tipoContrato';
 
 interface FieldProps {
   label: string;

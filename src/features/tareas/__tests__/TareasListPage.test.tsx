@@ -331,9 +331,11 @@ describe('TareasListPage — creación (enums del back)', () => {
     const responsableOption = await screen.findByRole('option', { name: /antonio franco/i });
     await user.click(responsableOption);
 
-    // Fecha límite (requerida)
-    const fechaInput = screen.getByLabelText(/fecha límite/i);
-    await user.type(fechaInput, '2026-06-01');
+    // Fecha límite (requerida) — despliega el DateTimePicker inline y elige un día (hora default 09:00).
+    const fechaTrigger = screen.getByRole('button', { name: /fecha límite/i });
+    await user.click(fechaTrigger);
+    const dias = await screen.findAllByLabelText(/^\d{4}-\d{2}-\d{2}$/);
+    await user.click(dias[14]!);
 
     // Submit
     await user.click(screen.getByRole('button', { name: /crear tarea/i }));

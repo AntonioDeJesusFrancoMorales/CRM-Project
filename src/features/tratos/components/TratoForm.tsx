@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-time-field';
 import {
   Select,
   SelectContent,
@@ -77,7 +78,7 @@ export function TratoForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
         {/* Contacto (único select unificado) */}
         <FormField
           control={form.control}
@@ -254,10 +255,9 @@ export function TratoForm({
             <FormItem>
               <FormLabel>Fecha de cierre esperada</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  value={field.value ?? ''}
+                <DatePicker
+                  value={field.value ?? null}
+                  onChange={field.onChange}
                 />
               </FormControl>
               <FormMessage />

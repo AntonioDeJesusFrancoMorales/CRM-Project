@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker, TimeField } from '@/components/ui/date-time-field';
 import {
   Select,
   SelectContent,
@@ -80,7 +81,7 @@ export function AgendaForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
         {/* Tipo — dos cuadros seleccionables (uno u otro). Al cambiar de tipo se limpia
             el campo del otro (ubicación ↔ link) para no arrastrar datos del tipo anterior. */}
         <FormField
@@ -171,23 +172,25 @@ export function AgendaForm({
           )}
         />
 
-        {/* Fecha + horas */}
-        <div className="grid grid-cols-3 gap-3">
-          <FormField
-            control={form.control}
-            name="fecha"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Fecha <span aria-hidden="true" className="text-destructive">*</span>
-                </FormLabel>
-                <FormControl>
-                  <Input type="date" aria-label="Fecha" {...field} value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Fecha */}
+        <FormField
+          control={form.control}
+          name="fecha"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Fecha <span aria-hidden="true" className="text-destructive">*</span>
+              </FormLabel>
+              <FormControl>
+                <DatePicker value={field.value ?? null} onChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Horas inicio / fin */}
+        <div className="grid grid-cols-2 gap-3">
           <FormField
             control={form.control}
             name="horaInicio"
@@ -197,7 +200,11 @@ export function AgendaForm({
                   Inicio <span aria-hidden="true" className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input type="time" aria-label="Hora de inicio" {...field} value={field.value ?? ''} />
+                  <TimeField
+                    label="Hora de inicio"
+                    value={field.value ?? null}
+                    onChange={(v) => field.onChange(v ?? '')}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -210,12 +217,11 @@ export function AgendaForm({
               <FormItem>
                 <FormLabel>Fin</FormLabel>
                 <FormControl>
-                  <Input
-                    type="time"
-                    aria-label="Hora de fin"
-                    {...field}
-                    value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.value || null)}
+                  <TimeField
+                    label="Hora de fin"
+                    allowClear
+                    value={field.value ?? null}
+                    onChange={(v) => field.onChange(v || null)}
                   />
                 </FormControl>
                 <FormMessage />
