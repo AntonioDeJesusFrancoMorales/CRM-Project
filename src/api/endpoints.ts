@@ -73,6 +73,10 @@ export const endpoints = {
     create: () => '/usuarios/create',
     edit: (id: string) => `/usuarios/edit?id=${id}`,
     delete: (id: string) => `/usuarios/delete?id=${id}`,
+    // Cambio de contraseña del usuario autenticado. NO recibe body: el back deriva el
+    // usuarioId del ActorContext (token) y dispara un email de Keycloak (UPDATE_PASSWORD).
+    // Responde 202 Accepted sin cuerpo. Ver back UsuarioController.requestPasswordChange.
+    requestPasswordChange: () => '/usuarios/request-password-change',
   },
   roles: {
     getAll: () => '/roles/get-all',
