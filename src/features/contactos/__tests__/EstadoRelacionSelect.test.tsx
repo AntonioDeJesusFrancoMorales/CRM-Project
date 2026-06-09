@@ -67,7 +67,9 @@ describe('EstadoRelacionSelect', () => {
     });
   });
 
-  it('ACTIVO → INACTIVO con tieneTratosActivos=true está deshabilitado', async () => {
+  // Regla suspendida (back eliminó el estado tipado del trato): INACTIVO ya NO
+  // se deshabilita por tratos activos. El param se conserva pero se ignora.
+  it('ACTIVO → INACTIVO con tieneTratosActivos=true sigue habilitado (regla suspendida)', async () => {
     const user = userEvent.setup();
     renderSelect({ actual: 'ACTIVO', value: 'ACTIVO', tieneTratosActivos: true });
 
@@ -76,7 +78,7 @@ describe('EstadoRelacionSelect', () => {
     await waitFor(() => {
       const allOptions = screen.getAllByRole('option', { hidden: true });
       const inactivo = allOptions.find((o) => o.textContent?.toLowerCase().includes('inactivo'));
-      expect(inactivo).toHaveAttribute('data-disabled');
+      expect(inactivo).not.toHaveAttribute('data-disabled');
     });
   });
 

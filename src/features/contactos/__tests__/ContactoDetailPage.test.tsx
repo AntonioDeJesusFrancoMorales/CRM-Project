@@ -107,13 +107,10 @@ describe('ContactoDetailPage', () => {
   // El estado ya no viene de trato.estado sino de deriveEstadoTrato(tratoId, fichas, columnas)
   // ---------------------------------------------------------------------------
 
-  it('[W1] INACTIVO deshabilitado si el trato del contacto tiene ficha en columna ABIERTO', async () => {
-    // c1111111 (Ana, ACTIVO) tiene tratos d2222222 y d4444444.
-    // fichasFixture default incluye ficha h2222222: tratoId=d2222222, columnaId=enNegociacion (ABIERTO)
-    // → deriveEstadoTrato(d2222222, fichas, columnas) === 'ABIERTO' → tieneTratosActivos = true
-    // Con el fix correcto (derive), INACTIVO estará deshabilitado.
-    // Con el bug (length > 0), también estaría deshabilitado — este escenario es positivo para ambos.
-    // Su valor real está en combinacion con el escenario GANADO/PERDIDO que distingue los dos.
+  it('[W1] INACTIVO habilitado aunque el trato tenga ficha en columna ABIERTO (regla suspendida)', async () => {
+    // c1111111 (Ana, ACTIVO) tiene tratos d2222222 y d4444444 con ficha en columna "ABIERTO".
+    // El back eliminó el estado tipado del trato, así que el guard de INACTIVO está
+    // suspendido: deriveEstadoTrato ya no puede devolver 'ABIERTO' → INACTIVO queda habilitado.
     const user = userEvent.setup();
     renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111');
 
@@ -123,12 +120,12 @@ describe('ContactoDetailPage', () => {
 
     await user.click(screen.getByRole('combobox'));
 
-    // La opcion INACTIVO debe estar deshabilitada (Radix SelectItem disabled = data-disabled)
+    // Con la regla suspendida, INACTIVO ya NO se deshabilita por tratos.
     await waitFor(() => {
       const allOptions = screen.getAllByRole('option', { hidden: true });
       const inactivoOpt = allOptions.find((o) => /inactivo/i.test(o.textContent ?? ''));
       expect(inactivoOpt).toBeDefined();
-      expect(inactivoOpt).toHaveAttribute('data-disabled');
+      expect(inactivoOpt).not.toHaveAttribute('data-disabled');
     });
   });
 

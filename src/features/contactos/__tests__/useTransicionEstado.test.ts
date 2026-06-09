@@ -4,7 +4,8 @@ import type { EstadoRelacion } from '@/api/types';
 
 // Tabla de transiciones:
 // ACTIVO/INACTIVO → PROSPECTO: bloqueado siempre
-// * → INACTIVO con tratos activos: bloqueado
+// * → INACTIVO con tratos activos: SUSPENDIDO (el back eliminó el estado tipado
+//   del trato; el guard se reactiva cuando se defina el nuevo modelo)
 // Idempotencia (mismo estado): permitido
 // Demás: permitido
 
@@ -36,22 +37,18 @@ describe('puedeTransicionar', () => {
     expect(result.razon).toBeDefined();
   });
 
-  // --- Bloqueado: → INACTIVO con tratos activos ---
-  it('PROSPECTO → INACTIVO con tratos activos: bloqueado', () => {
-    const result = puedeTransicionar('PROSPECTO', 'INACTIVO', true);
-    expect(result.ok).toBe(false);
-    expect(result.razon).toBeDefined();
-    expect(result.razon!.length).toBeGreaterThan(0);
+  // --- Guard de INACTIVO SUSPENDIDO: → INACTIVO con tratos activos ahora es ok ---
+  // El back eliminó el estado tipado del trato, así que el guard no puede operar
+  // de forma fiable. Hasta acordar el nuevo modelo, el param se ignora.
+  it('PROSPECTO → INACTIVO con tratos activos: ok (regla suspendida)', () => {
+    expect(puedeTransicionar('PROSPECTO', 'INACTIVO', true)).toEqual({ ok: true });
   });
 
-  it('ACTIVO → INACTIVO con tratos activos: bloqueado', () => {
-    const result = puedeTransicionar('ACTIVO', 'INACTIVO', true);
-    expect(result.ok).toBe(false);
-    expect(result.razon).toBeDefined();
+  it('ACTIVO → INACTIVO con tratos activos: ok (regla suspendida)', () => {
+    expect(puedeTransicionar('ACTIVO', 'INACTIVO', true)).toEqual({ ok: true });
   });
 
-  it('INACTIVO → INACTIVO con tratos activos: ok (idempotente aunque haya tratos)', () => {
-    // Idempotencia tiene prioridad sobre el guard de tratos activos
+  it('INACTIVO → INACTIVO con tratos activos: ok (idempotente)', () => {
     expect(puedeTransicionar('INACTIVO', 'INACTIVO', true)).toEqual({ ok: true });
   });
 
