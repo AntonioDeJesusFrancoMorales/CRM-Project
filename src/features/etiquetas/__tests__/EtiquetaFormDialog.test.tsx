@@ -35,6 +35,16 @@ describe('EtiquetaFormDialog — create', () => {
     expect(screen.getByText('Nueva etiqueta')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /crear etiqueta/i })).toBeInTheDocument();
   });
+
+  it('(a2) muestra la paleta de swatches de color (no el input nativo)', () => {
+    renderDialog(
+      <EtiquetaFormDialog mode="create" open onOpenChange={vi.fn()} defaultTipo="TRATO" />,
+    );
+    // Swatches por aria-label "Color #RRGGBB" — al menos el azul por defecto presente.
+    expect(screen.getByRole('button', { name: /color #3B82F6/i })).toBeInTheDocument();
+    // Campo hex para color personalizado.
+    expect(screen.getByLabelText(/color personalizado/i)).toBeInTheDocument();
+  });
 });
 
 describe('EtiquetaFormDialog — edit (regresión useFormField)', () => {

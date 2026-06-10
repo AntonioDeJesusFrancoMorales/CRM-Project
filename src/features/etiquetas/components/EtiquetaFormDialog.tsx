@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { isHttpError } from '@/api/http-error';
 import type { Etiqueta, TipoEtiqueta } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -36,7 +38,16 @@ import {
 import { useCreateEtiqueta } from '../hooks/useCreateEtiqueta';
 import { useEditEtiqueta } from '../hooks/useEditEtiqueta';
 
+// Paleta curada de colores para etiquetas (hex #RRGGBB MAYÚS, como normaliza el back).
+// DEFAULT_COLOR debe estar en la paleta para que arranque preseleccionado.
+const PALETTE = [
+  '#EF4444', '#F59E0B', '#EAB308', '#22C55E',
+  '#10B981', '#06B6D4', '#3B82F6', '#6366F1',
+  '#8B5CF6', '#EC4899', '#64748B', '#78716C',
+] as const;
+
 const DEFAULT_COLOR = '#3B82F6';
+const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 
 const tipoLabel: Record<TipoEtiqueta, string> = {
   TRATO: 'Trato',
@@ -62,7 +73,9 @@ type EditProps = {
 
 export type EtiquetaFormDialogProps = CreateProps | EditProps;
 
-// ─── Campo de color reutilizable: swatch nativo + hex sincronizados ─────────────
+// ─── Campo de color: paleta de swatches + hex opcional para custom ──────────────
+// Reemplaza el <input type="color"> nativo (UI inconsistente entre SO/navegadores)
+// por una paleta curada on-brand. El hex de abajo permite un color fuera de la paleta.
 
 function ColorField({
   value,
@@ -71,22 +84,50 @@ function ColorField({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const normalized = (value ?? '').toUpperCase();
+  const validHex = HEX_RE.test(normalized);
+
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="color"
-        aria-label="Selector de color"
-        value={value}
-        onChange={(e) => onChange(e.target.value.toUpperCase())}
-        className="h-9 w-12 shrink-0 cursor-pointer rounded border bg-transparent p-0.5"
-      />
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="#RRGGBB"
-        maxLength={7}
-        className="font-mono"
-      />
+    <div className="space-y-3">
+      {/* Paleta de swatches */}
+      <div className="flex flex-wrap gap-2">
+        {PALETTE.map((c) => {
+          const selected = normalized === c;
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange(c)}
+              aria-label={`Color ${c}`}
+              aria-pressed={selected}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-full ring-offset-2 ring-offset-background transition',
+                selected ? 'ring-2 ring-ring' : 'hover:scale-110',
+              )}
+              style={{ backgroundColor: c }}
+            >
+              {selected && <Check className="h-4 w-4 text-white drop-shadow" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Hex personalizado (color fuera de la paleta) */}
+      <div className="flex items-center gap-2">
+        <span
+          className="h-7 w-7 shrink-0 rounded-md border"
+          style={validHex ? { backgroundColor: normalized } : undefined}
+          aria-hidden="true"
+        />
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value.toUpperCase())}
+          placeholder="#RRGGBB"
+          maxLength={7}
+          className="font-mono"
+          aria-label="Color personalizado (hex)"
+        />
+      </div>
     </div>
   );
 }
