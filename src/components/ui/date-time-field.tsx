@@ -36,7 +36,12 @@ const TRIGGER_CLASS =
   'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
 
 // Contenedor del panel inline (calendario / calendario+hora).
-const PANEL_CLASS = 'mt-2 rounded-md border border-border bg-popover p-3 shadow-sm';
+// Se despliega HACIA ARRIBA: posicionado en absolute sobre el trigger (bottom-full)
+// dentro de un wrapper relative. Sigue siendo inline (sin portal) — solo cambia la
+// dirección de apertura para no empujar el contenido de abajo ni quedar tapado por
+// el borde inferior de los Dialogs.
+const PANEL_CLASS =
+  'absolute bottom-full left-0 z-50 mb-2 w-max rounded-md border border-border bg-popover p-3 shadow-md';
 
 const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
@@ -127,7 +132,7 @@ export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
     const selected = parseYmd(value);
 
     return (
-      <div>
+      <div className="relative">
         <button
           ref={ref}
           type="button"
@@ -181,7 +186,7 @@ export const DateTimePicker = React.forwardRef<HTMLButtonElement, DateTimePicker
     const selected = parseYmd(date);
 
     return (
-      <div>
+      <div className="relative">
         <button
           ref={ref}
           type="button"
