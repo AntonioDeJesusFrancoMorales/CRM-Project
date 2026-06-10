@@ -6,7 +6,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { EmpresasListPage } from '@/features/empresas/pages/EmpresasListPage';
 import { EmpresaDetailPage } from '@/features/empresas/pages/EmpresaDetailPage';
 import { UsuariosListPage } from '@/features/usuarios/pages/UsuariosListPage';
-import { RolesListPage } from '@/features/roles/pages/RolesListPage';
+import { ConfiguracionPage } from '@/features/configuracion/pages/ConfiguracionPage';
 import { ContactosPage } from '@/features/contactos/pages/ContactosPage';
 import { ContactoDetailPage } from '@/features/contactos/pages/ContactoDetailPage';
 import { TratosListPage } from '@/features/tratos/pages/TratosListPage';
@@ -62,7 +62,7 @@ export const router = createBrowserRouter([
               // gatear acá sería falsa seguridad. Cualquier autenticado accede, igual
               // que a la API. Ver capability frontend-authorization.
               { path: 'usuarios', element: <UsuariosListPage /> },
-              { path: 'configuracion', element: <RolesListPage /> },
+              { path: 'configuracion', element: <ConfiguracionPage /> },
             ],
           },
         ],

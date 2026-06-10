@@ -23,6 +23,7 @@ import { TareaEditDialog } from '../components/TareaEditDialog';
 import { TareaDeleteDialog } from '../components/TareaDeleteDialog';
 import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
 import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
+import { FichaEtiquetasPanel } from '@/features/etiquetas/components/FichaEtiquetasPanel';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -211,6 +212,9 @@ export function TareaDetailPage() {
           <Field label="Última actualización">{formatDate(tarea.actualizadoEn)}</Field>
         </CardContent>
       </Card>
+
+      {/* Etiquetas — asigna sobre la ficha de la tarea (catálogo de tipo TAREA). */}
+      <FichaEtiquetasPanel tipoFicha="TAREA" entidadId={id} />
 
       {/* Dialogs */}
       <TareaEditDialog

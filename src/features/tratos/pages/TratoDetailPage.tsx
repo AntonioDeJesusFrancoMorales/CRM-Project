@@ -22,6 +22,7 @@ import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { getTareaEstado } from '@/features/tareas/hooks/useTareaEstado';
+import { FichaEtiquetasPanel } from '@/features/etiquetas/components/FichaEtiquetasPanel';
 import { TratoInfoTab } from '../components/TratoInfoTab';
 import { TratoTareasTab } from '../components/TratoTareasTab';
 import { TratoEditDialog } from '../components/TratoEditDialog';
@@ -179,7 +180,7 @@ export function TratoDetailPage() {
           <TabsTrigger value="tareas">Tareas</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="info" className="mt-4">
+        <TabsContent value="info" className="mt-4 space-y-4">
           <Card>
             <CardContent className="p-6">
               <TratoInfoTab
@@ -190,6 +191,9 @@ export function TratoDetailPage() {
               />
             </CardContent>
           </Card>
+
+          {/* Etiquetas — asigna sobre la ficha del trato (catálogo de tipo TRATO). */}
+          <FichaEtiquetasPanel tipoFicha="TRATO" entidadId={id} />
         </TabsContent>
 
         {/* TratoTareasTab se monta solo cuando el tab está activo — lazy load por montaje */}

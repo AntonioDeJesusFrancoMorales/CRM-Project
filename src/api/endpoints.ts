@@ -85,4 +85,17 @@ export const endpoints = {
     edit: (id: string) => `/roles/edit?id=${id}`,
     delete: (id: string) => `/roles/delete?id=${id}`,
   },
+  etiquetas: {
+    // get-all admite filtro opcional por tipo (TAREA|TRATO). Sin tipo => catálogo completo.
+    getAll: (tipo?: 'TAREA' | 'TRATO') =>
+      tipo ? `/etiquetas/get-all?tipoEtiqueta=${tipo}` : '/etiquetas/get-all',
+    getById: (id: string) => `/etiquetas/get-by-id?id=${id}`,
+    create: () => '/etiquetas/create',
+    // edit: el back NO permite cambiar el tipo (inmutable); solo nombre y color.
+    edit: (id: string) => `/etiquetas/edit?id=${id}`,
+    // delete: si la etiqueta está EN USO, el back exige confirm=true o rechaza con
+    // EtiquetaRequiresConfirmationException. Ver EtiquetaDeleteDialog.
+    delete: (id: string, confirm = false) =>
+      `/etiquetas/delete?id=${id}&confirm=${confirm}`,
+  },
 } as const;

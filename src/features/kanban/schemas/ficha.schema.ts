@@ -11,6 +11,19 @@ export const tipoFicha = z.enum(['TRATO', 'TAREA']);
 export type TipoFicha = z.infer<typeof tipoFicha>;
 
 // ---------------------------------------------------------------------------
+// EtiquetaRef — ref COMPACTA que la ficha trae embebida (FichaResponse.EtiquetaRefDto).
+// SOLO {id, tipoEtiqueta}: NO trae nombre ni color. El catálogo (/etiquetas/get-all)
+// es la fuente de verdad de nombre+color → el render del chip hace join por id.
+// ---------------------------------------------------------------------------
+
+export const etiquetaRefSchema = z.object({
+  id: z.string(),
+  tipoEtiqueta: z.enum(['TAREA', 'TRATO']),
+});
+
+export type EtiquetaRef = z.infer<typeof etiquetaRefSchema>;
+
+// ---------------------------------------------------------------------------
 // FichaResponse — shape del back para lectura (alineado a FichaResponse.java)
 // El back devuelve exactamente: id, columnaId, tipoFicha, tratoId, tareaId, actualizadoEn
 // responsableId, creadoPor, creadoEn NO existen en FichaResponse.java
@@ -24,6 +37,9 @@ export const fichaSchema = z.object({
   tratoId: z.string().nullable(),
   tareaId: z.string().nullable(),
   actualizadoEn: z.string(),
+  // etiquetas: refs compactas embebidas. Opcional por tolerancia a fixtures/respuestas
+  // sin el campo; los consumidores normalizan con `?? []`. El back siempre lo envía.
+  etiquetas: z.array(etiquetaRefSchema).optional(),
 });
 
 export type Ficha = z.infer<typeof fichaSchema>;
@@ -39,6 +55,8 @@ export const fichaCreateSchema = z.object({
   tipoFicha,
   tratoId: z.string().nullable().optional(),
   tareaId: z.string().nullable().optional(),
+  // etiquetaIds opcional: se resuelve contra el catálogo en el back. Deben matchear el tipo.
+  etiquetaIds: z.array(z.string()).optional(),
 });
 
 export type FichaCreateInput = z.infer<typeof fichaCreateSchema>;
@@ -54,6 +72,9 @@ export const fichaEditSchema = z.object({
   tipoFicha,
   tratoId: z.string().nullable().optional(),
   tareaId: z.string().nullable().optional(),
+  // etiquetaIds (back EditFichaRequest): null/ausente = deja las tags como están;
+  // [] = borra todas; lista = reemplaza en full. Mantener undefined para no tocarlas.
+  etiquetaIds: z.array(z.string()).optional(),
 });
 
 export type FichaEditInput = z.infer<typeof fichaEditSchema>;

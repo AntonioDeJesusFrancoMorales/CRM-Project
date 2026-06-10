@@ -39,6 +39,13 @@ export interface KanbanCardBadge {
   classes: string;
 }
 
+/** Etiqueta ya resuelta (nombre + color del catálogo) por el container. */
+export interface KanbanCardEtiqueta {
+  id: string;
+  nombre: string;
+  color: string;
+}
+
 interface KanbanCardProps {
   ficha: Ficha;
   /** Título principal de la tarjeta — resuelto por KanbanColumn (trato.nombre o tarea.titulo). */
@@ -47,13 +54,15 @@ interface KanbanCardProps {
   detalles?: KanbanCardDetalle[];
   /** Badge opcional (prioridad de tarea u otro indicador con color). */
   badge?: KanbanCardBadge;
+  /** Etiquetas resueltas (nombre+color) por el container — se pintan como chips. */
+  etiquetas?: KanbanCardEtiqueta[];
   /** Ruta de detalle resuelta por el container (/tratos/:id o /tareas/:id).
    *  Cuando se provee, el área de contenido renderiza un Link para navegar al detalle.
    *  Sin to, la tarjeta no es navegable. */
   to?: string;
 }
 
-export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCardProps) {
+export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
     // type: 'ficha' permite discriminar fichas vs columnas en el onDragEnd del DndContext
@@ -136,6 +145,28 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, to }: KanbanCa
                   </div>
                 ))}
               </dl>
+            )}
+
+            {/* Chips de etiquetas — punto de color + nombre. Fondo tenue derivado del color
+                de la etiqueta (sufijo alpha fijo, funciona en light y dark). */}
+            {etiquetas.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-1" aria-label="Etiquetas">
+                {etiquetas.map((e) => (
+                  <li
+                    key={e.id}
+                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
+                    style={{ borderColor: e.color, backgroundColor: e.color + '1A', color: e.color }}
+                    title={e.nombre}
+                  >
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: e.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="max-w-[8rem] truncate">{e.nombre}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 

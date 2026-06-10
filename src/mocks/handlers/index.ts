@@ -6,7 +6,8 @@ import { tratosHandlers } from './tratos';
 import { tareasHandlers } from './tareas';
 import { tablerosHandlers } from './tableros';
 import { agendaHandlers } from './agenda';
-import { etiquetasComentariosHandlers } from './etiquetas-comentarios';
+import { etiquetasHandlers } from './etiquetas';
+import { comentariosHandlers } from './comentarios';
 
 export const handlers = [
   ...empresasHandlers,
@@ -17,5 +18,6 @@ export const handlers = [
   ...tareasHandlers,
   ...tablerosHandlers,
   ...agendaHandlers,
-  ...etiquetasComentariosHandlers,
+  ...etiquetasHandlers,
+  ...comentariosHandlers,
 ];

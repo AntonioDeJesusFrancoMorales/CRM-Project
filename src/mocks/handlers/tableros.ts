@@ -11,7 +11,18 @@ import {
   columnasFixture,
   fichasFixture,
 } from '@/mocks/fixtures/tableros';
-import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import { etiquetasFixture } from '@/mocks/fixtures/etiquetas';
+import type { Ficha, EtiquetaRef } from '@/features/kanban/schemas/ficha.schema';
+
+// Resuelve etiquetaIds → refs compactas {id, tipoEtiqueta} contra el catálogo,
+// espejando el FichaEtiquetaResolver del back (ids inexistentes se ignoran en el mock).
+function resolveEtiquetaRefs(ids: unknown): EtiquetaRef[] {
+  if (!Array.isArray(ids)) return [];
+  return ids
+    .map((id) => etiquetasFixture.find((e) => e.id === id))
+    .filter((e): e is NonNullable<typeof e> => e !== undefined)
+    .map((e) => ({ id: e.id, tipoEtiqueta: e.tipoEtiqueta }));
+}
 import type {
   Tablero,
   ColumnaTablero,
@@ -293,6 +304,7 @@ export const tablerosHandlers = [
       tratoId: (body['tratoId'] as string | null) ?? null,
       tareaId: (body['tareaId'] as string | null) ?? null,
       actualizadoEn: nowIso(),
+      etiquetas: resolveEtiquetaRefs(body['etiquetaIds']),
     };
     fichasFixture.push(ficha);
     return HttpResponse.json(ficha, { status: 201 });
@@ -304,8 +316,14 @@ export const tablerosHandlers = [
     const id = new URL(request.url).searchParams.get('id');
     const f = fichasFixture.find((x) => x.id === id);
     if (!f) return errors.notFound();
-    const body = (await request.json()) as Partial<Ficha>;
-    Object.assign(f, body, { actualizadoEn: nowIso() });
+    const body = (await request.json()) as Record<string, unknown>;
+    // etiquetaIds (semántica back EditFichaRequest): ausente = no tocar; [] = limpiar;
+    // lista = reemplazar. Se resuelve aparte para no asignar el campo crudo a la ficha.
+    const { etiquetaIds, ...rest } = body;
+    Object.assign(f, rest, { actualizadoEn: nowIso() });
+    if (etiquetaIds !== undefined) {
+      f.etiquetas = resolveEtiquetaRefs(etiquetaIds);
+    }
     return HttpResponse.json(f);
   }),
 

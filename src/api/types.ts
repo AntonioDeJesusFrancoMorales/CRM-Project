@@ -140,11 +140,19 @@ export interface Tarea {
 
 // Tablero, Columna, Ficha eliminados — usar schemas de src/features/kanban/schemas/
 
+// TipoEtiqueta — catálogo de etiquetas tipadas del back (TipoEtiqueta.java).
+// Una etiqueta TRATO solo aplica a fichas TRATO; TAREA solo a fichas TAREA.
+export type TipoEtiqueta = 'TAREA' | 'TRATO';
+
+// Etiqueta == EtiquetaResponse del back. Catálogo GLOBAL: el back es la fuente
+// de verdad de nombre+color (editar actualiza universalmente en todas las fichas).
+// color es hex '#RRGGBB' (normalizado a MAYÚS por el back).
 export interface Etiqueta {
   id: string;
-  tablero_id: string;
   nombre: string;
+  tipoEtiqueta: TipoEtiqueta;
   color: string;
+  creadoEn: string;
 }
 
 export interface Comentario {

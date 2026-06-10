@@ -32,12 +32,13 @@ import { useColumnas } from '@/features/kanban/hooks/useColumnas';
 import { esPredeterminada } from '@/features/kanban/lib/esPredeterminada';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
+import { useEtiquetas } from '@/features/etiquetas/hooks/useEtiquetas';
 import { TIPO_TAREA_OPTIONS, PRIORIDAD_OPTIONS } from '@/features/tareas/schemas/tarea.schema';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { FichaCreateDialog } from './FichaCreateDialog';
 import { ColumnaEditDialog } from './ColumnaEditDialog';
 import { KanbanCard } from './KanbanCard';
-import type { KanbanCardDetalle, KanbanCardBadge } from './KanbanCard';
+import type { KanbanCardDetalle, KanbanCardBadge, KanbanCardEtiqueta } from './KanbanCard';
 
 interface KanbanColumnProps {
   columna: ColumnaTablero;
@@ -127,6 +128,19 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
 
   const { data: tareas } = useTareas();
   const { data: tratos } = useTratos();
+  // Catálogo de etiquetas (full) — fuente de verdad de nombre+color. Las fichas solo
+  // traen el id, así que el chip se resuelve por join contra este mapa.
+  const { data: catalogoEtiquetas = [] } = useEtiquetas();
+  const etiquetaById = new Map(catalogoEtiquetas.map((e) => [e.id, e]));
+
+  // Resuelve las refs compactas de una ficha en chips listos para pintar (nombre+color).
+  // Ids que ya no existen en el catálogo (borrados out-of-band) se descartan.
+  function resolveEtiquetas(ficha: Ficha): KanbanCardEtiqueta[] {
+    return (ficha.etiquetas ?? [])
+      .map((ref) => etiquetaById.get(ref.id))
+      .filter((e): e is NonNullable<typeof e> => e !== undefined)
+      .map((e) => ({ id: e.id, nombre: e.nombre, color: e.color }));
+  }
 
   const nombre = columna.nombre ?? 'Sin nombre';
   const color = columna.color ?? DEFAULT_COLUMN_COLOR;
@@ -355,6 +369,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
                 titulo={titulo}
                 detalles={detalles}
                 badge={badge}
+                etiquetas={resolveEtiquetas(ficha)}
                 to={to}
               />
             );

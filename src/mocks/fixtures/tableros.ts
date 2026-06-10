@@ -2,7 +2,7 @@
 // Reescrito en B1.8: los tipos inventados (snake_case) fueron eliminados de api/types.ts.
 // Importa desde kanban/schemas (fuente de verdad del contrato).
 
-import type { Etiqueta, Comentario } from '@/api/types';
+import type { Comentario } from '@/api/types';
 import type { Tablero, ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import type { Columna } from '@/features/kanban/schemas/columna.schema';
@@ -185,6 +185,7 @@ export const fichasFixture: Ficha[] = [
     tratoId: 'd1111111-dddd-1111-dddd-111111111111',
     tareaId: null,
     actualizadoEn: '2026-04-10T08:00:00Z',
+    etiquetas: [],
   },
   {
     id: 'h2222222-hhhh-2222-hhhh-222222222222',
@@ -193,6 +194,8 @@ export const fichasFixture: Ficha[] = [
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
     tareaId: null,
     actualizadoEn: '2026-04-11T09:00:00Z',
+    // Prioritario (TRATO) — para ver chips en el kanban out-of-the-box
+    etiquetas: [{ id: 'c1111111-cccc-1111-cccc-111111111111', tipoEtiqueta: 'TRATO' }],
   },
   {
     id: 'h3333333-hhhh-3333-hhhh-333333333333',
@@ -201,6 +204,11 @@ export const fichasFixture: Ficha[] = [
     tratoId: 'd3333333-dddd-3333-dddd-333333333333',
     tareaId: null,
     actualizadoEn: '2026-04-12T10:00:00Z',
+    // Renovación + Upsell (TRATO)
+    etiquetas: [
+      { id: 'c2222222-cccc-2222-cccc-222222222222', tipoEtiqueta: 'TRATO' },
+      { id: 'c3333333-cccc-3333-cccc-333333333333', tipoEtiqueta: 'TRATO' },
+    ],
   },
   // TAREA fichas — apuntan a columnas del tablero TAREAS
   // tareaId referencia tareasFixture: e1111111 = "Demo presencial con CTO" (CIERRE, URGENTE)
@@ -212,6 +220,8 @@ export const fichasFixture: Ficha[] = [
     tratoId: null,
     tareaId: 'e1111111-eeee-1111-eeee-111111111111',
     actualizadoEn: '2026-04-13T08:00:00Z',
+    // Urgente (TAREA)
+    etiquetas: [{ id: 'c4444444-cccc-4444-cccc-444444444444', tipoEtiqueta: 'TAREA' }],
   },
   {
     id: 'i2222222-iiii-2222-iiii-222222222222',
@@ -220,13 +230,13 @@ export const fichasFixture: Ficha[] = [
     tratoId: null,
     tareaId: 'e2222222-eeee-2222-eeee-222222222222',
     actualizadoEn: '2026-04-14T09:00:00Z',
+    etiquetas: [],
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Etiquetas y comentarios — vacios por ahora (fuera del scope de kanban-tablero-back)
-// Etiqueta y Comentario siguen en api/types.ts (no son del contrato kanban)
+// Comentarios — vacio por ahora (fuera del scope actual).
+// El catálogo de etiquetas vive en mocks/fixtures/etiquetas.ts (contrato real del back).
 // ---------------------------------------------------------------------------
 
-export const etiquetasFixture: Etiqueta[] = [];
 export const comentariosFixture: Comentario[] = [];

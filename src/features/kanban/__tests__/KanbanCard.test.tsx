@@ -608,6 +608,38 @@ describe('KanbanCard — dropdown Eliminar', () => {
 // KanbanCard — navegación al detalle (Lote 6)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// KanbanCard — chips de etiquetas (presentacional, resueltas por el container)
+// ---------------------------------------------------------------------------
+
+describe('KanbanCard — chips de etiquetas', () => {
+  function renderCardConEtiquetas(etiquetas: { id: string; nombre: string; color: string }[]) {
+    const qc = buildQueryClient();
+    return render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/tableros/t1']}>
+          <KanbanCard ficha={FICHA_TRATO} titulo="Trato con tags" detalles={[]} etiquetas={etiquetas} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('(et-a) renderiza el nombre de cada etiqueta recibida', () => {
+    renderCardConEtiquetas([
+      { id: 'c1', nombre: 'Prioritario', color: '#EF4444' },
+      { id: 'c2', nombre: 'Renovación', color: '#3B82F6' },
+    ]);
+    expect(screen.getByText('Prioritario')).toBeInTheDocument();
+    expect(screen.getByText('Renovación')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: /etiquetas/i })).toBeInTheDocument();
+  });
+
+  it('(et-b) sin etiquetas no renderiza la lista de etiquetas', () => {
+    renderCardConEtiquetas([]);
+    expect(screen.queryByRole('list', { name: /etiquetas/i })).not.toBeInTheDocument();
+  });
+});
+
 describe('KanbanCard — navegación: prop to', () => {
   it('(nav-a) click en la tarjeta navega a la ruta del trato cuando to="/tratos/d1"', async () => {
     const user = userEvent.setup();
