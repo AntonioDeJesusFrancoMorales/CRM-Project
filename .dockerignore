@@ -1,0 +1,33 @@
+# No mandamos al contexto de build lo que no se usa o se regenera
+node_modules
+dist
+build
+coverage
+.vite
+
+# Git / CI / editores
+.git
+.github
+.gitignore
+.vscode
+.idea
+
+# Herramientas de Claude / SDD (no afectan el build del front)
+.claude
+.atl
+openspec
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Envs locales (las de prod van como ENV en el Dockerfile)
+.env
+.env.local
+.env.development
+.env.*.local
+
+# Docker mismo
+Dockerfile
+.dockerignore
