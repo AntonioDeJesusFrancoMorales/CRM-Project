@@ -21,6 +21,8 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+# Config local por dev — la plantilla versionada es .env.development.example
+.env.development
 
 # Logs
 npm-debug.log*
