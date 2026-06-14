@@ -22,10 +22,6 @@ import { ContactoFormDialog } from '../components/ContactoFormDialog';
 import { ContactoDeleteDialog } from '../components/ContactoDeleteDialog';
 import { EstadoRelacionSelect } from '../components/EstadoRelacionSelect';
 import { useCambiarEstadoContacto } from '../hooks/useCambiarEstadoContacto';
-import { useFichas } from '@/features/kanban/hooks/useFichas';
-import { useTableros } from '@/features/kanban/hooks/useTableros';
-import { deriveEstadoTrato } from '@/features/kanban/lib/deriveEstadoTrato';
-import { getTableroPrincipal } from '@/features/kanban/lib/getTableroPrincipal';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -45,14 +41,7 @@ export function ContactoDetailPage() {
   const navigate = useNavigate();
   const { data: contacto, isLoading, error } = useContacto(id);
   const { data: tratos } = useTratos();
-  const { data: fichas } = useFichas();
-  const { data: tableros } = useTableros();
   const cambiarEstadoMutation = useCambiarEstadoContacto();
-
-  // Si hay varios tableros TRATOS, se usa el principal (primero por creación),
-  // mismo criterio que el Kanban embebido — ver getTableroPrincipal.
-  const tableroTratos = getTableroPrincipal(tableros ?? [], 'TRATOS');
-  const columnasTablTratos = tableroTratos?.columnas ?? [];
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contacto | null>(null);
@@ -107,13 +96,11 @@ export function ContactoDetailPage() {
 
   const tratosDelContacto = tratos?.filter((t) => t.contactoId === id) ?? [];
 
-  // W1 fix (Change 4 / B8): el estado del trato se DERIVA de la columna del Kanban.
-  // Un trato es "activo" solo si su ficha está en una columna con estadoTrato === 'ABIERTO'.
-  // Requiere: fichas (GET /fichas/get-all, queryKey ['fichas']) + columnas del tablero TRATOS.
-  // Si fichas o tablero TRATOS no están disponibles aún, se asume sin tratos activos (safe default).
-  const tieneTratosActivos = tratosDelContacto.some(
-    (t) => deriveEstadoTrato(t.id, fichas ?? [], columnasTablTratos) === 'ABIERTO',
-  );
+  // El back dropeó el estado de trato por columna, así que el front ya no puede
+  // derivar "tratos activos". La invariante (no pasar a INACTIVO con tratos activos)
+  // la enforza el back server-side y responde con error si se viola. Acá pasamos
+  // false para no bloquear en el cliente.
+  const tieneTratosActivos = false;
 
   function handleEstadoChange(nuevoEstado: string) {
     if (!contacto) return;

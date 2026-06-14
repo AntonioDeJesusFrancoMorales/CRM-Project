@@ -41,8 +41,7 @@ export function useCrearColumnaEnTablero(): UseMutationResult<
 
   return useMutation<Tablero, Error, CrearColumnaEnTableroVars>({
     mutationFn: async ({ columna, asignacion }) => {
-      const { tableroId, limiteWip, nota, estadoTarea, estadoTrato, totalValorEstimado } =
-        asignacion;
+      const { tableroId, limiteWip, nota, totalValorEstimado } = asignacion;
 
       // Paso 1: crear la columna en el catálogo. Devuelve la Columna con su id.
       const columnaCreada = await apiClient.post<Columna>(
@@ -55,8 +54,6 @@ export function useCrearColumnaEnTablero(): UseMutationResult<
       const asignarBody: AsignarColumnaInput = {
         limiteWip,
         nota,
-        estadoTarea,
-        estadoTrato,
         totalValorEstimado,
       };
 

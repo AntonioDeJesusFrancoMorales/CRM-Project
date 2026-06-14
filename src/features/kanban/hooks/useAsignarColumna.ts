@@ -17,8 +17,6 @@ import { tablerosKeys } from './useTableros';
 export interface AsignarColumnaInput {
   limiteWip: number;
   nota?: string;
-  estadoTarea?: string;
-  estadoTrato?: string;
   totalValorEstimado: number;
 }
 

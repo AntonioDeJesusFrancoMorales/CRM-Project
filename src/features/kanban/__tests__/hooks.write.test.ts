@@ -36,8 +36,6 @@ const TABLERO_FIXTURE: Tablero = {
       color: '#94a3b8',
       limiteWip: null,
       nota: null,
-      estadoTarea: null,
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
     },
     {
@@ -46,8 +44,6 @@ const TABLERO_FIXTURE: Tablero = {
       color: '#22c55e',
       limiteWip: null,
       nota: null,
-      estadoTarea: null,
-      estadoTrato: 'GANADO',
       totalValorEstimado: 0,
     },
   ],
@@ -373,7 +369,6 @@ describe('useAsignarColumna', () => {
         data: {
           limiteWip: 5,
           nota: 'Fase de negociación',
-          estadoTrato: 'ABIERTO',
           totalValorEstimado: 0,
         },
       });

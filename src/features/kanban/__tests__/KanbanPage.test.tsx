@@ -256,7 +256,7 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
     expect(errors!.limiteWip![0]).toMatch(/el límite wip debe ser al menos 1/i);
   });
 
-  it('(k) tablero TAREAS: clic en "Nueva columna" abre dialog con selector estadoTarea', async () => {
+  it('(k) tablero TAREAS: clic en "Nueva columna" abre dialog sin selector de estado', async () => {
     server.use(
       http.get('/api/tableros/get-by-id', () =>
         HttpResponse.json(tableroTareasFixture),
@@ -278,10 +278,8 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    // Selector estadoTarea debe estar visible
-    expect(screen.getByRole('combobox', { name: /estado de tarea/i })).toBeInTheDocument();
-
-    // Selector estadoTrato NO debe estar visible
+    // El back dropeó el estado por columna — no hay selectores de estado
+    expect(screen.queryByRole('combobox', { name: /estado de tarea/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /estado de trato/i })).not.toBeInTheDocument();
   });
 
@@ -310,53 +308,38 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
     expect(screen.queryByLabelText(/total valor estimado/i)).not.toBeInTheDocument();
   });
 
-  it('(m) columnaNuevaSchema para TAREAS requiere estadoTarea y totalValorEstimado=0', () => {
-    // Verifica los invariantes del schema para tableros TAREAS.
+  it('(m) columnaNuevaSchema para TAREAS valida sin estado (dropeado por el back)', () => {
+    // El back ya no modela estado por columna; el schema solo valida nombre, color y limiteWip.
     const result = columnaNuevaSchema.safeParse({
       tipoTablero: 'TAREAS',
       nombre: 'Mi columna',
       color: COLUMN_PALETTE[0],
       limiteWip: 2,
-      estadoTarea: 'PENDIENTE',
       totalValorEstimado: 0,
     });
     expect(result.success).toBe(true);
 
-    // Sin estadoTarea falla
-    const sinEstado = columnaNuevaSchema.safeParse({
+    // limiteWip inválido falla
+    const wipInvalido = columnaNuevaSchema.safeParse({
       tipoTablero: 'TAREAS',
       nombre: 'Mi columna',
+      color: COLUMN_PALETTE[0],
+      limiteWip: 0,
+      totalValorEstimado: 0,
+    });
+    expect(wipInvalido.success).toBe(false);
+    expect(wipInvalido.error?.flatten().fieldErrors.limiteWip).toBeDefined();
+
+    // nombre vacío falla
+    const sinNombre = columnaNuevaSchema.safeParse({
+      tipoTablero: 'TAREAS',
+      nombre: '',
       color: COLUMN_PALETTE[0],
       limiteWip: 2,
       totalValorEstimado: 0,
     });
-    expect(sinEstado.success).toBe(false);
-    expect(sinEstado.error?.flatten().fieldErrors.estadoTarea).toBeDefined();
-
-    // Con totalValorEstimado != 0 falla
-    const conValor = columnaNuevaSchema.safeParse({
-      tipoTablero: 'TAREAS',
-      nombre: 'Mi columna',
-      color: COLUMN_PALETTE[0],
-      limiteWip: 2,
-      estadoTarea: 'PENDIENTE',
-      totalValorEstimado: 1000,
-    });
-    expect(conValor.success).toBe(false);
-    expect(conValor.error?.flatten().fieldErrors.totalValorEstimado).toBeDefined();
-
-    // Con estadoTrato también falla (excluyente)
-    const conTrato = columnaNuevaSchema.safeParse({
-      tipoTablero: 'TAREAS',
-      nombre: 'Mi columna',
-      color: COLUMN_PALETTE[0],
-      limiteWip: 2,
-      estadoTarea: 'PENDIENTE',
-      estadoTrato: 'ABIERTO',
-      totalValorEstimado: 0,
-    });
-    expect(conTrato.success).toBe(false);
-    expect(conTrato.error?.flatten().fieldErrors.estadoTrato).toBeDefined();
+    expect(sinNombre.success).toBe(false);
+    expect(sinNombre.error?.flatten().fieldErrors.nombre).toBeDefined();
   });
 
   it('(j) nueva columna success crea el catálogo, lo asigna al tablero y cierra el form', async () => {
@@ -394,15 +377,6 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
 
     // Ingresar nombre
     await user.type(screen.getByLabelText(/nombre de la columna/i), 'Revisión');
-
-    // Seleccionar estado de trato (requerido para tableros TRATOS)
-    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
-    await user.click(estadoTrigger);
-    await waitFor(() => {
-      const options = screen.getAllByRole('option');
-      expect(options.length).toBeGreaterThan(0);
-    });
-    await user.click(screen.getAllByRole('option')[0]!);
 
     // Enviar
     const dialog = screen.getByRole('dialog');

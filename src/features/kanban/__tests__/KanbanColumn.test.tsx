@@ -26,8 +26,6 @@ const COL_BASE: ColumnaTablero = {
   color: '#94a3b8',
   limiteWip: null,
   nota: null,
-  estadoTarea: null,
-  estadoTrato: 'ABIERTO',
   totalValorEstimado: 0,
 };
 
@@ -37,7 +35,6 @@ const COL_CON_WIP: ColumnaTablero = {
   nombre: 'En negociación',
   color: '#fbbf24',
   limiteWip: 2,
-  estadoTrato: 'ABIERTO',
 };
 
 const COL_GANADOS: ColumnaTablero = {
@@ -45,7 +42,6 @@ const COL_GANADOS: ColumnaTablero = {
   id: 'a3333333-aaaa-3333-aaaa-333333333333',
   nombre: 'Ganados',
   color: '#34d399',
-  estadoTrato: 'GANADO',
 };
 
 const COL_PERDIDOS: ColumnaTablero = {
@@ -53,7 +49,6 @@ const COL_PERDIDOS: ColumnaTablero = {
   id: 'a4444444-aaaa-4444-aaaa-444444444444',
   nombre: 'Perdidos',
   color: '#f87171',
-  estadoTrato: 'PERDIDO',
 };
 
 const COL_NOMBRE_NULL: ColumnaTablero = {
@@ -311,24 +306,18 @@ const COL_TAREA_PENDIENTE: ColumnaTablero = {
   ...COL_BASE,
   id: 'a5555555-aaaa-5555-aaaa-555555555555',
   nombre: 'Columna Alpha', // nombre neutro para no confundir con el badge
-  estadoTrato: null,
-  estadoTarea: 'PENDIENTE',
 };
 
 const COL_TAREA_EN_CURSO: ColumnaTablero = {
   ...COL_BASE,
   id: 'a6666666-aaaa-6666-aaaa-666666666666',
   nombre: 'Columna Beta',
-  estadoTrato: null,
-  estadoTarea: 'EN_CURSO',
 };
 
 const COL_TAREA_FINALIZADA: ColumnaTablero = {
   ...COL_BASE,
   id: 'a7777777-aaaa-7777-aaaa-777777777777',
   nombre: 'Columna Gamma',
-  estadoTrato: null,
-  estadoTarea: 'FINALIZADA',
 };
 
 describe('KanbanColumn — Batch 5: el badge de estado de columna está oculto en AMBOS tipos', () => {

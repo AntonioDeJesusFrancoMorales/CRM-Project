@@ -28,23 +28,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   columnaNuevaSchema,
   type ColumnaNuevaFormValues,
 } from '../schemas/columna.schema';
 import { ColorPaletteField } from './ColorPaletteField';
 import { COLUMN_PALETTE } from '../lib/columnPalette';
 import { useCrearColumnaEnTablero } from '../hooks/useCrearColumnaEnTablero';
-import {
-  estadoTrato as estadoTratoEnum,
-  estadoTarea as estadoTareaEnum,
-} from '../schemas/tablero.schema';
 import type { TipoTablero } from '../schemas/tablero.schema';
 
 // ---------------------------------------------------------------------------
@@ -71,7 +60,6 @@ export function ColumnaCreateDialog({
   tipoTablero,
   nombresExistentes,
 }: ColumnaCreateDialogProps) {
-  const esTareas = tipoTablero === 'TAREAS';
   const crearMutation = useCrearColumnaEnTablero();
 
   const form = useForm<ColumnaNuevaFormValues>({
@@ -81,8 +69,6 @@ export function ColumnaCreateDialog({
       nombre: '',
       color: COLUMN_PALETTE[0],
       limiteWip: 1,
-      estadoTrato: undefined,
-      estadoTarea: undefined,
       totalValorEstimado: 0,
     },
   });
@@ -100,8 +86,6 @@ export function ColumnaCreateDialog({
         nombre: '',
         color: COLUMN_PALETTE[0],
         limiteWip: 1,
-        estadoTrato: undefined,
-        estadoTarea: undefined,
         totalValorEstimado: 0,
       });
     }
@@ -124,17 +108,10 @@ export function ColumnaCreateDialog({
     // El discriminador tipoTablero NO se envía al back — construimos el payload.
     // totalValorEstimado se envía siempre 0: la columna nueva no tiene fichas y el valor
     // real es DERIVADO en runtime desde las fichas; el back lo requiere @NotNull.
-    const asignacionData = esTareas
-      ? {
-          limiteWip: values.limiteWip,
-          estadoTarea: values.estadoTarea,
-          totalValorEstimado: 0 as const,
-        }
-      : {
-          limiteWip: values.limiteWip,
-          estadoTrato: values.estadoTrato,
-          totalValorEstimado: 0 as const,
-        };
+    const asignacionData = {
+      limiteWip: values.limiteWip,
+      totalValorEstimado: 0 as const,
+    };
 
     crearMutation.mutate(
       {
@@ -236,72 +213,6 @@ export function ColumnaCreateDialog({
                 </FormItem>
               )}
             />
-
-            {/* Estado de tarea — solo para tableros TAREAS */}
-            {esTareas && (
-              <FormField
-                control={form.control}
-                name="estadoTarea"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado de tarea</FormLabel>
-                    <Select
-                      value={field.value ?? ''}
-                      onValueChange={(v) =>
-                        field.onChange(
-                          estadoTareaEnum.safeParse(v).success ? v : undefined,
-                        )
-                      }
-                    >
-                      <FormControl>
-                        <SelectTrigger aria-label="Estado de tarea">
-                          <SelectValue placeholder="Selecciona un estado" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="PENDIENTE">Pendiente</SelectItem>
-                        <SelectItem value="EN_CURSO">En curso</SelectItem>
-                        <SelectItem value="FINALIZADA">Finalizada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Estado de trato — solo para tableros TRATOS */}
-            {!esTareas && (
-              <FormField
-                control={form.control}
-                name="estadoTrato"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado de trato</FormLabel>
-                    <Select
-                      value={field.value ?? ''}
-                      onValueChange={(v) =>
-                        field.onChange(
-                          estadoTratoEnum.safeParse(v).success ? v : undefined,
-                        )
-                      }
-                    >
-                      <FormControl>
-                        <SelectTrigger aria-label="Estado de trato">
-                          <SelectValue placeholder="Selecciona un estado" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ABIERTO">Abierto</SelectItem>
-                        <SelectItem value="GANADO">Ganado</SelectItem>
-                        <SelectItem value="PERDIDO">Perdido</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             {/* totalValorEstimado — NO se expone en la UI (valor derivado en runtime).
                 El schema lo mantiene con default 0 para cumplir @NotNull del back. */}

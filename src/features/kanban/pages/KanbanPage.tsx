@@ -1,8 +1,7 @@
 // KanbanPage — vista de un tablero Kanban concreto.
 // Consume useTablero(id) + useFichas().
 // Detecta tipoTablero del tablero: filtra fichas por tipoFicha correspondiente.
-// Para TAREAS: selector estadoTarea, totalValorEstimado=0 fijo (oculto).
-// Para TRATOS: selector estadoTrato, totalValorEstimado editable.
+// totalValorEstimado=0 fijo (oculto): es un valor derivado en runtime.
 // 404 → toast + redirect a /tableros.
 // Renderiza KanbanBoard con columnas y fichas del tablero + tipoFicha.
 // Botón "Nueva columna" abre ColumnaCreateDialog (Fase 3).

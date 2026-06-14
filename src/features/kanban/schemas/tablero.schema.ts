@@ -7,7 +7,6 @@ import { z } from 'zod';
 // Enums confirmados contra Java (fuente de verdad)
 // TipoTablero: domain/.../enums/TipoTablero.java
 // TipoColumna: domain/.../enums/TipoColumna.java
-// TipoEstadoColumnaTableroTrato: domain/.../enums/TipoEstadoColumnaTableroTrato.java
 // ---------------------------------------------------------------------------
 
 export const tipoTablero = z.enum(['TAREAS', 'TRATOS']);
@@ -16,18 +15,13 @@ export type TipoTablero = z.infer<typeof tipoTablero>;
 export const tipoColumna = z.enum(['PREDETERMINADA', 'PERSONALIZADA']);
 export type TipoColumna = z.infer<typeof tipoColumna>;
 
-export const estadoTrato = z.enum(['ABIERTO', 'GANADO', 'PERDIDO']);
-export type EstadoTrato = z.infer<typeof estadoTrato>;
-
-// TipoEstadoColumnaTableroTarea: domain/.../enums/TipoEstadoColumnaTableroTarea.java
-export const estadoTarea = z.enum(['PENDIENTE', 'EN_CURSO', 'FINALIZADA']);
-export type EstadoTarea = z.infer<typeof estadoTarea>;
-
 // ---------------------------------------------------------------------------
 // ColumnaTableroDto — columna en contexto de tablero (embedded en TableroResponse)
 // Campos: id (= columnaId del catálogo), nombre, color, limiteWip, nota,
-//         estadoTarea, estadoTrato, totalValorEstimado
-// Todos excepto id, nombre, color, totalValorEstimado son nullable.
+//         totalValorEstimado
+// El back DROPEÓ estadoTarea/estadoTrato de la columna (refactor "simplify board
+// column relation"): ya no se exponen ni se aceptan. El estado del trato/tarea NO
+// se deriva más de la columna. Ver ColumnaTableroDto.java (fuente de verdad).
 // ---------------------------------------------------------------------------
 
 export const columnaTableroSchema = z.object({
@@ -36,11 +30,6 @@ export const columnaTableroSchema = z.object({
   color: z.string().nullable(),
   limiteWip: z.number().int().nullable(),
   nota: z.string().nullable(),
-  // nullish (= nullable + optional): el back puede omitir estas claves por
-  // completo en ColumnaTableroDto. .nullable() solo aceptaba null presente;
-  // si la clave falta (undefined) Zod lanzaba ZodError y el tablero no dibujaba.
-  estadoTarea: estadoTarea.nullish(),
-  estadoTrato: estadoTrato.nullish(),
   totalValorEstimado: z.number(),
 });
 

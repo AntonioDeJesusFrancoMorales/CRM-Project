@@ -28,8 +28,6 @@ const TABLERO_FIXTURE: Tablero = {
       color: '#94a3b8',
       limiteWip: null,
       nota: null,
-      estadoTarea: null,
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
     },
     {
@@ -38,8 +36,6 @@ const TABLERO_FIXTURE: Tablero = {
       color: '#fbbf24',
       limiteWip: 5,
       nota: 'Máximo 5 tratos activos',
-      estadoTarea: null,
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 430000,
     },
   ],

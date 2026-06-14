@@ -39,8 +39,6 @@ const TABLERO_FIXTURE: Tablero = {
       color: '#3b82f6',
       limiteWip: 5,
       nota: null,
-      estadoTarea: null,
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
     },
   ],
@@ -379,7 +377,6 @@ describe('useCrearColumnaEnTablero', () => {
   const ASIGNAR_DATA = {
     tableroId: TABLERO_ID,
     limiteWip: 5,
-    estadoTrato: 'ABIERTO' as const,
     totalValorEstimado: 0,
   };
 
@@ -422,7 +419,6 @@ describe('useCrearColumnaEnTablero', () => {
     expect(asignarUrl).toContain(`columnaId=${COLUMNA_ID}`);
     expect(asignarBody).toMatchObject({
       limiteWip: 5,
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
     });
     // Los datos de catálogo NO viajan en el body de asignar

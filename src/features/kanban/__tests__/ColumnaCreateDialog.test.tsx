@@ -97,27 +97,27 @@ describe('ColumnaCreateDialog — render campos', () => {
     expect(screen.getByLabelText(/límite wip/i)).toBeInTheDocument();
   });
 
-  it('(b) tablero TRATOS muestra selector estadoTrato y NO muestra campo totalValorEstimado (derivado)', async () => {
-    // totalValorEstimado es un valor DERIVADO calculado en runtime — no se expone en el form.
+  it('(b) tablero TRATOS NO muestra selector de estado ni totalValorEstimado (el back dropeó estado)', async () => {
+    // El back dropeó estadoTrato/estadoTarea por columna; totalValorEstimado es derivado en runtime.
     renderDialog({ tipoTablero: 'TRATOS' });
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('combobox', { name: /estado de trato/i })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /estado de trato/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /estado de tarea/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/total valor estimado/i)).not.toBeInTheDocument();
   });
 
-  it('(c) tablero TAREAS muestra selector estadoTarea y oculta totalValorEstimado', async () => {
+  it('(c) tablero TAREAS NO muestra selector de estado ni totalValorEstimado', async () => {
     renderDialog({ tipoTablero: 'TAREAS' });
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('combobox', { name: /estado de tarea/i })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /estado de tarea/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /estado de trato/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/total valor estimado/i)).not.toBeInTheDocument();
   });
@@ -164,7 +164,6 @@ describe('ColumnaCreateDialog — validación nombre', () => {
       nombre: 'a'.repeat(81),
       color: COLUMN_PALETTE[0],
       limiteWip: 1,
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
     });
 
@@ -265,15 +264,6 @@ describe('ColumnaCreateDialog — bloqueo de duplicados', () => {
     const input = screen.getByLabelText(/nombre de la columna/i);
     await user.type(input, 'Por contactar');
 
-    // Seleccionar estado de trato para que el schema no bloquee el submit
-    // antes de llegar al check de duplicados
-    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
-    await user.click(estadoTrigger);
-    await waitFor(() => {
-      expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
-    });
-    await user.click(screen.getAllByRole('option')[0]!);
-
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
     await waitFor(() => {
@@ -346,14 +336,6 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
     // Ingresar nombre
     await user.type(screen.getByLabelText(/nombre de la columna/i), 'Mi columna nueva');
 
-    // Seleccionar estado de trato (requerido para TRATOS)
-    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
-    await user.click(estadoTrigger);
-    await waitFor(() => {
-      expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
-    });
-    await user.click(screen.getAllByRole('option')[0]!);
-
     // Submit
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
@@ -366,10 +348,10 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
     expect(createPayload?.nombre).toBe('Mi columna nueva');
 
     // Paso 2: el body de asignar lleva la config; totalValorEstimado siempre 0
-    // (valor derivado en runtime, no se persiste desde el form)
+    // (valor derivado en runtime, no se persiste desde el form). Sin estado.
     const asignarPayload = asignarBody as Record<string, unknown>;
     expect(asignarPayload?.totalValorEstimado).toBe(0);
-    expect(asignarPayload?.estadoTrato).toBeDefined();
+    expect('estadoTrato' in asignarPayload).toBe(false);
 
     // El dialog debe cerrarse al completarse el flujo
     await waitFor(() => {
@@ -383,7 +365,7 @@ describe('ColumnaCreateDialog — submit OK (TRATOS)', () => {
 // ---------------------------------------------------------------------------
 
 describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
-  it('(l) tablero TAREAS: submit válido asigna con estadoTarea', async () => {
+  it('(l) tablero TAREAS: submit válido crea el catálogo y lo asigna', async () => {
     let createCalled = false;
     let asignarBody: unknown = null;
 
@@ -422,14 +404,6 @@ describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
     // Ingresar nombre
     await user.type(screen.getByLabelText(/nombre de la columna/i), 'Revisión técnica');
 
-    // Seleccionar estado de tarea
-    const estadoTrigger = screen.getByRole('combobox', { name: /estado de tarea/i });
-    await user.click(estadoTrigger);
-    await waitFor(() => {
-      expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
-    });
-    await user.click(screen.getAllByRole('option')[0]!);
-
     // Submit
     await user.click(screen.getByRole('button', { name: /crear columna/i }));
 
@@ -440,11 +414,11 @@ describe('ColumnaCreateDialog — submit OK (TAREAS)', () => {
     // Flujo de 2 pasos: primero se crea el catálogo
     expect(createCalled).toBe(true);
 
-    // El body de asignar para TAREAS: totalValorEstimado 0, estadoTarea presente, sin estadoTrato
+    // El body de asignar para TAREAS: totalValorEstimado 0, sin estado (dropeado por el back)
     const asignarPayload = asignarBody as Record<string, unknown>;
     expect(asignarPayload?.totalValorEstimado).toBe(0);
-    expect(asignarPayload?.estadoTarea).toBeDefined();
-    expect(asignarPayload?.estadoTrato).toBeUndefined();
+    expect('estadoTarea' in asignarPayload).toBe(false);
+    expect('estadoTrato' in asignarPayload).toBe(false);
 
     // El dialog cierra
     await waitFor(() => {

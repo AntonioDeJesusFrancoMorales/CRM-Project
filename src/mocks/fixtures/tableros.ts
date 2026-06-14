@@ -8,7 +8,7 @@ import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import type { Columna } from '@/features/kanban/schemas/columna.schema';
 
 // ---------------------------------------------------------------------------
-// Fixture de tablero TRATOS — 4 columnas: 2×ABIERTO, 1×GANADO, 1×PERDIDO
+// Fixture de tablero TRATOS — 4 columnas
 // Columna "En negociación" tiene limiteWip para testear indicador WIP
 // ---------------------------------------------------------------------------
 
@@ -26,8 +26,6 @@ const COLUMNAS_TABLERO: ColumnaTablero[] = [
     color: '#94a3b8',
     limiteWip: null,
     nota: null,
-    estadoTarea: null,
-    estadoTrato: 'ABIERTO',
     totalValorEstimado: 0,
   },
   {
@@ -36,8 +34,6 @@ const COLUMNAS_TABLERO: ColumnaTablero[] = [
     color: '#fbbf24',
     limiteWip: 5,
     nota: 'Máximo 5 tratos activos',
-    estadoTarea: null,
-    estadoTrato: 'ABIERTO',
     totalValorEstimado: 430000,
   },
   {
@@ -46,8 +42,6 @@ const COLUMNAS_TABLERO: ColumnaTablero[] = [
     color: '#34d399',
     limiteWip: null,
     nota: null,
-    estadoTarea: null,
-    estadoTrato: 'GANADO',
     totalValorEstimado: 180000,
   },
   {
@@ -56,8 +50,6 @@ const COLUMNAS_TABLERO: ColumnaTablero[] = [
     color: '#f87171',
     limiteWip: null,
     nota: null,
-    estadoTarea: null,
-    estadoTrato: 'PERDIDO',
     totalValorEstimado: 0,
   },
 ];
@@ -88,8 +80,6 @@ const COLUMNAS_TABLERO_TAREAS: ColumnaTablero[] = [
     color: '#94a3b8',
     limiteWip: null,
     nota: null,
-    estadoTarea: 'PENDIENTE',
-    estadoTrato: null,
     totalValorEstimado: 0,
   },
   {
@@ -98,8 +88,6 @@ const COLUMNAS_TABLERO_TAREAS: ColumnaTablero[] = [
     color: '#fbbf24',
     limiteWip: 3,
     nota: null,
-    estadoTarea: 'EN_CURSO',
-    estadoTrato: null,
     totalValorEstimado: 0,
   },
   {
@@ -108,8 +96,6 @@ const COLUMNAS_TABLERO_TAREAS: ColumnaTablero[] = [
     color: '#34d399',
     limiteWip: null,
     nota: null,
-    estadoTarea: 'FINALIZADA',
-    estadoTrato: null,
     totalValorEstimado: 0,
   },
 ];

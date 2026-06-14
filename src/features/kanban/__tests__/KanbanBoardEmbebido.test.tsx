@@ -332,14 +332,6 @@ describe('KanbanBoardEmbebido — dialog Nueva columna (Fase 3)', () => {
     // Ingresar nombre
     await user.type(screen.getByLabelText(/nombre de la columna/i), 'Revisión');
 
-    // Seleccionar estado de trato
-    const estadoTrigger = screen.getByRole('combobox', { name: /estado de trato/i });
-    await user.click(estadoTrigger);
-    await waitFor(() => {
-      expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
-    });
-    await user.click(screen.getAllByRole('option')[0]!);
-
     // Submit
     const dialog = screen.getByRole('dialog');
     const submitBtn = Array.from(dialog.querySelectorAll('button[type="submit"]'))[0];

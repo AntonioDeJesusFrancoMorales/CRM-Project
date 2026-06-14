@@ -2,7 +2,7 @@
 // Es la entidad del catálogo (independiente del tablero); distinta de ColumnaTableroDto.
 
 import { z } from 'zod';
-import { tipoTablero, tipoColumna, estadoTrato, estadoTarea } from './tablero.schema';
+import { tipoTablero, tipoColumna } from './tablero.schema';
 import { COLUMN_PALETTE } from '../lib/columnPalette';
 
 // ---------------------------------------------------------------------------
@@ -71,124 +71,44 @@ export type ColumnaEditInput = z.infer<typeof columnaEditSchema>;
 
 // ---------------------------------------------------------------------------
 // asignarColumnaSchema — input del form para asignar columna a tablero.
-// Refleja AsignarColumnaRequest.java con invariantes de exclusividad:
-//   - TRATOS: estadoTrato requerido, estadoTarea prohibido
-//   - TAREAS: estadoTarea requerido, estadoTrato prohibido, totalValorEstimado=0
-// El campo tipoTablero es el discriminador del form (NO se envía al back).
+// Refleja AsignarColumnaRequest.java: limiteWip, nota (opcional), totalValorEstimado.
+// El back DROPEÓ estadoTrato/estadoTarea por columna, así que el form ya no los pide.
+// tipoTablero queda como discriminador del form (NO se envía al back).
 // ---------------------------------------------------------------------------
 
-export const asignarColumnaSchema = z
-  .object({
-    tipoTablero,
-    limiteWip: z.number().int().min(1, 'El límite WIP debe ser al menos 1'),
-    estadoTrato: estadoTrato.optional(),
-    estadoTarea: estadoTarea.optional(),
-    totalValorEstimado: z.number().min(0),
-  })
-  .superRefine((v, ctx) => {
-    if (v.tipoTablero === 'TRATOS') {
-      if (!v.estadoTrato)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTrato'],
-          message: 'Selecciona un estado de trato',
-        });
-      if (v.estadoTarea)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTarea'],
-          message: 'No aplica en tableros de tratos',
-        });
-    } else {
-      // TAREAS
-      if (!v.estadoTarea)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTarea'],
-          message: 'Selecciona un estado de tarea',
-        });
-      if (v.estadoTrato)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTrato'],
-          message: 'No aplica en tableros de tareas',
-        });
-      if (v.totalValorEstimado !== 0)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['totalValorEstimado'],
-          message: 'Debe ser 0 en tableros de tareas',
-        });
-    }
-  });
+export const asignarColumnaSchema = z.object({
+  tipoTablero,
+  limiteWip: z.number().int().min(1, 'El límite WIP debe ser al menos 1'),
+  totalValorEstimado: z.number().min(0),
+});
 
 export type AsignarColumnaFormValues = z.infer<typeof asignarColumnaSchema>;
 
 // ---------------------------------------------------------------------------
-// columnaNuevaSchema — form completo "Nueva columna" (Fase 3).
+// columnaNuevaSchema — form completo "Nueva columna".
 // Combina campos de creación (nombre + color) con los de asignación (limiteWip,
-// estado, totalValorEstimado). El discriminador tipoTablero es parte del form
-// pero NO se envía al back.
-// Reutiliza el superRefine de exclusividad de estado de asignarColumnaSchema.
+// totalValorEstimado). El discriminador tipoTablero es parte del form pero NO se
+// envía al back. Sin estado: el back ya no lo modela por columna.
 // ---------------------------------------------------------------------------
 
-export const columnaNuevaSchema = z
-  .object({
-    tipoTablero,
-    nombre: z
-      .string()
-      .min(1, 'El nombre es obligatorio')
-      .max(80, 'El nombre no puede superar los 80 caracteres'),
-    color: z
-      .string()
-      .regex(
-        /^#[0-9A-Fa-f]{6}$/,
-        'El color debe ser un valor hexadecimal válido (#RRGGBB)',
-      )
-      .refine(
-        (v) => (COLUMN_PALETTE as readonly string[]).includes(v),
-        'El color debe ser uno de los colores predefinidos de la paleta',
-      ),
-    limiteWip: z.number().int().min(1, 'El límite WIP debe ser al menos 1'),
-    estadoTrato: estadoTrato.optional(),
-    estadoTarea: estadoTarea.optional(),
-    totalValorEstimado: z.number().min(0),
-  })
-  .superRefine((v, ctx) => {
-    if (v.tipoTablero === 'TRATOS') {
-      if (!v.estadoTrato)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTrato'],
-          message: 'Selecciona un estado de trato',
-        });
-      if (v.estadoTarea)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTarea'],
-          message: 'No aplica en tableros de tratos',
-        });
-    } else {
-      // TAREAS
-      if (!v.estadoTarea)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTarea'],
-          message: 'Selecciona un estado de tarea',
-        });
-      if (v.estadoTrato)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['estadoTrato'],
-          message: 'No aplica en tableros de tareas',
-        });
-      if (v.totalValorEstimado !== 0)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['totalValorEstimado'],
-          message: 'Debe ser 0 en tableros de tareas',
-        });
-    }
-  });
+export const columnaNuevaSchema = z.object({
+  tipoTablero,
+  nombre: z
+    .string()
+    .min(1, 'El nombre es obligatorio')
+    .max(80, 'El nombre no puede superar los 80 caracteres'),
+  color: z
+    .string()
+    .regex(
+      /^#[0-9A-Fa-f]{6}$/,
+      'El color debe ser un valor hexadecimal válido (#RRGGBB)',
+    )
+    .refine(
+      (v) => (COLUMN_PALETTE as readonly string[]).includes(v),
+      'El color debe ser uno de los colores predefinidos de la paleta',
+    ),
+  limiteWip: z.number().int().min(1, 'El límite WIP debe ser al menos 1'),
+  totalValorEstimado: z.number().min(0),
+});
 
 export type ColumnaNuevaFormValues = z.infer<typeof columnaNuevaSchema>;

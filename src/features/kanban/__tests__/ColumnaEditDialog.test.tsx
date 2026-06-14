@@ -26,8 +26,6 @@ const COLUMNA_PALETTE_COLOR: ColumnaTablero = {
   color: COLUMN_PALETTE[1]!, // '#60a5fa' — color de paleta
   limiteWip: 5,
   nota: null,
-  estadoTarea: null,
-  estadoTrato: 'ABIERTO',
   totalValorEstimado: 0,
 };
 

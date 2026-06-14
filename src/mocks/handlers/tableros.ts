@@ -42,22 +42,20 @@ function buildDefaultColumns(tipo: TipoTablero): ColumnaTablero[] {
   type ColDef = {
     nombre: string;
     limiteWip: number;
-    estadoTarea: ColumnaTablero['estadoTarea'];
-    estadoTrato: ColumnaTablero['estadoTrato'];
   };
 
   const defs: ColDef[] = tipo === 'TAREAS'
     ? [
-        { nombre: 'Pendiente',  limiteWip: 5, estadoTarea: 'PENDIENTE',  estadoTrato: null },
-        { nombre: 'En Curso',   limiteWip: 3, estadoTarea: 'EN_CURSO',   estadoTrato: null },
-        { nombre: 'Finalizada', limiteWip: 5, estadoTarea: 'FINALIZADA', estadoTrato: null },
-        { nombre: 'Cancelada',  limiteWip: 5, estadoTarea: 'PENDIENTE',  estadoTrato: null },
+        { nombre: 'Pendiente',  limiteWip: 5 },
+        { nombre: 'En Curso',   limiteWip: 3 },
+        { nombre: 'Finalizada', limiteWip: 5 },
+        { nombre: 'Cancelada',  limiteWip: 5 },
       ]
     : [
-        { nombre: 'Abierto',  limiteWip: 10, estadoTarea: null, estadoTrato: 'ABIERTO' },
-        { nombre: 'Ganado',   limiteWip: 10, estadoTarea: null, estadoTrato: 'GANADO'  },
-        { nombre: 'Perdido',  limiteWip: 10, estadoTarea: null, estadoTrato: 'PERDIDO' },
-        { nombre: 'Archivado', limiteWip: 10, estadoTarea: null, estadoTrato: 'PERDIDO' },
+        { nombre: 'Abierto',  limiteWip: 10 },
+        { nombre: 'Ganado',   limiteWip: 10 },
+        { nombre: 'Perdido',  limiteWip: 10 },
+        { nombre: 'Archivado', limiteWip: 10 },
       ];
 
   return defs.map((def) => {
@@ -79,8 +77,6 @@ function buildDefaultColumns(tipo: TipoTablero): ColumnaTablero[] {
       color: base.color,
       limiteWip: def.limiteWip,
       nota: base.nota,
-      estadoTarea: def.estadoTarea,
-      estadoTrato: def.estadoTrato,
       totalValorEstimado: base.totalValorEstimado,
     };
     return columnaTablero;
@@ -119,7 +115,7 @@ export const tablerosHandlers = [
     // Guard de duplicados (el back lanza ColumnaYaExisteEnTableroException)
     if (columnaId && !t.columnas.some((c) => c.id === columnaId)) {
       const body = (await request.json()) as Partial<
-        Pick<ColumnaTablero, 'limiteWip' | 'nota' | 'estadoTarea' | 'estadoTrato' | 'totalValorEstimado'>
+        Pick<ColumnaTablero, 'limiteWip' | 'nota' | 'totalValorEstimado'>
       >;
       const cat = columnasFixture.find((c) => c.id === columnaId);
       const nueva: ColumnaTablero = {
@@ -128,8 +124,6 @@ export const tablerosHandlers = [
         color: cat?.color ?? '#FFFFFF',
         limiteWip: body.limiteWip ?? null,
         nota: body.nota ?? null,
-        estadoTarea: body.estadoTarea ?? null,
-        estadoTrato: body.estadoTrato ?? null,
         totalValorEstimado: body.totalValorEstimado ?? 0,
       };
       t.columnas.push(nueva);

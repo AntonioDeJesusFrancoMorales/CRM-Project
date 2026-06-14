@@ -31,17 +31,12 @@ describe('tableros fixture — invariantes', () => {
     tableroTratosFixture.columnas.forEach((c) => {
       expect('columnaId' in c).toBe(false); // no hay campo obsoleto
       expect('id' in c).toBe(true);
-      expect('estadoTrato' in c).toBe(true);
+      // El back dropeó estadoTrato/estadoTarea por columna — ya no se exponen
+      expect('estadoTrato' in c).toBe(false);
+      expect('estadoTarea' in c).toBe(false);
       expect('limiteWip' in c).toBe(true);
       expect('totalValorEstimado' in c).toBe(true);
     });
-  });
-
-  it('tableroTratosFixture tiene 2×ABIERTO, 1×GANADO, 1×PERDIDO', () => {
-    const estados = tableroTratosFixture.columnas.map((c) => c.estadoTrato);
-    expect(estados.filter((e) => e === 'ABIERTO')).toHaveLength(2);
-    expect(estados.filter((e) => e === 'GANADO')).toHaveLength(1);
-    expect(estados.filter((e) => e === 'PERDIDO')).toHaveLength(1);
   });
 
   it('fichasFixture tiene al menos 3 fichas TRATO con tratoId de tratosFixture', () => {
@@ -130,7 +125,7 @@ describe('tableros MSW handler — GET /api/tableros/get-by-id?id=', () => {
       id: string;
       nombre: string;
       tipoTablero: string;
-      columnas: { id: string; estadoTrato: string | null; limiteWip: number | null }[];
+      columnas: { id: string; limiteWip: number | null }[];
     };
     expect(data.id).toBe(TABLERO_ID);
     expect(data.nombre).toBe('Pipeline de Tratos');
@@ -165,7 +160,6 @@ describe('tableros MSW handler — POST /api/tableros/asignar-columna', () => {
     const payload = {
       limiteWip: 3,
       nota: 'Test nota',
-      estadoTrato: 'ABIERTO',
       totalValorEstimado: 0,
     };
     const res = await fetch(
@@ -475,7 +469,7 @@ describe('fichas MSW handler — DELETE /api/fichas/delete?id=', () => {
 // ---------------------------------------------------------------------------
 
 describe('tableros MSW handler — POST /api/tableros/create', () => {
-  it('crea un tablero TRATOS con 201, id generado y 4 columnas de estadoTrato', async () => {
+  it('crea un tablero TRATOS con 201, id generado y 4 columnas', async () => {
     const res = await fetch('/api/tableros/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -485,7 +479,7 @@ describe('tableros MSW handler — POST /api/tableros/create', () => {
     const data = (await res.json()) as {
       id: string;
       tipoTablero: string;
-      columnas: { estadoTrato: string | null; estadoTarea: string | null }[];
+      columnas: { id: string; nombre: string | null }[];
       creadoEn: string;
     };
     expect(data.id).toBeTruthy();
@@ -493,12 +487,13 @@ describe('tableros MSW handler — POST /api/tableros/create', () => {
     expect(data.columnas).toHaveLength(4);
     expect(data.creadoEn).toBeTruthy();
     data.columnas.forEach((c) => {
-      expect(c.estadoTrato).not.toBeNull();
-      expect(c.estadoTarea).toBeNull();
+      expect(c.id).toBeTruthy();
+      expect('estadoTrato' in c).toBe(false);
+      expect('estadoTarea' in c).toBe(false);
     });
   });
 
-  it('crea un tablero TAREAS con 4 columnas de estadoTarea (incluye Cancelada)', async () => {
+  it('crea un tablero TAREAS con 4 columnas (incluye Cancelada)', async () => {
     const res = await fetch('/api/tableros/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -507,14 +502,10 @@ describe('tableros MSW handler — POST /api/tableros/create', () => {
     expect(res.status).toBe(201);
     const data = (await res.json()) as {
       tipoTablero: string;
-      columnas: { nombre: string | null; estadoTarea: string | null; estadoTrato: string | null }[];
+      columnas: { nombre: string | null }[];
     };
     expect(data.tipoTablero).toBe('TAREAS');
     expect(data.columnas).toHaveLength(4);
-    data.columnas.forEach((c) => {
-      expect(c.estadoTarea).not.toBeNull();
-      expect(c.estadoTrato).toBeNull();
-    });
     expect(data.columnas.map((c) => c.nombre)).toContain('Cancelada');
   });
 
