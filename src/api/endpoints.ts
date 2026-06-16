@@ -98,4 +98,24 @@ export const endpoints = {
     delete: (id: string, confirm = false) =>
       `/etiquetas/delete?id=${id}&confirm=${confirm}`,
   },
+  wa: {
+    canales: {
+      getAll: (empresaId: string) => `/wa/canales/get-all?empresaId=${empresaId}`,
+      getById: (id: string) => `/wa/canales/get-by-id?id=${id}`,
+      create: () => '/wa/canales/create',
+      edit: (id: string) => `/wa/canales/edit?id=${id}`,
+      delete: (id: string) => `/wa/canales/delete?id=${id}`,
+    },
+    conversaciones: {
+      getAll: (empresaId: string) => `/wa/conversaciones/get-all?empresaId=${empresaId}`,
+      getById: (id: string) => `/wa/conversaciones/get-by-id?id=${id}`,
+      mensajes: (conversacionId: string) => `/wa/conversaciones/${conversacionId}/mensajes`,
+      asignar: (id: string, agenteId: string) => `/wa/conversaciones/asignar?id=${id}&agenteId=${agenteId}`,
+      cerrar: (id: string) => `/wa/conversaciones/cerrar?id=${id}`,
+    },
+    mensajes: {
+      send: (conversacionId: string) => `/wa/mensajes/send?conversacionId=${conversacionId}`,
+    },
+    stream: () => '/wa/stream',
+  },
 } as const;

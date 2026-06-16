@@ -170,3 +170,71 @@ export interface ApiError {
   message: string;
   details?: Array<{ field: string; message: string }>;
 }
+
+// ── WhatsApp module types ────────────────────────────────────────────────────
+
+export type EstadoCanal = 'ACTIVO' | 'INACTIVO';
+export type EstadoConversacion = 'ABIERTA' | 'CERRADA';
+export type TipoMensaje = 'TEXTO' | 'IMAGEN' | 'AUDIO' | 'VIDEO' | 'DOCUMENTO';
+export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';
+export type StatusMensaje = 'ENVIADO' | 'ENTREGADO' | 'LEIDO' | 'FALLIDO';
+export type ProveedorCanal = 'EVOLUTION';
+
+export interface CanalWhatsapp {
+  id: string;
+  empresaId: string;
+  nombre: string;
+  instanceName: string;
+  proveedor: ProveedorCanal;
+  estado: EstadoCanal;
+  apiUrl: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface Conversacion {
+  id: string;
+  canalId: string;
+  contactoId: string | null;
+  numeroTelefono: string;
+  nombreContacto: string | null;
+  estado: EstadoConversacion;
+  asignadoA: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface Mensaje {
+  id: string;
+  conversacionId: string;
+  waMessageId: string;
+  tipo: TipoMensaje;
+  direccion: DireccionMensaje;
+  contenido: string | null;
+  mediaUrl: string | null;
+  status: StatusMensaje;
+  enviadoPor: string | null;
+  creadoEn: string;
+}
+
+export interface CanalCreatePayload {
+  empresaId: string;
+  nombre: string;
+  instanceName: string;
+  proveedor: ProveedorCanal;
+  apiUrl: string;
+  apiKey: string;
+}
+
+export interface CanalUpdatePayload {
+  nombre: string;
+  instanceName: string;
+  apiUrl: string;
+  apiKey: string;
+}
+
+export interface SendMensajePayload {
+  tipo: TipoMensaje;
+  contenido?: string | null;
+  mediaUrl?: string | null;
+}

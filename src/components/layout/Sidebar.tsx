@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -21,6 +21,8 @@ const mainItems: NavItem[] = [
 
 // "Tableros" va DEBAJO de "Mis tareas" (no en el grupo principal).
 const tablerosItem: NavItem = { label: 'Tableros', to: '/tableros', icon: KanbanSquare };
+
+const whatsappItem: NavItem = { label: 'WhatsApp', to: '/whatsapp', icon: MessageSquare };
 
 // Administración: pineado al fondo del sidebar, separado del grupo principal.
 const adminItems: NavItem[] = [
@@ -106,6 +108,9 @@ export function Sidebar() {
 
         {/* Tableros — justo debajo de "Mis tareas" */}
         <NavItemLink item={tablerosItem} />
+
+        {/* WhatsApp inbox */}
+        <NavItemLink item={whatsappItem} />
 
         {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
         <div className="mt-auto pt-3 border-t space-y-1">
