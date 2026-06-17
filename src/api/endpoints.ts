@@ -101,10 +101,14 @@ export const endpoints = {
   wa: {
     canales: {
       getAll: (empresaId: string) => `/wa/canales/get-all?empresaId=${empresaId}`,
+      getAllGlobal: () => '/wa/canales/get-all',
       getById: (id: string) => `/wa/canales/get-by-id?id=${id}`,
       create: () => '/wa/canales/create',
       edit: (id: string) => `/wa/canales/edit?id=${id}`,
       delete: (id: string) => `/wa/canales/delete?id=${id}`,
+      conectar: (id: string) => `/wa/canales/conectar?id=${id}`,
+      estado: (id: string) => `/wa/canales/estado?id=${id}`,
+      syncChats: (canalId: string) => `/wa/canales/sync-chats?canalId=${canalId}`,
     },
     conversaciones: {
       getAll: (empresaId: string) => `/wa/conversaciones/get-all?empresaId=${empresaId}`,

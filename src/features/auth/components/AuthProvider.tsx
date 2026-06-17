@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useTokenRefresh } from '@/features/auth/hooks/useTokenRefresh';
 import { useNavigate, useLocation } from 'react-router';
 
+const BYPASS_AUTH = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
 interface AuthProviderProps {
   children: React.ReactNode;
 }
@@ -12,6 +14,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const setKeycloakSession = useAuthStore((s) => s.setKeycloakSession);
   const setKeycloakReady = useAuthStore((s) => s.setKeycloakReady);
+  const setSession = useAuthStore((s) => s.setSession);
   const navigate = useNavigate();
   const location = useLocation();
   const loginRedirectStarted = useRef(false);
@@ -23,6 +26,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const init = async () => {
+      if (BYPASS_AUTH) {
+        setSession('mock-dev-token', {
+          subject: 'dev-user-id',
+          username: 'dev',
+          email: 'dev@local.test',
+          usuario_id: 'dev-user-id',
+          super_usuario_id: null,
+          roles: ['admin'],
+        });
+        setKeycloakReady(true);
+        const path = initialPath.current;
+        if (path === '/' || path === '/login') {
+          navigate('/empresas', { replace: true });
+        }
+        setIsLoading(false);
+        return;
+      }
+
       const authenticated = await initKeycloak();
       setKeycloakReady(true);
 

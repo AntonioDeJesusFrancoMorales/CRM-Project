@@ -15,3 +15,10 @@ export function useCanales(empresaId: string): UseQueryResult<CanalWhatsapp[]> {
     enabled: !!empresaId,
   });
 }
+
+export function useAllCanales(): UseQueryResult<CanalWhatsapp[]> {
+  return useQuery<CanalWhatsapp[]>({
+    queryKey: canalesKeys.all,
+    queryFn: () => apiClient.get<CanalWhatsapp[]>(endpoints.wa.canales.getAllGlobal()),
+  });
+}

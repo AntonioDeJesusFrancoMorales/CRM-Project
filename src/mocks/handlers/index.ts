@@ -1,4 +1,5 @@
 import { empresasHandlers } from './empresas';
+import { whatsappHandlers } from './whatsapp';
 import { usuariosHandlers } from './usuarios';
 import { rolesHandlers } from './roles';
 import { contactosHandlers } from './contactos';
@@ -20,4 +21,5 @@ export const handlers = [
   ...agendaHandlers,
   ...etiquetasHandlers,
   ...comentariosHandlers,
+  ...whatsappHandlers,
 ];

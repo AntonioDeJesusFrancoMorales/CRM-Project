@@ -5,13 +5,13 @@ import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { canalesKeys } from './useCanales';
 
-export function useDeleteCanal(empresaId: string): UseMutationResult<void, Error, string> {
+export function useDeleteCanal(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => apiClient.delete<void>(endpoints.wa.canales.delete(id)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: canalesKeys.list(empresaId) });
+      void queryClient.invalidateQueries({ queryKey: canalesKeys.all });
       toast.success('Canal eliminado');
     },
     onError: (error) => {

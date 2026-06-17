@@ -173,7 +173,7 @@ export interface ApiError {
 
 // ── WhatsApp module types ────────────────────────────────────────────────────
 
-export type EstadoCanal = 'ACTIVO' | 'INACTIVO';
+export type EstadoCanal = 'ACTIVO' | 'INACTIVO' | 'DESCONECTADO';
 export type EstadoConversacion = 'ABIERTA' | 'CERRADA';
 export type TipoMensaje = 'TEXTO' | 'IMAGEN' | 'AUDIO' | 'VIDEO' | 'DOCUMENTO';
 export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';

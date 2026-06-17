@@ -3,24 +3,28 @@ import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
-import type { CanalWhatsapp, CanalCreatePayload } from '@/api/types';
+import type { EstadoCanal } from '@/api/types';
 import { canalesKeys } from './useCanales';
 
-export function useCreateCanal(): UseMutationResult<CanalWhatsapp, Error, CanalCreatePayload> {
+export interface ConectarCanalResult {
+  qrBase64: string | null;
+  estado: EstadoCanal;
+}
+
+export function useConectarCanal(): UseMutationResult<ConectarCanalResult, Error, string> {
   const queryClient = useQueryClient();
 
-  return useMutation<CanalWhatsapp, Error, CanalCreatePayload>({
-    mutationFn: (payload) =>
-      apiClient.post<CanalWhatsapp>(endpoints.wa.canales.create(), payload),
-    onSuccess: (created) => {
+  return useMutation<ConectarCanalResult, Error, string>({
+    mutationFn: (id) =>
+      apiClient.post<ConectarCanalResult>(endpoints.wa.canales.conectar(id), {}),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: canalesKeys.all });
-      toast.success(`Canal "${created.nombre}" creado`);
     },
     onError: (error) => {
       if (isHttpError(error)) {
         toast.error(error.message);
       } else {
-        toast.error('No fue posible crear el canal');
+        toast.error('No se pudo conectar con Evolution API');
       }
     },
   });

@@ -11,14 +11,14 @@ interface EditVars {
   payload: CanalUpdatePayload;
 }
 
-export function useEditCanal(empresaId: string): UseMutationResult<CanalWhatsapp, Error, EditVars> {
+export function useEditCanal(): UseMutationResult<CanalWhatsapp, Error, EditVars> {
   const queryClient = useQueryClient();
 
   return useMutation<CanalWhatsapp, Error, EditVars>({
     mutationFn: ({ id, payload }) =>
       apiClient.put<CanalWhatsapp>(endpoints.wa.canales.edit(id), payload),
     onSuccess: (updated) => {
-      void queryClient.invalidateQueries({ queryKey: canalesKeys.list(empresaId) });
+      void queryClient.invalidateQueries({ queryKey: canalesKeys.all });
       toast.success(`Canal "${updated.nombre}" actualizado`);
     },
     onError: (error) => {
