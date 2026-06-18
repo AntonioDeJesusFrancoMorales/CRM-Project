@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, WifiOff, RefreshCw, Smartphone } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useConectarCanal } from '../hooks/useConectarCanal';
+import type { UseMutationResult } from '@tanstack/react-query';
+import type { ConectarCanalResult } from '../hooks/useConectarCanal';
 import { useEstadoCanal } from '../hooks/useEstadoCanal';
 import { useSyncChats } from '../hooks/useSyncChats';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ interface Props {
   onClose: () => void;
   canalId: string;
   canalNombre: string;
+  conectarMut: UseMutationResult<ConectarCanalResult, Error, string>;
 }
 
 const PASOS = [
@@ -22,9 +24,8 @@ const PASOS = [
   'Escanea este código QR',
 ];
 
-export function ConectarCanalDialog({ open, onClose, canalId, canalNombre }: Props) {
+export function ConectarCanalDialog({ open, onClose, canalId, canalNombre, conectarMut }: Props) {
   const queryClient = useQueryClient();
-  const conectarMut = useConectarCanal();
   const syncMut = useSyncChats();
   const [segundos, setSegundos] = useState(0);
   const [sincronizando, setSincronizando] = useState(false);
@@ -37,14 +38,6 @@ export function ConectarCanalDialog({ open, onClose, canalId, canalNombre }: Pro
   const estadoActual = estadoData?.estado ?? conectarMut.data?.estado;
   const qrBase64 = conectarMut.data?.qrBase64;
   const conectado = estadoActual === 'ACTIVO';
-
-  // Lanzar conexión automáticamente al abrir
-  useEffect(() => {
-    if (open && !conectarMut.data && !conectarMut.isPending) {
-      conectarMut.mutate(canalId);
-      setSegundos(0);
-    }
-  }, [open, canalId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Contador para indicar expiración del QR
   useEffect(() => {

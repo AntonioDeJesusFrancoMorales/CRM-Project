@@ -175,10 +175,10 @@ export interface ApiError {
 
 export type EstadoCanal = 'ACTIVO' | 'INACTIVO' | 'DESCONECTADO';
 export type EstadoConversacion = 'ABIERTA' | 'CERRADA';
-export type TipoMensaje = 'TEXTO' | 'IMAGEN' | 'AUDIO' | 'VIDEO' | 'DOCUMENTO';
+export type TipoMensaje = 'TEXTO' | 'IMAGEN' | 'AUDIO' | 'VIDEO' | 'DOCUMENTO' | 'STICKER' | 'UBICACION';
 export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';
 export type StatusMensaje = 'ENVIADO' | 'ENTREGADO' | 'LEIDO' | 'FALLIDO';
-export type ProveedorCanal = 'EVOLUTION';
+export type ProveedorCanal = 'EVOLUTION_API';
 
 export interface CanalWhatsapp {
   id: string;
@@ -200,6 +200,9 @@ export interface Conversacion {
   nombreContacto: string | null;
   estado: EstadoConversacion;
   asignadoA: string | null;
+  noLeidos: number;
+  ultimoMensajeAt: string | null;
+  ultimoMensajeTexto: string | null;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -215,6 +218,28 @@ export interface Mensaje {
   status: StatusMensaje;
   enviadoPor: string | null;
   creadoEn: string;
+}
+
+export interface Grupo {
+  id: string;
+  canalId: string | null;
+  jid: string;
+  nombre: string;
+  noLeidos: number;
+  ultimoMensajeAt: string | null;
+}
+
+export interface MensajeGrupo {
+  id: string;
+  grupoId: string;
+  direccion: DireccionMensaje;
+  tipo: TipoMensaje;
+  contenido: string | null;
+  mediaUrl: string | null;
+  remitente: string | null;
+  remitenteTel: string | null;
+  status: StatusMensaje;
+  timestamp: string | null;
 }
 
 export interface CanalCreatePayload {

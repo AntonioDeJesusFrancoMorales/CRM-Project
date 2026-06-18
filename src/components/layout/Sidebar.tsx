@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -23,7 +23,10 @@ const mainItems: NavItem[] = [
 const tablerosItem: NavItem = { label: 'Tableros', to: '/tableros', icon: KanbanSquare };
 
 const whatsappItem: NavItem = { label: 'WhatsApp', to: '/whatsapp', icon: MessageSquare };
+const whatsappGruposItem: NavItem = { label: 'WA Grupos', to: '/whatsapp/grupos', icon: Users };
 const whatsappCanalesItem: NavItem = { label: 'WA Canales', to: '/whatsapp/canales', icon: Wifi };
+const whatsappAjustesItem: NavItem = { label: 'WA Ajustes', to: '/whatsapp/ajustes', icon: Settings };
+const whatsappPlantillasItem: NavItem = { label: 'WA Plantillas', to: '/whatsapp/plantillas', icon: FileText };
 
 // Administración: pineado al fondo del sidebar, separado del grupo principal.
 const adminItems: NavItem[] = [
@@ -112,7 +115,10 @@ export function Sidebar() {
 
         {/* WhatsApp inbox */}
         <NavItemLink item={whatsappItem} />
+        <NavItemLink item={whatsappGruposItem} />
         <NavItemLink item={whatsappCanalesItem} />
+        <NavItemLink item={whatsappAjustesItem} />
+        <NavItemLink item={whatsappPlantillasItem} />
 
         {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
         <div className="mt-auto pt-3 border-t space-y-1">

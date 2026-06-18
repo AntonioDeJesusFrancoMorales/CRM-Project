@@ -1,10 +1,11 @@
-import { UserCheck, XCircle } from 'lucide-react';
+import { UserCheck, XCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Conversacion, Usuario } from '@/api/types';
 import { useAsignarAgente } from '../hooks/useAsignarAgente';
 import { useCerrarConversacion } from '../hooks/useCerrarConversacion';
+import { useReabrirConversacion } from '../hooks/useReabrirConversacion';
 
 interface Props {
   conversacion: Conversacion;
@@ -12,23 +13,48 @@ interface Props {
   empresaId: string;
 }
 
+function limpiarNumero(jid: string) {
+  return jid.replace(/@s\.whatsapp\.net$/, '').replace(/@g\.us$/, '');
+}
+
 export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props) {
   const asignarMut = useAsignarAgente();
   const cerrarMut = useCerrarConversacion();
+  const reabrirMut = useReabrirConversacion();
 
   const isCerrada = conversacion.estado === 'CERRADA';
+  const numero = limpiarNumero(conversacion.numeroTelefono);
+  const nombre = conversacion.nombreContacto?.trim();
+  const titulo = !nombre || nombre === numero || /^\d+$/.test(nombre) ? `+${numero}` : nombre;
 
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
-      <div>
-        <p className="font-semibold text-sm">
-          {conversacion.nombreContacto ?? conversacion.numeroTelefono}
-        </p>
-        <p className="text-xs text-muted-foreground">{conversacion.numeroTelefono}</p>
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold">
+          {titulo.replace(/[^a-zA-Z0-9]/g, '').charAt(0).toUpperCase() || '#'}
+        </div>
+        <div>
+          <p className="font-semibold text-sm">{titulo}</p>
+          <p className="text-xs text-muted-foreground">+{numero}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
-        {isCerrada && <Badge variant="secondary">Cerrada</Badge>}
+        {isCerrada && (
+          <>
+            <Badge variant="secondary">Cerrada</Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={reabrirMut.isPending}
+              onClick={() => reabrirMut.mutate({ conversacionId: conversacion.id, empresaId })}
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              Reabrir
+            </Button>
+          </>
+        )}
 
         {!isCerrada && (
           <>

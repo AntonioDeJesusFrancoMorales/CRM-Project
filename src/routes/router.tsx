@@ -18,6 +18,9 @@ import { KanbanPage } from '@/features/kanban/pages/KanbanPage';
 import { AgendaListPage } from '@/features/agenda/pages/AgendaListPage';
 import { WhatsappChatPage } from '@/features/whatsapp/pages/WhatsappChatPage';
 import { WhatsappCanalesPage } from '@/features/whatsapp/pages/WhatsappCanalesPage';
+import { WhatsappGruposPage } from '@/features/whatsapp/pages/WhatsappGruposPage';
+import { WhatsappAjustesPage } from '@/features/whatsapp/pages/WhatsappAjustesPage';
+import { WhatsappPlantillasPage } from '@/features/whatsapp/pages/WhatsappPlantillasPage';
 
 function AuthLayout() {
   return (
@@ -60,7 +63,10 @@ export const router = createBrowserRouter([
               { path: 'tableros/:id', element: <KanbanPage /> },
               { path: 'agenda', element: <AgendaListPage /> },
               { path: 'whatsapp', element: <WhatsappChatPage /> },
+              { path: 'whatsapp/grupos', element: <WhatsappGruposPage /> },
               { path: 'whatsapp/canales', element: <WhatsappCanalesPage /> },
+              { path: 'whatsapp/ajustes', element: <WhatsappAjustesPage /> },
+              { path: 'whatsapp/plantillas', element: <WhatsappPlantillasPage /> },
               // /usuarios y /configuracion NO van detrás de un guard de rol:
               // el back no enforza autorización por rol (solo autenticación), así que
               // gatear acá sería falsa seguridad. Cualquier autenticado accede, igual

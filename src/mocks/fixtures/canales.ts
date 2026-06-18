@@ -6,7 +6,7 @@ export const canalesFixture: CanalWhatsapp[] = [
     empresaId: 'a1111111-aaaa-1111-aaaa-111111111111',
     nombre: 'WhatsApp Principal',
     instanceName: 'innovatech-main',
-    proveedor: 'EVOLUTION',
+    proveedor: 'EVOLUTION_API',
     estado: 'ACTIVO',
     apiUrl: 'https://evolution.example.com',
     creadoEn: '2026-01-20T11:00:00.000Z',

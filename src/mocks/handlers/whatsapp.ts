@@ -28,7 +28,7 @@ export const whatsappHandlers = [
       empresaId: String(body['empresaId'] ?? ''),
       nombre: String(body['nombre'] ?? ''),
       instanceName: String(body['instanceName'] ?? ''),
-      proveedor: 'EVOLUTION',
+      proveedor: 'EVOLUTION_API',
       estado: 'ACTIVO',
       apiUrl: String(body['apiUrl'] ?? ''),
       creadoEn: nowIso(),

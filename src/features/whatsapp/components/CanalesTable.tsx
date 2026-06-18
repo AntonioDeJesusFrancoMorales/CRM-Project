@@ -12,6 +12,7 @@ import { useCreateCanal } from '../hooks/useCreateCanal';
 import { useEditCanal } from '../hooks/useEditCanal';
 import { useDeleteCanal } from '../hooks/useDeleteCanal';
 import { useSyncChats } from '../hooks/useSyncChats';
+import { useConectarCanal } from '../hooks/useConectarCanal';
 import type { CanalFormValues } from '../schemas/canal.schema';
 
 interface Props {
@@ -29,8 +30,19 @@ export function CanalesTable({ canales, empresas }: Props) {
   const editMut = useEditCanal();
   const deleteMut = useDeleteCanal();
   const syncMut = useSyncChats();
+  // Vive en el padre (no dentro del dialog) y se dispara de forma imperativa
+  // en los handlers de click, nunca desde un useEffect: React StrictMode
+  // monta/desmonta/remonta componentes en dev, y disparar la conexión desde
+  // un efecto deja la mutation colgada para siempre (el observer interno de
+  // useMutation se desincroniza del fetch real durante ese ciclo).
+  const conectarMut = useConectarCanal();
 
   const empresaMap = Object.fromEntries(empresas.map((e) => [e.id, e.nombre]));
+
+  function handleConectar(canal: CanalWhatsapp) {
+    setConectando(canal);
+    conectarMut.mutate(canal.id);
+  }
 
   function handleSubmit(values: CanalFormValues) {
     if (editing) {
@@ -44,7 +56,7 @@ export function CanalesTable({ canales, empresas }: Props) {
         {
           onSuccess: (created) => {
             setFormOpen(false);
-            setConectando(created);
+            handleConectar(created);
           },
         },
       );
@@ -97,7 +109,7 @@ export function CanalesTable({ canales, empresas }: Props) {
                   <div className="flex gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => setConectando(canal)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleConectar(canal)}>
                           <QrCode className="h-4 w-4 text-primary" />
                         </Button>
                       </TooltipTrigger>
@@ -144,6 +156,7 @@ export function CanalesTable({ canales, empresas }: Props) {
           onClose={() => setConectando(null)}
           canalId={conectando.id}
           canalNombre={conectando.nombre}
+          conectarMut={conectarMut}
         />
       )}
 

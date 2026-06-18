@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Check, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,26 +26,67 @@ function formatHora(iso: string) {
   }
 }
 
+// La mediaUrl viene como "/api/media/xxx"; el backend la sirve en su mismo origen.
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/api\/?$/, '');
+function mediaSrc(url: string) {
+  return /^https?:\/\//.test(url) ? url : `${API_ORIGIN}${url}`;
+}
+
+function MediaContent({ mensaje }: { mensaje: Mensaje }) {
+  if (!mensaje.mediaUrl) return null;
+  const src = mediaSrc(mensaje.mediaUrl);
+  switch (mensaje.tipo) {
+    case 'IMAGEN':
+    case 'STICKER':
+      return <img src={src} alt="adjunto" className="rounded-lg max-w-full max-h-72 object-contain" />;
+    case 'VIDEO':
+      return <video src={src} controls className="rounded-lg max-w-full max-h-72" />;
+    case 'AUDIO':
+      return <audio src={src} controls className="w-56 max-w-full" />;
+    case 'DOCUMENTO':
+      return (
+        <a href={src} target="_blank" rel="noreferrer" className="underline text-xs break-all">
+          📄 {mensaje.contenido || 'Documento'}
+        </a>
+      );
+    default:
+      return (
+        <a href={src} target="_blank" rel="noreferrer" className="underline text-xs break-all">
+          Ver adjunto
+        </a>
+      );
+  }
+}
+
+function StatusCheck({ status }: { status: Mensaje['status'] }) {
+  if (status === 'ENVIADO') return <Check className="h-3 w-3 inline" />;
+  if (status === 'ENTREGADO') return <CheckCheck className="h-3 w-3 inline" />;
+  if (status === 'LEIDO') return <CheckCheck className="h-3 w-3 inline text-sky-400" />;
+  if (status === 'FALLIDO') return <span className="text-destructive">✕</span>;
+  return null;
+}
+
 function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
   const isSaliente = mensaje.direccion === 'SALIENTE';
+  // En documento el contenido es el nombre del archivo (ya se muestra en el link).
+  const mostrarTexto = mensaje.contenido && mensaje.tipo !== 'DOCUMENTO';
   return (
-    <div className={cn('flex', isSaliente ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex w-full min-w-0', isSaliente ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[70%] rounded-2xl px-3 py-2 text-sm',
+          'max-w-[75%] min-w-0 rounded-2xl px-3 py-2 text-sm space-y-1',
           isSaliente
             ? 'bg-primary text-primary-foreground rounded-br-sm'
             : 'bg-muted rounded-bl-sm',
         )}
       >
-        {mensaje.contenido && <p className="whitespace-pre-wrap break-words">{mensaje.contenido}</p>}
-        {mensaje.mediaUrl && (
-          <p className="text-xs opacity-70 italic">
-            [{mensaje.tipo.toLowerCase()}]
-          </p>
+        {mensaje.mediaUrl && <MediaContent mensaje={mensaje} />}
+        {mostrarTexto && (
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{mensaje.contenido}</p>
         )}
-        <p className={cn('text-[10px] mt-0.5', isSaliente ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+        <p className={cn('text-[10px] flex items-center gap-1', isSaliente ? 'text-primary-foreground/70 justify-end' : 'text-muted-foreground')}>
           {formatHora(mensaje.creadoEn)}
+          {isSaliente && <StatusCheck status={mensaje.status} />}
         </p>
       </div>
     </div>
@@ -64,7 +105,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   // SSE: refrescar mensajes cuando llega un evento nuevo
   useSseStream(
     (event) => {
-      if (event.name === 'nuevo_mensaje') {
+      if (event.name === 'nuevo_mensaje' || event.name === 'estado_mensaje') {
         const data = event.data as { conversacionId?: string };
         if (data?.conversacionId === conversacion.id) {
           void queryClient.invalidateQueries({
@@ -98,7 +139,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-w-0">
       <ConversacionHeader
         conversacion={conversacion}
         usuarios={usuarios}
@@ -111,7 +152,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-2/3" />)}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2 w-full min-w-0">
             {(mensajes ?? []).map((m) => (
               <MessageBubble key={m.id} mensaje={m} />
             ))}

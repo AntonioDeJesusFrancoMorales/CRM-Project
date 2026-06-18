@@ -116,9 +116,23 @@ export const endpoints = {
       mensajes: (conversacionId: string) => `/wa/conversaciones/${conversacionId}/mensajes`,
       asignar: (id: string, agenteId: string) => `/wa/conversaciones/asignar?id=${id}&agenteId=${agenteId}`,
       cerrar: (id: string) => `/wa/conversaciones/cerrar?id=${id}`,
+      reabrir: (id: string) => `/wa/conversaciones/reabrir?id=${id}`,
+      marcarLeido: (id: string) => `/wa/conversaciones/marcar-leido?id=${id}`,
     },
     mensajes: {
       send: (conversacionId: string) => `/wa/mensajes/send?conversacionId=${conversacionId}`,
+    },
+    grupos: {
+      getAll: () => '/wa/grupos/get-all',
+      mensajes: (grupoId: string) => `/wa/grupos/${grupoId}/mensajes`,
+      importar: (canalId: string) => `/wa/grupos/importar?canalId=${canalId}`,
+      marcarLeido: (grupoId: string) => `/wa/grupos/${grupoId}/marcar-leido`,
+    },
+    ajustes: () => '/wa/ajustes',
+    plantillas: {
+      getAll: () => '/wa/plantillas/get-all',
+      create: () => '/wa/plantillas/create',
+      delete: (id: string) => `/wa/plantillas/delete?id=${id}`,
     },
     stream: () => '/wa/stream',
   },
