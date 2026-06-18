@@ -1,5 +1,7 @@
-import { NavLink } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, ChevronDown, type LucideIcon } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -23,10 +25,12 @@ const mainItems: NavItem[] = [
 const tablerosItem: NavItem = { label: 'Tableros', to: '/tableros', icon: KanbanSquare };
 
 const whatsappItem: NavItem = { label: 'WhatsApp', to: '/whatsapp', icon: MessageSquare };
-const whatsappGruposItem: NavItem = { label: 'WA Grupos', to: '/whatsapp/grupos', icon: Users };
-const whatsappCanalesItem: NavItem = { label: 'WA Canales', to: '/whatsapp/canales', icon: Wifi };
-const whatsappAjustesItem: NavItem = { label: 'WA Ajustes', to: '/whatsapp/ajustes', icon: Settings };
-const whatsappPlantillasItem: NavItem = { label: 'WA Plantillas', to: '/whatsapp/plantillas', icon: FileText };
+const whatsappSubItems: NavItem[] = [
+  { label: 'Grupos', to: '/whatsapp/grupos', icon: Users },
+  { label: 'Canales', to: '/whatsapp/canales', icon: Wifi },
+  { label: 'Ajustes', to: '/whatsapp/ajustes', icon: Settings },
+  { label: 'Plantillas', to: '/whatsapp/plantillas', icon: FileText },
+];
 
 // Administración: pineado al fondo del sidebar, separado del grupo principal.
 const adminItems: NavItem[] = [
@@ -77,6 +81,47 @@ function NavItemLink({ item }: { item: NavItem }) {
   );
 }
 
+function WhatsappNavGroup() {
+  const location = useLocation();
+  const isSubItemActive = whatsappSubItems.some((item) => location.pathname.startsWith(item.to));
+  const [open, setOpen] = useState(isSubItemActive);
+  const Icon = whatsappItem.icon;
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="flex items-center">
+        <NavLink
+          to={whatsappItem.to}
+          className={({ isActive }) =>
+            cn(
+              baseClasses,
+              'flex-1 text-foreground hover:bg-muted',
+              isActive && !isSubItemActive && 'bg-muted font-medium',
+            )
+          }
+        >
+          <Icon className="h-4 w-4" />
+          <span>{whatsappItem.label}</span>
+        </NavLink>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            aria-label="Mostrar submenú de WhatsApp"
+            className="p-2 rounded-md hover:bg-muted text-muted-foreground"
+          >
+            <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+          </button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent className="pl-6 space-y-1 pt-1">
+        {whatsappSubItems.map((item) => (
+          <NavItemLink key={item.to} item={item} />
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export function Sidebar() {
   // Todos los ítems se muestran a cualquier usuario autenticado. El back NO enforza
   // autorización por rol (solo autenticación), así que ocultar ítems por "rol" sería
@@ -113,12 +158,8 @@ export function Sidebar() {
         {/* Tableros — justo debajo de "Mis tareas" */}
         <NavItemLink item={tablerosItem} />
 
-        {/* WhatsApp inbox */}
-        <NavItemLink item={whatsappItem} />
-        <NavItemLink item={whatsappGruposItem} />
-        <NavItemLink item={whatsappCanalesItem} />
-        <NavItemLink item={whatsappAjustesItem} />
-        <NavItemLink item={whatsappPlantillasItem} />
+        {/* WhatsApp inbox + submenú colapsable (grupos, canales, ajustes, plantillas) */}
+        <WhatsappNavGroup />
 
         {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
         <div className="mt-auto pt-3 border-t space-y-1">
