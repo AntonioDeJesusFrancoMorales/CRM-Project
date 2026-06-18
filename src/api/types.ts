@@ -174,7 +174,9 @@ export interface ApiError {
 // ── WhatsApp module types ────────────────────────────────────────────────────
 
 export type EstadoCanal = 'ACTIVO' | 'INACTIVO' | 'DESCONECTADO';
-export type EstadoConversacion = 'ABIERTA' | 'CERRADA';
+// EN_ESPERA = "pendiente": el back la pone así automáticamente tras un handoff a humano
+// (label escalado_humano), igual al estado "pending" de Chatwoot/AmbarCRM.
+export type EstadoConversacion = 'ABIERTA' | 'EN_ESPERA' | 'CERRADA';
 export type TipoMensaje = 'TEXTO' | 'IMAGEN' | 'AUDIO' | 'VIDEO' | 'DOCUMENTO' | 'STICKER' | 'UBICACION';
 export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';
 export type StatusMensaje = 'ENVIADO' | 'ENTREGADO' | 'LEIDO' | 'FALLIDO';
@@ -203,6 +205,26 @@ export interface Conversacion {
   noLeidos: number;
   ultimoMensajeAt: string | null;
   ultimoMensajeTexto: string | null;
+  // labels/botActivo: contrato Chatwoot/n8n. labels=["escalado_humano"] => botActivo=false.
+  labels: string[];
+  botActivo: boolean;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+// Label que el bot (o un humano desde el panel) usa para handoff. Apaga el bot.
+export const LABEL_ESCALADO_HUMANO = 'escalado_humano';
+
+// Bot == BotResponse del back (BotController). Agent Bot estilo Chatwoot conectado a n8n:
+// el CRM le manda los mensajes entrantes al webhookUrl y el bot responde con apiAccessToken.
+// canalId null = aplica a todos los canales.
+export interface Bot {
+  id: string;
+  nombre: string;
+  canalId: string | null;
+  webhookUrl: string;
+  apiAccessToken: string;
+  activo: boolean;
   creadoEn: string;
   actualizadoEn: string;
 }

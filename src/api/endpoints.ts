@@ -118,6 +118,9 @@ export const endpoints = {
       cerrar: (id: string) => `/wa/conversaciones/cerrar?id=${id}`,
       reabrir: (id: string) => `/wa/conversaciones/reabrir?id=${id}`,
       marcarLeido: (id: string) => `/wa/conversaciones/marcar-leido?id=${id}`,
+      // Toggle de bot/handoff desde el panel humano (JWT). Mismo contrato de labels
+      // que usa el bot de n8n vía api_access_token — ver BotConversationController.
+      labels: (id: string) => `/wa/conversaciones/labels?id=${id}`,
     },
     mensajes: {
       send: (conversacionId: string) => `/wa/mensajes/send?conversacionId=${conversacionId}`,
@@ -135,5 +138,14 @@ export const endpoints = {
       delete: (id: string) => `/wa/plantillas/delete?id=${id}`,
     },
     stream: () => '/wa/stream',
+  },
+  bots: {
+    getAll: () => '/bots',
+    getById: (id: string) => `/bots/${id}`,
+    create: () => '/bots',
+    edit: (id: string) => `/bots/${id}`,
+    delete: (id: string) => `/bots/${id}`,
+    activar: (id: string) => `/bots/${id}/activar`,
+    desactivar: (id: string) => `/bots/${id}/desactivar`,
   },
 } as const;

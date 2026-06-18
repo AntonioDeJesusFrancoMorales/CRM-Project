@@ -1,11 +1,13 @@
-import { UserCheck, XCircle, RotateCcw } from 'lucide-react';
+import { UserCheck, XCircle, RotateCcw, Bot, BotOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Conversacion, Usuario } from '@/api/types';
+import { LABEL_ESCALADO_HUMANO, type Conversacion, type Usuario } from '@/api/types';
 import { useAsignarAgente } from '../hooks/useAsignarAgente';
 import { useCerrarConversacion } from '../hooks/useCerrarConversacion';
 import { useReabrirConversacion } from '../hooks/useReabrirConversacion';
+import { useAplicarLabelsConversacion } from '../hooks/useAplicarLabelsConversacion';
 
 interface Props {
   conversacion: Conversacion;
@@ -21,8 +23,17 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
   const asignarMut = useAsignarAgente();
   const cerrarMut = useCerrarConversacion();
   const reabrirMut = useReabrirConversacion();
+  const labelsMut = useAplicarLabelsConversacion();
 
   const isCerrada = conversacion.estado === 'CERRADA';
+  const botActivo = conversacion.botActivo;
+
+  function handleToggleBot() {
+    const nuevasLabels = botActivo
+      ? [LABEL_ESCALADO_HUMANO]
+      : conversacion.labels.filter((l) => l !== LABEL_ESCALADO_HUMANO);
+    labelsMut.mutate({ conversacionId: conversacion.id, empresaId, labels: nuevasLabels });
+  }
   const numero = limpiarNumero(conversacion.numeroTelefono);
   const nombre = conversacion.nombreContacto?.trim();
   const titulo = !nombre || nombre === numero || /^\d+$/.test(nombre) ? `+${numero}` : nombre;
@@ -40,6 +51,30 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
       </div>
 
       <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={botActivo ? 'outline' : 'secondary'}
+              size="sm"
+              className="h-8 text-xs"
+              disabled={labelsMut.isPending}
+              onClick={handleToggleBot}
+            >
+              {botActivo ? (
+                <Bot className="h-3.5 w-3.5 mr-1 text-primary" />
+              ) : (
+                <BotOff className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              )}
+              {botActivo ? 'Bot ON' : 'Bot OFF'}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {botActivo
+              ? 'Apagar el bot y ceder la conversación a un agente'
+              : 'Reactivar el bot para esta conversación'}
+          </TooltipContent>
+        </Tooltip>
+
         {isCerrada && (
           <>
             <Badge variant="secondary">Cerrada</Badge>

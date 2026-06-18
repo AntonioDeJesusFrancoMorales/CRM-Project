@@ -9,6 +9,7 @@ import { tablerosHandlers } from './tableros';
 import { agendaHandlers } from './agenda';
 import { etiquetasHandlers } from './etiquetas';
 import { comentariosHandlers } from './comentarios';
+import { botsHandlers } from './bots';
 
 export const handlers = [
   ...empresasHandlers,
@@ -22,4 +23,5 @@ export const handlers = [
   ...etiquetasHandlers,
   ...comentariosHandlers,
   ...whatsappHandlers,
+  ...botsHandlers,
 ];

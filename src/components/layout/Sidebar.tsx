@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, ChevronDown, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, Bot, ChevronDown, type LucideIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -28,6 +28,7 @@ const whatsappItem: NavItem = { label: 'WhatsApp', to: '/whatsapp', icon: Messag
 const whatsappSubItems: NavItem[] = [
   { label: 'Grupos', to: '/whatsapp/grupos', icon: Users },
   { label: 'Canales', to: '/whatsapp/canales', icon: Wifi },
+  { label: 'Bots', to: '/whatsapp/bots', icon: Bot },
   { label: 'Ajustes', to: '/whatsapp/ajustes', icon: Settings },
   { label: 'Plantillas', to: '/whatsapp/plantillas', icon: FileText },
 ];
