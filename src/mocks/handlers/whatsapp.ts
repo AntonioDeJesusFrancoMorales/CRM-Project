@@ -207,6 +207,16 @@ export const whatsappHandlers = [
     return HttpResponse.json(conv);
   }),
 
+  http.put(`${API}/wa/conversaciones/nombre`, async ({ request }) => {
+    await withDelay();
+    const conv = conversacionesFixture.find((c) => c.id === new URL(request.url).searchParams.get('id'));
+    if (!conv) return errors.notFound();
+    const body = (await request.json()) as { nombre?: string };
+    if (body.nombre?.trim()) conv.nombreContacto = body.nombre.trim();
+    conv.actualizadoEn = nowIso();
+    return HttpResponse.json(conv);
+  }),
+
   // Toggle de bot/handoff: labels=["escalado_humano"] apaga el bot; [] lo reactiva.
   http.put(`${API}/wa/conversaciones/labels`, async ({ request }) => {
     await withDelay();

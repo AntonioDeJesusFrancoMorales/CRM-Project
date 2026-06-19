@@ -1,6 +1,8 @@
-import { UserCheck, XCircle, RotateCcw, Bot, BotOff } from 'lucide-react';
+import { useState } from 'react';
+import { UserCheck, XCircle, RotateCcw, Bot, BotOff, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LABEL_ESCALADO_HUMANO, type Conversacion, type Usuario } from '@/api/types';
@@ -8,6 +10,7 @@ import { useAsignarAgente } from '../hooks/useAsignarAgente';
 import { useCerrarConversacion } from '../hooks/useCerrarConversacion';
 import { useReabrirConversacion } from '../hooks/useReabrirConversacion';
 import { useAplicarLabelsConversacion } from '../hooks/useAplicarLabelsConversacion';
+import { useRenombrarConversacion } from '../hooks/useRenombrarConversacion';
 
 interface Props {
   conversacion: Conversacion;
@@ -24,9 +27,36 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
   const cerrarMut = useCerrarConversacion();
   const reabrirMut = useReabrirConversacion();
   const labelsMut = useAplicarLabelsConversacion();
+  const renombrarMut = useRenombrarConversacion();
+
+  const [editando, setEditando] = useState(false);
+  const [nombreEdit, setNombreEdit] = useState('');
 
   const isCerrada = conversacion.estado === 'CERRADA';
   const botActivo = conversacion.botActivo;
+
+  function abrirEdicion() {
+    setNombreEdit(conversacion.nombreContacto?.trim() || '');
+    setEditando(true);
+  }
+
+  function guardarNombre() {
+    const nuevo = nombreEdit.trim();
+    if (!nuevo) return;
+    renombrarMut.mutate(
+      { conversacionId: conversacion.id, empresaId, nombre: nuevo },
+      { onSuccess: () => setEditando(false) },
+    );
+  }
+
+  function handleNombreKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      guardarNombre();
+    } else if (e.key === 'Escape') {
+      setEditando(false);
+    }
+  }
 
   function handleToggleBot() {
     const nuevasLabels = botActivo
@@ -44,8 +74,41 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
         <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold">
           {titulo.replace(/[^a-zA-Z0-9]/g, '').charAt(0).toUpperCase() || '#'}
         </div>
-        <div>
-          <p className="font-semibold text-sm">{titulo}</p>
+        <div className="min-w-0">
+          {editando ? (
+            <div className="flex items-center gap-1">
+              <Input
+                autoFocus
+                value={nombreEdit}
+                onChange={(e) => setNombreEdit(e.target.value)}
+                onKeyDown={handleNombreKeyDown}
+                placeholder="Nombre del contacto"
+                className="h-7 text-sm w-48"
+                disabled={renombrarMut.isPending}
+              />
+              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Guardar nombre"
+                disabled={!nombreEdit.trim() || renombrarMut.isPending} onClick={guardarNombre}>
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Cancelar"
+                disabled={renombrarMut.isPending} onClick={() => setEditando(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 group">
+              <p className="font-semibold text-sm truncate">{titulo}</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100"
+                    aria-label="Renombrar contacto" onClick={abrirEdicion}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Renombrar contacto</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">+{numero}</p>
         </div>
       </div>

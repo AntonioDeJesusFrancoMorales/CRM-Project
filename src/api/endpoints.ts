@@ -119,6 +119,7 @@ export const endpoints = {
       cerrar: (id: string) => `/wa/conversaciones/cerrar?id=${id}`,
       reabrir: (id: string) => `/wa/conversaciones/reabrir?id=${id}`,
       marcarLeido: (id: string) => `/wa/conversaciones/marcar-leido?id=${id}`,
+      renombrar: (id: string) => `/wa/conversaciones/nombre?id=${id}`,
       // Toggle de bot/handoff desde el panel humano (JWT). Mismo contrato de labels
       // que usa el bot de n8n vía api_access_token — ver BotConversationController.
       labels: (id: string) => `/wa/conversaciones/labels?id=${id}`,
