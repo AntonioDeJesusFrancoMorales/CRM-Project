@@ -15,12 +15,25 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
     if (!enabled) return;
 
     let aborted = false;
-    const controller = new AbortController();
+    let controller = new AbortController();
+    let watchdog: ReturnType<typeof setInterval> | undefined;
+
+    // Si un proxy intermedio corta la conexión sin emitir error (silenciosamente
+    // deja de mandar bytes), fetch+ReadableStream se queda "colgado" sin que el
+    // catch se dispare. El backend manda un ping cada 25s (ver SseEmitterRegistry);
+    // si no vemos actividad en 60s, forzamos el abort para que reconecte.
+    let lastActivity = Date.now();
 
     async function connect() {
       const token = useAuthStore.getState().getCurrentToken();
       const headers: HeadersInit = {};
       if (token) headers.Authorization = `Bearer ${token}`;
+
+      controller = new AbortController();
+      lastActivity = Date.now();
+      watchdog = setInterval(() => {
+        if (Date.now() - lastActivity > 60_000) controller.abort();
+      }, 10_000);
 
       try {
         const res = await fetch(`${BASE_URL}/wa/stream`, {
@@ -28,7 +41,7 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
           signal: controller.signal,
         });
 
-        if (!res.ok || !res.body) return;
+        if (!res.ok || !res.body) throw new Error('SSE response not ok');
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -37,6 +50,7 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
         while (!aborted) {
           const { done, value } = await reader.read();
           if (done) break;
+          lastActivity = Date.now();
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -57,9 +71,12 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
             }
           }
         }
+        if (!aborted) setTimeout(connect, 1_000);
       } catch {
         // Reconectar tras 3s si no fue un abort intencional
         if (!aborted) setTimeout(connect, 3_000);
+      } finally {
+        if (watchdog) clearInterval(watchdog);
       }
     }
 
@@ -67,6 +84,7 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
 
     return () => {
       aborted = true;
+      if (watchdog) clearInterval(watchdog);
       controller.abort();
     };
   }, [enabled, onEvent]);

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { Send, Loader2, Check, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,9 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Conversacion, Mensaje, Usuario } from '@/api/types';
-import { useMensajes, mensajesKeys } from '../hooks/useMensajes';
+import { useMensajes } from '../hooks/useMensajes';
 import { useSendMensaje } from '../hooks/useSendMensaje';
-import { useSseStream } from '../hooks/useSseStream';
 import { ConversacionHeader } from './ConversacionHeader';
 
 interface Props {
@@ -96,26 +94,15 @@ function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
 export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   const [texto, setTexto] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
 
   const { data: mensajes, isLoading } = useMensajes(conversacion.id);
   const sendMut = useSendMensaje();
   const isCerrada = conversacion.estado === 'CERRADA';
 
-  // SSE: refrescar mensajes cuando llega un evento nuevo
-  useSseStream(
-    (event) => {
-      if (event.name === 'nuevo_mensaje' || event.name === 'estado_mensaje') {
-        const data = event.data as { conversacionId?: string };
-        if (data?.conversacionId === conversacion.id) {
-          void queryClient.invalidateQueries({
-            queryKey: mensajesKeys.byConversacion(conversacion.id),
-          });
-        }
-      }
-    },
-    true,
-  );
+  // El SSE vive a nivel de página (WhatsappChatPage) — una sola conexión por
+  // usuario, igual que registra el backend (SseEmitterRegistry es 1:1 por
+  // usuarioId). Si cada ChatWindow abriera su propia conexión, la última en
+  // registrarse "pisaría" a las anteriores y se perderían eventos.
 
   // Auto-scroll al fondo cuando llegan mensajes nuevos
   useEffect(() => {

@@ -9,6 +9,7 @@ import { endpoints } from '@/api/endpoints';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useConversaciones, conversacionesKeys } from '../hooks/useConversaciones';
+import { mensajesKeys } from '../hooks/useMensajes';
 import { useSseStream } from '../hooks/useSseStream';
 import { ChatInbox } from '../components/ChatInbox';
 import { ChatWindow } from '../components/ChatWindow';
@@ -46,10 +47,19 @@ export function WhatsappChatPage() {
 
   const selectedConv = conversaciones.find((c) => c.id === selectedConvId) ?? null;
 
-  // SSE a nivel página: refresca la bandeja y avisa cuando llega un mensaje nuevo
-  // a una conversación que NO está abierta.
+  // SSE: única conexión para toda la pantalla de WhatsApp (el backend solo
+  // guarda una conexión por usuario — abrir otra aquí y otra en ChatWindow
+  // hacía que se pisaran y se perdieran eventos intermitentemente).
+  // Refresca la bandeja siempre, y además los mensajes de la conversación
+  // abierta cuando el evento le corresponde a ella.
   const onSse = useCallback(
     (event: { name: string; data: unknown }) => {
+      if (event.name === 'nuevo_mensaje' || event.name === 'estado_mensaje') {
+        const data = event.data as { conversacionId?: string; direccion?: string; contenido?: string };
+        if (data?.conversacionId === selectedRef.current) {
+          void queryClient.invalidateQueries({ queryKey: mensajesKeys.byConversacion(data.conversacionId) });
+        }
+      }
       if (event.name !== 'nuevo_mensaje') return;
       const data = event.data as { conversacionId?: string; direccion?: string; contenido?: string };
       void queryClient.invalidateQueries({ queryKey: conversacionesKeys.all });
