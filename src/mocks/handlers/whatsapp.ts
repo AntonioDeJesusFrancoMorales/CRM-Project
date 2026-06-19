@@ -135,6 +135,12 @@ export const whatsappHandlers = [
     return HttpResponse.json({ imported: 12 });
   }),
 
+  // POST /api/media/upload — simula la subida de un adjunto
+  http.post(`${API}/media/upload`, async () => {
+    await withDelay();
+    return HttpResponse.json({ url: `/api/media/mock-${crypto.randomUUID()}.bin` });
+  }),
+
   // POST /api/wa/canales/reconfigurar-webhook?id=
   http.post(`${API}/wa/canales/reconfigurar-webhook`, async ({ request }) => {
     await withDelay();

@@ -1,14 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Check, CheckCheck } from 'lucide-react';
+import { Send, Loader2, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { Conversacion, Mensaje, Usuario } from '@/api/types';
+import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
+import type { Conversacion, Mensaje, TipoMensaje, Usuario } from '@/api/types';
 import { useMensajes } from '../hooks/useMensajes';
 import { useSendMensaje } from '../hooks/useSendMensaje';
 import { ConversacionHeader } from './ConversacionHeader';
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function tipoDeMime(mime: string): TipoMensaje {
+  if (mime.startsWith('image/')) return 'IMAGEN';
+  if (mime.startsWith('video/')) return 'VIDEO';
+  if (mime.startsWith('audio/')) return 'AUDIO';
+  return 'DOCUMENTO';
+}
 
 interface Props {
   conversacion: Conversacion;
@@ -93,7 +112,9 @@ function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
 
 export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   const [texto, setTexto] = useState('');
+  const [subiendo, setSubiendo] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: mensajes, isLoading } = useMensajes(conversacion.id);
   const sendMut = useSendMensaje();
@@ -125,6 +146,34 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
     }
   }
 
+  // Adjunta un archivo: lo sube al backend (base64) y manda el mensaje con la URL
+  // resultante; el texto actual del input viaja como caption.
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite re-seleccionar el mismo archivo
+    if (!file || isCerrada) return;
+    setSubiendo(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const { url } = await apiClient.post<{ url: string }>(endpoints.media.upload(), {
+        base64,
+        mime: file.type || 'application/octet-stream',
+      });
+      const caption = texto.trim();
+      sendMut.mutate(
+        {
+          conversacionId: conversacion.id,
+          payload: { tipo: tipoDeMime(file.type), contenido: caption || undefined, mediaUrl: url },
+        },
+        { onSuccess: () => setTexto('') },
+      );
+    } catch {
+      toast.error('No se pudo subir el archivo');
+    } finally {
+      setSubiendo(false);
+    }
+  }
+
   return (
     <div className="flex flex-col h-full min-w-0">
       <ConversacionHeader
@@ -150,6 +199,22 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
 
       {!isCerrada && (
         <div className="border-t p-3 flex gap-2 items-end bg-card">
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            accept="image/*,video/*,audio/*,application/pdf"
+            onChange={handleFile}
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label="Adjuntar archivo"
+            disabled={subiendo || sendMut.isPending}
+            onClick={() => fileRef.current?.click()}
+          >
+            {subiendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+          </Button>
           <Textarea
             value={texto}
             onChange={(e) => setTexto(e.target.value)}

@@ -150,4 +150,7 @@ export const endpoints = {
     activar: (id: string) => `/bots/${id}/activar`,
     desactivar: (id: string) => `/bots/${id}/desactivar`,
   },
+  media: {
+    upload: () => '/media/upload',
+  },
 } as const;
