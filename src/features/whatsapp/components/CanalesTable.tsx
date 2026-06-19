@@ -109,7 +109,7 @@ export function CanalesTable({ canales, empresas }: Props) {
                   <div className="flex gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => handleConectar(canal)}>
+                        <Button variant="ghost" size="icon" aria-label="Conectar por QR" onClick={() => handleConectar(canal)}>
                           <QrCode className="h-4 w-4 text-primary" />
                         </Button>
                       </TooltipTrigger>
@@ -120,6 +120,7 @@ export function CanalesTable({ canales, empresas }: Props) {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Cargar historial de chats"
                           disabled={syncMut.isPending}
                           onClick={() => syncMut.mutate(canal.id)}
                         >
@@ -128,10 +129,10 @@ export function CanalesTable({ canales, empresas }: Props) {
                       </TooltipTrigger>
                       <TooltipContent>Cargar historial de chats</TooltipContent>
                     </Tooltip>
-                    <Button variant="ghost" size="icon" onClick={() => { setEditing(canal); setFormOpen(true); }}>
+                    <Button variant="ghost" size="icon" aria-label="Editar canal" onClick={() => { setEditing(canal); setFormOpen(true); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeletingId(canal.id)}>
+                    <Button variant="ghost" size="icon" aria-label="Eliminar canal" onClick={() => setDeletingId(canal.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

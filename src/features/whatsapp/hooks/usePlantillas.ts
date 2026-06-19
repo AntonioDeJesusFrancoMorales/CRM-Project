@@ -33,5 +33,6 @@ export function useEliminarPlantilla() {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete<void>(endpoints.wa.plantillas.delete(id)),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: plantillasKey }); toast.success('Plantilla eliminada'); },
+    onError: () => toast.error('No se pudo eliminar la plantilla'),
   });
 }

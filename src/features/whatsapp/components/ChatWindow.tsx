@@ -160,6 +160,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
           />
           <Button
             size="icon"
+            aria-label="Enviar mensaje"
             onClick={handleSend}
             disabled={!texto.trim() || sendMut.isPending}
           >

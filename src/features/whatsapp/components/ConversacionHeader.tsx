@@ -99,7 +99,7 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
                 asignarMut.mutate({ conversacionId: conversacion.id, agenteId, empresaId })
               }
             >
-              <SelectTrigger className="w-40 h-8 text-xs">
+              <SelectTrigger className="w-40 h-8 text-xs" aria-label="Asignar agente">
                 <UserCheck className="h-3.5 w-3.5 mr-1" />
                 <SelectValue placeholder="Asignar agente" />
               </SelectTrigger>

@@ -44,5 +44,6 @@ export function useMarcarGrupoLeido() {
     mutationFn: (grupoId: string) =>
       apiClient.post<Grupo>(endpoints.wa.grupos.marcarLeido(grupoId), {}),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: gruposKeys.all }),
+    onError: () => toast.error('No se pudo marcar el grupo como leído'),
   });
 }
