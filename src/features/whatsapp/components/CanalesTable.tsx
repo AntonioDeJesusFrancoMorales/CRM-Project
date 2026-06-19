@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Trash2, Plus, Wifi, WifiOff, QrCode, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2, Plus, Wifi, WifiOff, QrCode, RefreshCw, Webhook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,6 +12,7 @@ import { useCreateCanal } from '../hooks/useCreateCanal';
 import { useEditCanal } from '../hooks/useEditCanal';
 import { useDeleteCanal } from '../hooks/useDeleteCanal';
 import { useSyncChats } from '../hooks/useSyncChats';
+import { useReconfigurarWebhook } from '../hooks/useReconfigurarWebhook';
 import { useConectarCanal } from '../hooks/useConectarCanal';
 import type { CanalFormValues } from '../schemas/canal.schema';
 
@@ -30,6 +31,7 @@ export function CanalesTable({ canales, empresas }: Props) {
   const editMut = useEditCanal();
   const deleteMut = useDeleteCanal();
   const syncMut = useSyncChats();
+  const webhookMut = useReconfigurarWebhook();
   // Vive en el padre (no dentro del dialog) y se dispara de forma imperativa
   // en los handlers de click, nunca desde un useEffect: React StrictMode
   // monta/desmonta/remonta componentes en dev, y disparar la conexión desde
@@ -128,6 +130,20 @@ export function CanalesTable({ canales, empresas }: Props) {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Cargar historial de chats</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Reconfigurar webhook"
+                          disabled={webhookMut.isPending}
+                          onClick={() => webhookMut.mutate(canal.id)}
+                        >
+                          <Webhook className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Reconfigurar webhook (mensajes en vivo)</TooltipContent>
                     </Tooltip>
                     <Button variant="ghost" size="icon" aria-label="Editar canal" onClick={() => { setEditing(canal); setFormOpen(true); }}>
                       <Pencil className="h-4 w-4" />

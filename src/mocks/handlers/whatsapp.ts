@@ -135,6 +135,15 @@ export const whatsappHandlers = [
     return HttpResponse.json({ imported: 12 });
   }),
 
+  // POST /api/wa/canales/reconfigurar-webhook?id=
+  http.post(`${API}/wa/canales/reconfigurar-webhook`, async ({ request }) => {
+    await withDelay();
+    const id = new URL(request.url).searchParams.get('id');
+    const canal = canalesFixture.find((c) => c.id === id);
+    if (!canal) return errors.notFound();
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // ── Conversaciones ────────────────────────────────────────────────
   http.get(`${API}/wa/conversaciones/get-all`, async ({ request }) => {
     await withDelay();
@@ -236,6 +245,26 @@ export const whatsappHandlers = [
   http.get(`${API}/wa/grupos/:id/mensajes`, async ({ params }) => {
     await withDelay();
     return HttpResponse.json(mensajesGrupoFixture[params['id'] as string] ?? []);
+  }),
+
+  http.post(`${API}/wa/grupos/:id/mensajes`, async ({ params, request }) => {
+    await withDelay();
+    const grupoId = params['id'] as string;
+    const body = (await request.json()) as Record<string, unknown>;
+    const mensaje = {
+      id: crypto.randomUUID(),
+      grupoId,
+      direccion: 'SALIENTE' as const,
+      tipo: (body['tipo'] as string) ?? 'TEXTO',
+      contenido: (body['contenido'] as string) ?? null,
+      mediaUrl: (body['mediaUrl'] as string) ?? null,
+      remitente: null,
+      remitenteTel: null,
+      status: 'ENVIADO' as const,
+      timestamp: nowIso(),
+    };
+    (mensajesGrupoFixture[grupoId] ??= []).push(mensaje as never);
+    return HttpResponse.json(mensaje, { status: 201 });
   }),
 
   http.post(`${API}/wa/grupos/importar`, async () => {

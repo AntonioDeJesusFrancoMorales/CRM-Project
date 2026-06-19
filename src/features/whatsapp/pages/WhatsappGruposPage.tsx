@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, RefreshCw, Loader2 } from 'lucide-react';
+import { Users, RefreshCw, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -10,6 +11,7 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import type { CanalWhatsapp, MensajeGrupo } from '@/api/types';
 import { useGrupos, useMensajesGrupo, useImportarGrupos, useMarcarGrupoLeido, gruposKeys } from '../hooks/useGrupos';
+import { useSendMensajeGrupo } from '../hooks/useSendMensajeGrupo';
 import { useSseStream } from '../hooks/useSseStream';
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/api\/?$/, '');
@@ -50,12 +52,14 @@ function GrupoBubble({ mensaje }: { mensaje: MensajeGrupo }) {
 export function WhatsappGruposPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [texto, setTexto] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
   const { data: grupos = [], isLoading } = useGrupos();
   const { data: mensajes = [] } = useMensajesGrupo(selectedId);
   const importarMut = useImportarGrupos();
   const marcarLeidoMut = useMarcarGrupoLeido();
+  const sendMut = useSendMensajeGrupo();
 
   // Canal activo para importar grupos
   const { data: canales = [] } = useQuery<CanalWhatsapp[]>({
@@ -81,9 +85,32 @@ export function WhatsappGruposPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensajes.length]);
 
+  // Limpia el borrador al cambiar de grupo (evita mandarlo al grupo equivocado).
+  useEffect(() => {
+    setTexto('');
+  }, [selectedId]);
+
   function handleSelect(id: string, noLeidos: number) {
     setSelectedId(id);
     if (noLeidos > 0) marcarLeidoMut.mutate(id);
+  }
+
+  const sinCanal = !selected?.canalId;
+
+  function handleSend() {
+    const contenido = texto.trim();
+    if (!contenido || !selectedId || sinCanal) return;
+    sendMut.mutate(
+      { grupoId: selectedId, payload: { tipo: 'TEXTO', contenido } },
+      { onSuccess: () => setTexto('') },
+    );
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   }
 
   return (
@@ -140,6 +167,26 @@ export function WhatsappGruposPage() {
                   <div ref={endRef} />
                 </div>
               </ScrollArea>
+
+              <div className="border-t p-3 flex gap-2 items-end bg-card">
+                <Textarea
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={sinCanal ? 'Este grupo no tiene canal: reimporta los grupos' : 'Escribe un mensaje... (Enter para enviar)'}
+                  className="resize-none min-h-[40px] max-h-32 text-sm"
+                  rows={1}
+                  disabled={sinCanal}
+                />
+                <Button
+                  size="icon"
+                  aria-label="Enviar mensaje al grupo"
+                  onClick={handleSend}
+                  disabled={!texto.trim() || sinCanal || sendMut.isPending}
+                >
+                  {sendMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">

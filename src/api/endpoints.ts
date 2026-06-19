@@ -109,6 +109,7 @@ export const endpoints = {
       conectar: (id: string) => `/wa/canales/conectar?id=${id}`,
       estado: (id: string) => `/wa/canales/estado?id=${id}`,
       syncChats: (canalId: string) => `/wa/canales/sync-chats?canalId=${canalId}`,
+      reconfigurarWebhook: (id: string) => `/wa/canales/reconfigurar-webhook?id=${id}`,
     },
     conversaciones: {
       getAll: (empresaId: string) => `/wa/conversaciones/get-all?empresaId=${empresaId}`,
@@ -128,6 +129,7 @@ export const endpoints = {
     grupos: {
       getAll: () => '/wa/grupos/get-all',
       mensajes: (grupoId: string) => `/wa/grupos/${grupoId}/mensajes`,
+      send: (grupoId: string) => `/wa/grupos/${grupoId}/mensajes`,
       importar: (canalId: string) => `/wa/grupos/importar?canalId=${canalId}`,
       marcarLeido: (grupoId: string) => `/wa/grupos/${grupoId}/marcar-leido`,
     },
