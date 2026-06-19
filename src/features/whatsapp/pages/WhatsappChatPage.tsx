@@ -74,9 +74,14 @@ export function WhatsappChatPage() {
 
   function handleSelect(id: string) {
     setSelectedConvId(id);
-    void apiClient.put(endpoints.wa.conversaciones.marcarLeido(id), {}).then(() => {
-      void queryClient.invalidateQueries({ queryKey: conversacionesKeys.all });
-    });
+    void apiClient
+      .put(endpoints.wa.conversaciones.marcarLeido(id), {})
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: conversacionesKeys.all });
+      })
+      .catch(() => {
+        toast.error('No se pudo marcar la conversación como leída');
+      });
   }
 
   return (
@@ -128,7 +133,11 @@ export function WhatsappChatPage() {
 
         <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {selectedConv ? (
+            // key por conversacion.id: sin esto React reutiliza la misma instancia
+            // de ChatWindow al cambiar de chat y el borrador de texto sin enviar
+            // queda "pegado" — riesgo de mandarlo a la conversación equivocada.
             <ChatWindow
+              key={selectedConv.id}
               conversacion={selectedConv}
               usuarios={usuarios}
               empresaId={empresaId}
