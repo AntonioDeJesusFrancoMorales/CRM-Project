@@ -10,6 +10,7 @@ export const gruposFixture: Grupo[] = [
     nombre: 'Equipo Recepción',
     noLeidos: 1,
     ultimoMensajeAt: '2026-06-18T13:00:00.000Z',
+    ultimoMensajeTexto: 'Recuerden confirmar las citas de mañana',
   },
 ];
 

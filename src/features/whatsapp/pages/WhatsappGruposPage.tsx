@@ -147,7 +147,16 @@ export function WhatsappGruposPage() {
                   className={cn('w-full text-left px-4 py-3 border-b hover:bg-accent flex items-center gap-2', selectedId === g.id && 'bg-accent')}
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="flex-1 truncate text-sm font-medium">{g.nombre}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className={cn('block truncate text-sm', g.noLeidos > 0 ? 'font-semibold' : 'font-medium')}>
+                      {g.nombre}
+                    </span>
+                    {g.ultimoMensajeTexto && (
+                      <span className={cn('block truncate text-xs', g.noLeidos > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+                        {g.ultimoMensajeTexto}
+                      </span>
+                    )}
+                  </div>
                   {g.noLeidos > 0 && <Badge className="shrink-0">{g.noLeidos}</Badge>}
                 </button>
               ))}

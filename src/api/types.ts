@@ -249,6 +249,7 @@ export interface Grupo {
   nombre: string;
   noLeidos: number;
   ultimoMensajeAt: string | null;
+  ultimoMensajeTexto: string | null;
 }
 
 export interface MensajeGrupo {

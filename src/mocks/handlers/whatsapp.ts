@@ -264,6 +264,11 @@ export const whatsappHandlers = [
       timestamp: nowIso(),
     };
     (mensajesGrupoFixture[grupoId] ??= []).push(mensaje as never);
+    const grupo = gruposFixture.find((g) => g.id === grupoId);
+    if (grupo) {
+      grupo.ultimoMensajeAt = mensaje.timestamp;
+      grupo.ultimoMensajeTexto = mensaje.contenido ?? '📎 Adjunto';
+    }
     return HttpResponse.json(mensaje, { status: 201 });
   }),
 
