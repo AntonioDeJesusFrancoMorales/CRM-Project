@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, Bot, ChevronDown, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, Bot, ChevronDown, LayoutDashboard, type LucideIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -11,10 +11,12 @@ interface NavItem {
   icon: LucideIcon;
   disabled?: boolean;
   badge?: string;
+  end?: boolean; // match exacto (para "/" que si no quedaría activo en todas las rutas)
 }
 
 // Grupo principal. Tratos va al final para quedar pegado a "Mis tareas" (ítem dinámico).
 const mainItems: NavItem[] = [
+  { label: 'Inicio', to: '/', icon: LayoutDashboard, end: true },
   { label: 'Empresas', to: '/empresas', icon: Building2 },
   { label: 'Contactos', to: '/contactos', icon: Contact2 },
   { label: 'Agenda', to: '/agenda', icon: CalendarClock },
@@ -68,6 +70,7 @@ function NavItemLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
+      end={item.end}
       className={({ isActive }) =>
         cn(
           baseClasses,

@@ -22,6 +22,7 @@ import { WhatsappGruposPage } from '@/features/whatsapp/pages/WhatsappGruposPage
 import { WhatsappAjustesPage } from '@/features/whatsapp/pages/WhatsappAjustesPage';
 import { WhatsappPlantillasPage } from '@/features/whatsapp/pages/WhatsappPlantillasPage';
 import { BotsListPage } from '@/features/bots/pages/BotsListPage';
+import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 
 function AuthLayout() {
   return (
@@ -45,7 +46,7 @@ export const router = createBrowserRouter([
           {
             element: <AppShell />,
             children: [
-              { index: true, element: <Navigate to="/empresas" replace /> },
+              { index: true, element: <DashboardPage /> },
               { path: 'empresas', element: <EmpresasListPage /> },
               { path: 'empresas/:id', element: <EmpresaDetailPage /> },
               // Nuevas rutas contactos (unifica prospectos + clientes)
