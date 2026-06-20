@@ -9,9 +9,12 @@ import { apiError } from '@/mocks/utils/error';
 import { nowIso } from '@/mocks/utils/crud';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 import { tareasFixture } from '@/mocks/fixtures/tareas';
-import type { Trato } from '@/api/types';
+import type { NotaTrato, Trato } from '@/api/types';
 
 const API = '/api';
+
+// Notas en memoria (timeline del trato) para dev/test.
+const notasTrato: NotaTrato[] = [];
 
 export const tratosHandlers = [
   // GET /api/tratos/get-all — retorna lista completa sin filtros server-side
@@ -59,6 +62,7 @@ export const tratosHandlers = [
     const idx = tratosFixture.findIndex((t) => t.id === id);
     if (idx === -1) return errors.notFound();
     tratosFixture[idx] = { ...tratosFixture[idx]!, estado: 'GANADO', motivoPerdida: null, actualizadoEn: nowIso() };
+    notasTrato.push({ id: crypto.randomUUID(), tratoId: id!, autorId: null, tipo: 'EVENTO', contenido: 'Oportunidad marcada como GANADA', creadoEn: nowIso() });
     return HttpResponse.json(tratosFixture[idx]);
   }),
 
@@ -70,7 +74,35 @@ export const tratosHandlers = [
     if (idx === -1) return errors.notFound();
     const body = (await request.json()) as { motivo?: string };
     tratosFixture[idx] = { ...tratosFixture[idx]!, estado: 'PERDIDO', motivoPerdida: body.motivo ?? '', actualizadoEn: nowIso() };
+    notasTrato.push({ id: crypto.randomUUID(), tratoId: id!, autorId: null, tipo: 'EVENTO', contenido: `Oportunidad marcada como PERDIDA: ${body.motivo ?? ''}`, creadoEn: nowIso() });
     return HttpResponse.json(tratosFixture[idx]);
+  }),
+
+  // GET /api/tratos/notas/get-all?tratoId=  (más recientes primero)
+  http.get(`${API}/tratos/notas/get-all`, async ({ request }) => {
+    await withDelay();
+    const tratoId = new URL(request.url).searchParams.get('tratoId');
+    const items = notasTrato
+      .filter((n) => n.tratoId === tratoId)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
+    return HttpResponse.json(items);
+  }),
+
+  // POST /api/tratos/notas/create?tratoId=  body { contenido }
+  http.post(`${API}/tratos/notas/create`, async ({ request }) => {
+    await withDelay();
+    const tratoId = new URL(request.url).searchParams.get('tratoId') ?? '';
+    const body = (await request.json()) as { contenido?: string };
+    const nota: NotaTrato = {
+      id: crypto.randomUUID(),
+      tratoId,
+      autorId: 'b0000001-0000-0000-0000-000000000001',
+      tipo: 'NOTA',
+      contenido: body.contenido ?? '',
+      creadoEn: nowIso(),
+    };
+    notasTrato.push(nota);
+    return HttpResponse.json(nota, { status: 201 });
   }),
 
   // PUT /api/tratos/edit?id= — actualiza trato por query param (no PATCH)

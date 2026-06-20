@@ -31,6 +31,8 @@ export const endpoints = {
     delete: (id: string) => `/tratos/delete?id=${id}`,
     ganar: (id: string) => `/tratos/ganar?id=${id}`,
     perder: (id: string) => `/tratos/perder?id=${id}`,
+    notasGetAll: (tratoId: string) => `/tratos/notas/get-all?tratoId=${tratoId}`,
+    notasCreate: (tratoId: string) => `/tratos/notas/create?tratoId=${tratoId}`,
   },
   tableros: {
     getAll: () => '/tableros/get-all',

@@ -127,6 +127,17 @@ export interface TratoCreatePayload {
 
 export type TratoUpdatePayload = Omit<TratoCreatePayload, 'contactoId'>;
 
+export type TipoNota = 'NOTA' | 'EVENTO';
+
+export interface NotaTrato {
+  id: string;
+  tratoId: string;
+  autorId: string | null;
+  tipo: TipoNota;
+  contenido: string;
+  creadoEn: string;
+}
+
 export interface Tarea {
   id: string;
   tratoId: string;

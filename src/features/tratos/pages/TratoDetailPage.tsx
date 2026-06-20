@@ -30,6 +30,7 @@ import { getTareaEstado } from '@/features/tareas/hooks/useTareaEstado';
 import { FichaEtiquetasPanel } from '@/features/etiquetas/components/FichaEtiquetasPanel';
 import { TratoInfoTab } from '../components/TratoInfoTab';
 import { TratoTareasTab } from '../components/TratoTareasTab';
+import { TratoNotasTab } from '../components/TratoNotasTab';
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
 
@@ -68,7 +69,7 @@ export function TratoDetailPage() {
   }
 
   // Sincroniza el tab activo con ?tab= en la URL.
-  const [tab, setTab] = useTabSync(['info', 'tareas'], 'info');
+  const [tab, setTab] = useTabSync(['info', 'tareas', 'notas'], 'info');
 
   const is404 = isHttpError(error) && error.status === 404;
 
@@ -222,6 +223,7 @@ export function TratoDetailPage() {
         <TabsList>
           <TabsTrigger value="info">Información</TabsTrigger>
           <TabsTrigger value="tareas">Tareas</TabsTrigger>
+          <TabsTrigger value="notas">Notas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="mt-4 space-y-4">
@@ -243,6 +245,10 @@ export function TratoDetailPage() {
         {/* TratoTareasTab se monta solo cuando el tab está activo — lazy load por montaje */}
         <TabsContent value="tareas" className="mt-4">
           <TratoTareasTab tratoId={id} />
+        </TabsContent>
+
+        <TabsContent value="notas" className="mt-4">
+          <TratoNotasTab tratoId={id} />
         </TabsContent>
       </Tabs>
 
