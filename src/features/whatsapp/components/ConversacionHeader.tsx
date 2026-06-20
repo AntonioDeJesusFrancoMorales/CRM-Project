@@ -138,7 +138,14 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
               </Tooltip>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">+{numero}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground">+{numero}</p>
+            {conversacion.csatScore != null && (
+              <span className="text-[11px] text-amber-600 font-medium" title="Calificación del contacto (CSAT)">
+                ⭐ {conversacion.csatScore}/5
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -222,6 +222,7 @@ export interface Conversacion {
   // labels/botActivo: contrato Chatwoot/n8n. labels=["escalado_humano"] => botActivo=false.
   labels: string[];
   botActivo: boolean;
+  csatScore: number | null; // calificación 1-5 del contacto (CSAT)
   creadoEn: string;
   actualizadoEn: string;
 }

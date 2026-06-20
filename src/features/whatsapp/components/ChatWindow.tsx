@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText } from 'lucide-react';
+import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText, Mic, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -127,8 +127,11 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   const [texto, setTexto] = useState('');
   const [notaInterna, setNotaInterna] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
+  const [grabando, setGrabando] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   const { data: mensajes, isLoading } = useMensajes(conversacion.id);
   const { data: plantillas = [] } = usePlantillas();
@@ -193,6 +196,49 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
       toast.error('No se pudo subir el archivo');
     } finally {
       setSubiendo(false);
+    }
+  }
+
+  // Nota de voz: graba con MediaRecorder, sube el audio y lo envía como mensaje AUDIO.
+  async function toggleGrabar() {
+    if (isCerrada) return;
+    if (grabando) {
+      recorderRef.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setGrabando(false);
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size === 0) return;
+        setSubiendo(true);
+        try {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result as string);
+            r.onerror = () => reject(new Error('read'));
+            r.readAsDataURL(blob);
+          });
+          const { url } = await apiClient.post<{ url: string }>(endpoints.media.upload(), {
+            base64, mime: blob.type,
+          });
+          sendMut.mutate({ conversacionId: conversacion.id, payload: { tipo: 'AUDIO', mediaUrl: url } });
+        } catch {
+          toast.error('No se pudo enviar la nota de voz');
+        } finally {
+          setSubiendo(false);
+        }
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setGrabando(true);
+    } catch {
+      toast.error('No se pudo acceder al micrófono');
     }
   }
 
@@ -285,6 +331,23 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
             className="resize-none min-h-[40px] max-h-32 text-sm"
             rows={1}
           />
+          {/* Micrófono: grabar nota de voz (oculto en modo nota interna y si hay texto escrito). */}
+          {!notaInterna && !texto.trim() && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant={grabando ? 'destructive' : 'ghost'}
+                  aria-label={grabando ? 'Detener y enviar nota de voz' : 'Grabar nota de voz'}
+                  disabled={subiendo}
+                  onClick={toggleGrabar}
+                >
+                  {grabando ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{grabando ? 'Detener y enviar' : 'Grabar nota de voz'}</TooltipContent>
+            </Tooltip>
+          )}
           <Button
             size="icon"
             aria-label={notaInterna ? 'Guardar nota' : 'Enviar mensaje'}
