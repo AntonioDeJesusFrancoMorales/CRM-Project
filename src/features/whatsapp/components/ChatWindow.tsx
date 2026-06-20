@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText, Mic, Square } from 'lucide-react';
+import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText, Mic, Square, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -128,6 +128,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   const [notaInterna, setNotaInterna] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [grabando, setGrabando] = useState(false);
+  const [sugiriendo, setSugiriendo] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -168,6 +169,21 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  }
+
+  // Sugerir respuesta con IA: rellena el input con la sugerencia (el agente la revisa/edita).
+  async function handleSugerir() {
+    setSugiriendo(true);
+    try {
+      const { sugerencia } = await apiClient.post<{ sugerencia: string }>(
+        endpoints.wa.conversaciones.sugerir(conversacion.id), {},
+      );
+      if (sugerencia?.trim()) setTexto(sugerencia.trim());
+    } catch {
+      toast.error('No se pudo generar la sugerencia');
+    } finally {
+      setSugiriendo(false);
     }
   }
 
@@ -308,6 +324,21 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Sugerir respuesta con IA"
+                disabled={sugiriendo}
+                onClick={handleSugerir}
+              >
+                {sugiriendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-violet-500" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Sugerir respuesta con IA</TooltipContent>
+          </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>

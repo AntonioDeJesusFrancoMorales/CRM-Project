@@ -17,6 +17,7 @@ import { useContactos } from '../hooks/useContactos';
 import { ContactosTable } from '../components/ContactosTable';
 import { ContactoFormDialog } from '../components/ContactoFormDialog';
 import { ContactoDeleteDialog } from '../components/ContactoDeleteDialog';
+import { ContactosImportExport } from '../components/ContactosImportExport';
 
 type EstadoRelacion = 'PROSPECTO' | 'ACTIVO' | 'INACTIVO';
 
@@ -70,10 +71,13 @@ export function ContactosPage() {
         title="Contactos"
         description="Gestiona prospectos, clientes activos e inactivos."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo contacto
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <ContactosImportExport contactos={contactos ?? []} />
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nuevo contacto
+            </Button>
+          </div>
         }
       />
 
