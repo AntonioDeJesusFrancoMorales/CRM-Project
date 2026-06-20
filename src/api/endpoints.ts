@@ -29,6 +29,8 @@ export const endpoints = {
     create: () => '/tratos/create',
     edit: (id: string) => `/tratos/edit?id=${id}`,
     delete: (id: string) => `/tratos/delete?id=${id}`,
+    ganar: (id: string) => `/tratos/ganar?id=${id}`,
+    perder: (id: string) => `/tratos/perder?id=${id}`,
   },
   tableros: {
     getAll: () => '/tableros/get-all',

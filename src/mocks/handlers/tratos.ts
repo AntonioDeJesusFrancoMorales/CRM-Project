@@ -43,12 +43,34 @@ export const tratosHandlers = [
       probabilidad: (body['probabilidad'] as number | null) ?? null,
       fechaCierreEsperada: (body['fechaCierreEsperada'] as string | null) ?? null,
       tipoContrato: ((body['tipoContrato'] as Trato['tipoContrato']) ?? 'OTRO'),
+      estado: 'ABIERTO',
       motivoPerdida: null,
       creadoEn: nowIso(),
       actualizadoEn: null,
     };
     tratosFixture.push(trato);
     return HttpResponse.json(trato, { status: 201 });
+  }),
+
+  // PUT /api/tratos/ganar?id=
+  http.put(`${API}/tratos/ganar`, async ({ request }) => {
+    await withDelay();
+    const id = new URL(request.url).searchParams.get('id');
+    const idx = tratosFixture.findIndex((t) => t.id === id);
+    if (idx === -1) return errors.notFound();
+    tratosFixture[idx] = { ...tratosFixture[idx]!, estado: 'GANADO', motivoPerdida: null, actualizadoEn: nowIso() };
+    return HttpResponse.json(tratosFixture[idx]);
+  }),
+
+  // PUT /api/tratos/perder?id=  body { motivo }
+  http.put(`${API}/tratos/perder`, async ({ request }) => {
+    await withDelay();
+    const id = new URL(request.url).searchParams.get('id');
+    const idx = tratosFixture.findIndex((t) => t.id === id);
+    if (idx === -1) return errors.notFound();
+    const body = (await request.json()) as { motivo?: string };
+    tratosFixture[idx] = { ...tratosFixture[idx]!, estado: 'PERDIDO', motivoPerdida: body.motivo ?? '', actualizadoEn: nowIso() };
+    return HttpResponse.json(tratosFixture[idx]);
   }),
 
   // PUT /api/tratos/edit?id= — actualiza trato por query param (no PATCH)

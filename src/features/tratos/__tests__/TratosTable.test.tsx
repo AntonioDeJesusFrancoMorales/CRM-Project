@@ -15,6 +15,7 @@ const trato: Trato = {
   probabilidad: 50,
   fechaCierreEsperada: null,
   tipoContrato: 'SERVICIO',
+  estado: 'ABIERTO',
   motivoPerdida: null,
   creadoEn: '2026-01-01T00:00:00.000Z',
   actualizadoEn: null,

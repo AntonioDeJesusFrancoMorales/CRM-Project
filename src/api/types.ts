@@ -98,6 +98,8 @@ export interface CambiarEstadoPayload {
   nuevoEstado: EstadoRelacion;
 }
 
+export type EstadoTrato = 'ABIERTO' | 'GANADO' | 'PERDIDO';
+
 export interface Trato {
   id: string;
   contactoId: string;
@@ -107,6 +109,7 @@ export interface Trato {
   probabilidad: number | null;
   fechaCierreEsperada: string | null;
   tipoContrato: TipoContrato;
+  estado: EstadoTrato;
   motivoPerdida: string | null;
   creadoEn: string;
   actualizadoEn: string | null;

@@ -22,7 +22,7 @@ describe('fixture verification (invariantes del fixture nuevo)', () => {
       expect('tipoContrato' in t).toBe(true);
       expect('prospecto_id' in t).toBe(false);
       expect('cliente_id' in t).toBe(false);
-      expect('estado' in t).toBe(false);
+      expect('estado' in t).toBe(true);
     });
   });
 
@@ -59,7 +59,7 @@ describe('tratos MSW handler — GET /api/tratos/get-all', () => {
       expect('tipoContrato' in t).toBe(true);
       expect('prospecto_id' in t).toBe(false);
       expect('cliente_id' in t).toBe(false);
-      expect('estado' in t).toBe(false);
+      expect('estado' in t).toBe(true);
     });
   });
 });
@@ -101,8 +101,8 @@ describe('tratos MSW handler — POST /api/tratos/create', () => {
     expect(data.id).toBeTruthy();
     expect(data.nombre).toBe('Trato handler test');
     expect(data.contactoId).toBe('c1111111-cccc-1111-cccc-111111111111');
-    // Sin estado ni campos obsoletos
-    expect('estado' in data).toBe(false);
+    // Trato con estado (Fase 3); sin campos obsoletos del modelo viejo.
+    expect('estado' in data).toBe(true);
     expect('prospecto_id' in data).toBe(false);
   });
 });

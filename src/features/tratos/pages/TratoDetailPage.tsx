@@ -8,16 +8,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, Trophy, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { isHttpError } from '@/api/http-error';
 import { useTabSync } from '@/lib/useTabSync';
 import { useTrato } from '../hooks/useTrato';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
+import { useGanarTrato, usePerderTrato } from '../hooks/useCambiarEstadoTrato';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
@@ -46,9 +51,21 @@ export function TratoDetailPage() {
     .filter((t) => getTareaEstado(t.id) === 'pendiente');
 
   const deleteMutation = useDeleteTrato();
+  const ganarMutation = useGanarTrato();
+  const perderMutation = usePerderTrato();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [perderOpen, setPerderOpen] = useState(false);
+  const [motivo, setMotivo] = useState('');
+
+  function handlePerder() {
+    if (!id || !motivo.trim()) return;
+    perderMutation.mutate(
+      { id, motivo: motivo.trim() },
+      { onSuccess: () => { setPerderOpen(false); setMotivo(''); } },
+    );
+  }
 
   // Sincroniza el tab activo con ?tab= en la URL.
   const [tab, setTab] = useTabSync(['info', 'tareas'], 'info');
@@ -148,6 +165,12 @@ export function TratoDetailPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{trato.nombre}</h1>
             <div className="flex flex-wrap items-center gap-2">
+              {trato.estado === 'GANADO' && (
+                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white">Ganado</Badge>
+              )}
+              {trato.estado === 'PERDIDO' && (
+                <Badge variant="destructive" title={trato.motivoPerdida ?? undefined}>Perdido</Badge>
+              )}
               {/* badge OCULTO cuando count = 0 (solo visible si hay >= 1 tarea pendiente) */}
               {pendientesCount > 0 && (
                 <Badge data-testid="badge-pendientes">{pendientesCount}</Badge>
@@ -156,8 +179,29 @@ export function TratoDetailPage() {
           </div>
         </div>
 
-        {/* Lado derecho: solo Editar y Eliminar */}
+        {/* Lado derecho: cerrar (ganar/perder, si está abierto) + editar y eliminar */}
         <div className="flex flex-wrap gap-2">
+          {trato.estado === 'ABIERTO' && (
+            <>
+              <Button
+                variant="outline"
+                className="text-emerald-700 hover:text-emerald-700"
+                disabled={ganarMutation.isPending}
+                onClick={() => id && ganarMutation.mutate(id)}
+              >
+                <Trophy className="mr-2 h-4 w-4" aria-hidden="true" />
+                Ganar
+              </Button>
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setPerderOpen(true)}
+              >
+                <XCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+                Perder
+              </Button>
+            </>
+          )}
           <Button variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
             Editar
@@ -212,6 +256,31 @@ export function TratoDetailPage() {
         onConfirm={handleConfirmDelete}
         isDeleting={deleteMutation.isPending}
       />
+
+      <Dialog open={perderOpen} onOpenChange={(o) => { setPerderOpen(o); if (!o) setMotivo(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como perdido</DialogTitle>
+            <DialogDescription>¿Por qué se perdió esta oportunidad? Queda registrado.</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Motivo de la pérdida..."
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPerderOpen(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={!motivo.trim() || perderMutation.isPending}
+              onClick={handlePerder}
+            >
+              Marcar como perdido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

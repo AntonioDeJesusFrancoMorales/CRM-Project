@@ -204,6 +204,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     const trato = tratos?.find((t) => t.id === ficha.tratoId);
     const titulo = trato?.nombre ?? ficha.tratoId ?? 'Sin trato';
     const detalles: KanbanCardDetalle[] = [];
+    let badge: KanbanCardBadge | undefined;
 
     if (trato) {
       if (trato.valorEstimado != null && trato.valorEstimado !== 0) {
@@ -215,12 +216,18 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       if (trato.fechaCierreEsperada) {
         detalles.push({ label: 'Cierre', value: formatDate(trato.fechaCierreEsperada) });
       }
+      // Insignia de cierre: ganado/perdido. Abierto no muestra badge.
+      if (trato.estado === 'GANADO') {
+        badge = { text: 'Ganado', classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' };
+      } else if (trato.estado === 'PERDIDO') {
+        badge = { text: 'Perdido', classes: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' };
+      }
     }
 
     // Solo navegar si hay tratoId válido
     const to = ficha.tratoId ? `/tratos/${ficha.tratoId}` : undefined;
 
-    return { titulo, detalles, badge: undefined, to };
+    return { titulo, detalles, badge, to };
   }
 
   // Estilo de transformación para la columna durante el reorden

@@ -17,6 +17,7 @@ const TRATOS_FIXTURE: Trato[] = [
     probabilidad: 70,
     fechaCierreEsperada: '2026-06-30',
     tipoContrato: 'SERVICIO',
+    estado: 'ABIERTO',
     motivoPerdida: null,
     creadoEn: '2026-04-05T10:00:00.000Z',
     actualizadoEn: '2026-05-08T15:00:00.000Z',
@@ -30,6 +31,7 @@ const TRATOS_FIXTURE: Trato[] = [
     probabilidad: 90,
     fechaCierreEsperada: '2026-09-15',
     tipoContrato: 'LICENCIA',
+    estado: 'ABIERTO',
     motivoPerdida: null,
     creadoEn: '2026-04-25T11:00:00.000Z',
     actualizadoEn: '2026-05-05T09:30:00.000Z',
@@ -75,8 +77,8 @@ describe('useTratos', () => {
     expect(primero).toHaveProperty('nombre');
     expect(primero).toHaveProperty('contactoId');
     expect(primero).toHaveProperty('responsableId');
-    // El modelo nuevo NO tiene estado
-    expect(primero).not.toHaveProperty('estado');
+    // El trato ahora tiene estado (ABIERTO/GANADO/PERDIDO) — Fase 3 ciclo de ventas.
+    expect(primero).toHaveProperty('estado');
     expect(primero).not.toHaveProperty('prospecto_id');
     expect(primero).not.toHaveProperty('cliente_id');
   });

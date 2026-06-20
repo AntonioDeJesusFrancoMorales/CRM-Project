@@ -18,6 +18,7 @@ const TRATO_FIXTURE: Trato = {
   probabilidad: 90,
   fechaCierreEsperada: '2026-09-15',
   tipoContrato: 'LICENCIA',
+  estado: 'ABIERTO',
   motivoPerdida: null,
   creadoEn: '2026-04-25T11:00:00.000Z',
   actualizadoEn: '2026-05-05T09:30:00.000Z',
@@ -55,7 +56,7 @@ describe('useTrato', () => {
     expect(result.current.data?.nombre).toBeDefined();
     expect(result.current.data?.contactoId).toBeDefined();
     expect(result.current.data?.responsableId).toBeDefined();
-    expect(result.current.data).not.toHaveProperty('estado');
+    expect(result.current.data).toHaveProperty('estado');
     expect(result.current.data).not.toHaveProperty('prospecto_id');
   });
 

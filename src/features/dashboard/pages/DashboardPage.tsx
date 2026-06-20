@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import {
-  Wallet, TrendingUp, Layers, Receipt, UserCheck, UserPlus, Contact2, AlertCircle, Trophy, Download,
+  Wallet, TrendingUp, Layers, Receipt, UserCheck, UserPlus, Contact2, AlertCircle, Trophy, Download, Target, Percent,
 } from 'lucide-react';
 import type { Contacto, Tarea, Trato, Usuario } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,10 @@ function esEsteMes(iso: string): boolean {
 }
 
 function computeKpis(tratos: Trato[], contactos: Contacto[], tareas: Tarea[]) {
-  const pipeline = tratos.reduce((acc, t) => acc + (t.valorEstimado ?? 0), 0);
-  const ponderado = tratos.reduce((acc, t) => acc + (t.valorEstimado ?? 0) * ((t.probabilidad ?? 0) / 100), 0);
-  const oportunidades = tratos.length;
+  const abiertos = tratos.filter((t) => t.estado === 'ABIERTO');
+  const pipeline = abiertos.reduce((acc, t) => acc + (t.valorEstimado ?? 0), 0);
+  const ponderado = abiertos.reduce((acc, t) => acc + (t.valorEstimado ?? 0) * ((t.probabilidad ?? 0) / 100), 0);
+  const oportunidades = abiertos.length;
   const ticket = oportunidades > 0 ? pipeline / oportunidades : 0;
   const clientes = contactos.filter((c) => c.estadoRelacion === 'ACTIVO').length;
   const prospectos = contactos.filter((c) => c.estadoRelacion === 'PROSPECTO').length;
@@ -35,7 +36,17 @@ function computeKpis(tratos: Trato[], contactos: Contacto[], tareas: Tarea[]) {
   const tareasUrgentes = tareas.filter(
     (t) => !t.fechaCompletada && t.fechaLimite && new Date(t.fechaLimite) <= hoy,
   ).length;
-  return { pipeline, ponderado, oportunidades, ticket, clientes, prospectos, leadsMes, tareasUrgentes };
+  // Cierres: ganados del mes y conversión (ganados / cerrados).
+  const ganados = tratos.filter((t) => t.estado === 'GANADO');
+  const ganadosMes = ganados.filter((t) => esEsteMes(t.actualizadoEn ?? t.creadoEn));
+  const valorGanadoMes = ganadosMes.reduce((acc, t) => acc + (t.valorEstimado ?? 0), 0);
+  const perdidos = tratos.filter((t) => t.estado === 'PERDIDO').length;
+  const cerrados = ganados.length + perdidos;
+  const conversion = cerrados > 0 ? Math.round((ganados.length / cerrados) * 100) : 0;
+  return {
+    pipeline, ponderado, oportunidades, ticket, clientes, prospectos, leadsMes, tareasUrgentes,
+    ganadosMes: ganadosMes.length, valorGanadoMes, conversion,
+  };
 }
 
 function rankingAgentes(tratos: Trato[], usuarios: Usuario[]) {
@@ -98,10 +109,12 @@ export function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Valor pipeline" value={formatCurrency(kpis.pipeline)} hint="Suma del valor estimado" icon={Wallet} loading={loading} />
+        <StatCard label="Valor pipeline" value={formatCurrency(kpis.pipeline)} hint="Oportunidades abiertas" icon={Wallet} loading={loading} />
         <StatCard label="Pipeline ponderado" value={formatCurrency(kpis.ponderado)} hint="Estimado × probabilidad" icon={TrendingUp} loading={loading} />
-        <StatCard label="Oportunidades" value={String(kpis.oportunidades)} icon={Layers} loading={loading} />
+        <StatCard label="Oportunidades abiertas" value={String(kpis.oportunidades)} icon={Layers} loading={loading} />
         <StatCard label="Ticket promedio" value={formatCurrency(kpis.ticket)} icon={Receipt} loading={loading} />
+        <StatCard label="Ganado este mes" value={formatCurrency(kpis.valorGanadoMes)} hint={`${kpis.ganadosMes} oportunidades`} icon={Target} loading={loading} />
+        <StatCard label="Conversión" value={`${kpis.conversion}%`} hint="Ganados / cerrados" icon={Percent} loading={loading} />
         <StatCard label="Clientes" value={String(kpis.clientes)} hint="Contactos activos" icon={UserCheck} loading={loading} />
         <StatCard label="Prospectos" value={String(kpis.prospectos)} icon={Contact2} loading={loading} />
         <StatCard label="Leads del mes" value={String(kpis.leadsMes)} hint="Contactos nuevos este mes" icon={UserPlus} loading={loading} />
