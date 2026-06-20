@@ -169,6 +169,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     detalles: KanbanCardDetalle[];
     badge: KanbanCardBadge | undefined;
     to: string | undefined;
+    chatTo: string | undefined;
   } {
     if (tipoFicha === 'TAREA') {
       const tarea = tareas?.find((t) => t.id === ficha.tareaId);
@@ -197,7 +198,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       // Solo navegar si hay tareaId válido
       const to = ficha.tareaId ? `/tareas/${ficha.tareaId}` : undefined;
 
-      return { titulo, detalles, badge, to };
+      return { titulo, detalles, badge, to, chatTo: undefined };
     }
 
     // TRATO (default)
@@ -226,8 +227,10 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
 
     // Solo navegar si hay tratoId válido
     const to = ficha.tratoId ? `/tratos/${ficha.tratoId}` : undefined;
+    // Atajo al chat del contacto del trato (best-effort: lo resuelve WhatsappChatPage).
+    const chatTo = trato?.contactoId ? `/whatsapp?contacto=${trato.contactoId}` : undefined;
 
-    return { titulo, detalles, badge, to };
+    return { titulo, detalles, badge, to, chatTo };
   }
 
   // Estilo de transformación para la columna durante el reorden
@@ -368,7 +371,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           </p>
         ) : (
           sortedFichas.map((ficha) => {
-            const { titulo, detalles, badge, to } = resolveCardProps(ficha);
+            const { titulo, detalles, badge, to, chatTo } = resolveCardProps(ficha);
             return (
               <KanbanCard
                 key={ficha.id}
@@ -378,6 +381,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
                 badge={badge}
                 etiquetas={resolveEtiquetas(ficha)}
                 to={to}
+                chatTo={chatTo}
               />
             );
           })

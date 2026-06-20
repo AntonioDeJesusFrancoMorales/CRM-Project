@@ -60,9 +60,11 @@ interface KanbanCardProps {
    *  Cuando se provee, el área de contenido renderiza un Link para navegar al detalle.
    *  Sin to, la tarjeta no es navegable. */
   to?: string;
+  /** Ruta al chat del contacto (solo tratos con contacto). Añade "Abrir chat" al menú. */
+  chatTo?: string;
 }
 
-export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to }: KanbanCardProps) {
+export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to, chatTo }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
     // type: 'ficha' permite discriminar fichas vs columnas en el onDragEnd del DndContext
@@ -187,6 +189,11 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {chatTo && (
+                  <DropdownMenuItem asChild>
+                    <Link to={chatTo}>Abrir chat</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setDeleteOpen(true)}

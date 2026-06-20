@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { UserCheck, XCircle, RotateCcw, Bot, BotOff, Pencil, Check, X, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router';
+import { UserCheck, XCircle, RotateCcw, Bot, BotOff, Pencil, Check, X, TrendingUp, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LABEL_ESCALADO_HUMANO, type Conversacion, type EstadoRelacion, type Usuario } from '@/api/types';
 import { useAuthStore } from '@/store/authStore';
 import { useCreateTrato } from '@/features/tratos/hooks/useCreateTrato';
+import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useContacto } from '@/features/contactos/hooks/useContacto';
 import { useCambiarEstadoContacto } from '@/features/contactos/hooks/useCambiarEstadoContacto';
 import { useAsignarAgente } from '../hooks/useAsignarAgente';
@@ -37,6 +40,10 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
 
   const usuarioId = useAuthStore((s) => s.usuario?.usuario_id);
   const { data: contacto } = useContacto(conversacion.contactoId ?? undefined);
+  const { data: tratos = [] } = useTratos();
+  const oportunidades = conversacion.contactoId
+    ? tratos.filter((t) => t.contactoId === conversacion.contactoId)
+    : [];
 
   const [editando, setEditando] = useState(false);
   const [nombreEdit, setNombreEdit] = useState('');
@@ -162,21 +169,41 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
 
         {conversacion.contactoId && (
           <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  disabled={!usuarioId || crearTratoMut.isPending}
-                  onClick={handleCrearOportunidad}
-                >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs" disabled={!usuarioId}>
                   <TrendingUp className="h-3.5 w-3.5 mr-1" />
-                  Oportunidad
+                  Oportunidades
+                  {oportunidades.length > 0 && (
+                    <span className="ml-1 rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
+                      {oportunidades.length}
+                    </span>
+                  )}
+                  <ChevronDown className="h-3 w-3 ml-1" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Crear oportunidad en el embudo de ventas</TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Oportunidades del contacto</DropdownMenuLabel>
+                {oportunidades.length === 0 ? (
+                  <DropdownMenuItem disabled>Sin oportunidades</DropdownMenuItem>
+                ) : (
+                  oportunidades.map((t) => (
+                    <DropdownMenuItem key={t.id} asChild>
+                      <Link to={`/tratos/${t.id}`} className="flex items-center justify-between gap-2">
+                        <span className="truncate">{t.nombre}</span>
+                        {t.estado === 'GANADO' && <Badge className="bg-emerald-600 text-white text-[10px] px-1.5">Ganado</Badge>}
+                        {t.estado === 'PERDIDO' && <Badge variant="destructive" className="text-[10px] px-1.5">Perdido</Badge>}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleCrearOportunidad} disabled={crearTratoMut.isPending}>
+                  <Plus className="h-3.5 w-3.5 mr-2" />
+                  Crear oportunidad rápida
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Select
               value={contacto?.estadoRelacion ?? ''}

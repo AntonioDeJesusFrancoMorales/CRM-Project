@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { MessageSquare, Search } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -71,6 +72,25 @@ export function WhatsappChatPage() {
   const { data: todasConversaciones = [], isLoading: loadingConvs } = useConversaciones(empresaId);
   // Una empresa puede tener varios canales: nos quedamos solo con los del canal activo.
   const conversacionesCanal = todasConversaciones.filter((c) => c.canalId === canalId);
+
+  // Atajo desde el kanban: /whatsapp?contacto=<id> abre la conversación de ese contacto.
+  // Best-effort sobre la empresa del canal activo (cubre el caso común de 1 empresa);
+  // si está en otro canal de la misma empresa, cambia de canal y la selecciona.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const contactoParam = searchParams.get('contacto');
+  useEffect(() => {
+    if (!contactoParam || todasConversaciones.length === 0) return;
+    const conv = todasConversaciones.find((c) => c.contactoId === contactoParam);
+    if (conv) {
+      if (conv.canalId !== canalId) {
+        setCanalId(conv.canalId);
+        localStorage.setItem(CANAL_STORAGE_KEY, conv.canalId);
+      }
+      setSelectedConvId(conv.id);
+    }
+    searchParams.delete('contacto');
+    setSearchParams(searchParams, { replace: true });
+  }, [contactoParam, todasConversaciones, canalId, searchParams, setSearchParams]);
 
   // Búsqueda client-side por nombre, número o texto del último mensaje.
   const q = busqueda.trim().toLowerCase();
