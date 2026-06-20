@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -6,13 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+import { useAllCanales } from '../hooks/useCanales';
 import { useConversaciones, conversacionesKeys } from '../hooks/useConversaciones';
 import { mensajesKeys } from '../hooks/useMensajes';
 import { useSseStream } from '../hooks/useSseStream';
 import { ChatInbox } from '../components/ChatInbox';
 import { ChatWindow } from '../components/ChatWindow';
+
+const CANAL_STORAGE_KEY = 'wa-canal-seleccionado';
 
 // Beep corto para avisar mensaje nuevo (sin assets externos).
 function beep() {
@@ -36,14 +38,36 @@ function beep() {
 
 export function WhatsappChatPage() {
   const queryClient = useQueryClient();
-  const [empresaId, setEmpresaId] = useState<string>('');
+  // El usuario trabaja por canal (número conectado), no por empresa. La empresa se
+  // deriva del canal y se usa internamente para cargar/invalidar (el back filtra por
+  // empresa); las conversaciones se filtran client-side por canalId.
+  const [canalId, setCanalId] = useState<string>(() => localStorage.getItem(CANAL_STORAGE_KEY) ?? '');
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selectedConvId;
 
-  const { data: empresas, isLoading: loadingEmpresas } = useEmpresas();
+  const { data: canales = [], isLoading: loadingCanales } = useAllCanales();
   const { data: usuarios = [] } = useUsuarios();
-  const { data: conversaciones = [], isLoading: loadingConvs } = useConversaciones(empresaId);
+
+  // Auto-selección: el canal guardado si aún existe, si no el primero disponible.
+  useEffect(() => {
+    if (canales.length === 0) return;
+    const existe = canales.some((c) => c.id === canalId);
+    if (!existe) setCanalId(canales[0]!.id);
+  }, [canales, canalId]);
+
+  function seleccionarCanal(id: string) {
+    setCanalId(id);
+    localStorage.setItem(CANAL_STORAGE_KEY, id);
+    setSelectedConvId(null);
+  }
+
+  const canalSeleccionado = canales.find((c) => c.id === canalId) ?? null;
+  const empresaId = canalSeleccionado?.empresaId ?? '';
+
+  const { data: todasConversaciones = [], isLoading: loadingConvs } = useConversaciones(empresaId);
+  // Una empresa puede tener varios canales: nos quedamos solo con los del canal activo.
+  const conversaciones = todasConversaciones.filter((c) => c.canalId === canalId);
 
   const selectedConv = conversaciones.find((c) => c.id === selectedConvId) ?? null;
 
@@ -90,20 +114,22 @@ export function WhatsappChatPage() {
         <MessageSquare className="h-5 w-5 text-muted-foreground" />
         <span className="font-semibold text-sm">WhatsApp</span>
         <div className="ml-auto w-56">
-          {loadingEmpresas ? (
+          {loadingCanales ? (
             <Skeleton className="h-9 w-full" />
+          ) : canales.length === 0 ? (
+            <span className="text-xs text-muted-foreground">Sin canales conectados</span>
+          ) : canales.length === 1 ? (
+            // Un solo canal: se usa automático, lo mostramos como etiqueta (no selector).
+            <span className="text-sm font-medium truncate block text-right">{canales[0]!.nombre}</span>
           ) : (
-            <Select
-              value={empresaId}
-              onValueChange={(v) => { setEmpresaId(v); setSelectedConvId(null); }}
-            >
+            <Select value={canalId} onValueChange={seleccionarCanal}>
               <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Seleccionar empresa..." />
+                <SelectValue placeholder="Seleccionar canal..." />
               </SelectTrigger>
               <SelectContent>
-                {(empresas ?? []).map((e) => (
-                  <SelectItem key={e.id} value={e.id} className="text-sm">
-                    {e.nombre}
+                {canales.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="text-sm">
+                    {c.nombre}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -114,9 +140,9 @@ export function WhatsappChatPage() {
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-80 shrink-0 border-r flex flex-col overflow-hidden">
-          {!empresaId ? (
+          {!canalId ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-6 text-center">
-              Selecciona una empresa para ver las conversaciones.
+              Conecta un canal de WhatsApp para ver las conversaciones.
             </div>
           ) : loadingConvs ? (
             <div className="p-4 space-y-3">

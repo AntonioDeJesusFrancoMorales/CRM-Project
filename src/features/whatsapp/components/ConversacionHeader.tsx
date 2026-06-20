@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { UserCheck, XCircle, RotateCcw, Bot, BotOff, Pencil, Check, X } from 'lucide-react';
+import { UserCheck, XCircle, RotateCcw, Bot, BotOff, Pencil, Check, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LABEL_ESCALADO_HUMANO, type Conversacion, type Usuario } from '@/api/types';
+import { LABEL_ESCALADO_HUMANO, type Conversacion, type EstadoRelacion, type Usuario } from '@/api/types';
+import { useAuthStore } from '@/store/authStore';
+import { useCreateTrato } from '@/features/tratos/hooks/useCreateTrato';
+import { useContacto } from '@/features/contactos/hooks/useContacto';
+import { useCambiarEstadoContacto } from '@/features/contactos/hooks/useCambiarEstadoContacto';
 import { useAsignarAgente } from '../hooks/useAsignarAgente';
 import { useCerrarConversacion } from '../hooks/useCerrarConversacion';
 import { useReabrirConversacion } from '../hooks/useReabrirConversacion';
@@ -28,12 +32,30 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
   const reabrirMut = useReabrirConversacion();
   const labelsMut = useAplicarLabelsConversacion();
   const renombrarMut = useRenombrarConversacion();
+  const crearTratoMut = useCreateTrato();
+  const cambiarEstadoMut = useCambiarEstadoContacto();
+
+  const usuarioId = useAuthStore((s) => s.usuario?.usuario_id);
+  const { data: contacto } = useContacto(conversacion.contactoId ?? undefined);
 
   const [editando, setEditando] = useState(false);
   const [nombreEdit, setNombreEdit] = useState('');
 
   const isCerrada = conversacion.estado === 'CERRADA';
   const botActivo = conversacion.botActivo;
+
+  function handleCrearOportunidad() {
+    if (!conversacion.contactoId || !usuarioId) return;
+    crearTratoMut.mutate({
+      contactoId: conversacion.contactoId,
+      responsableId: usuarioId,
+      nombre: conversacion.nombreContacto?.trim() || limpiarNumero(conversacion.numeroTelefono),
+      valorEstimado: null,
+      probabilidad: null,
+      fechaCierreEsperada: null,
+      tipoContrato: 'SERVICIO',
+    });
+  }
 
   function abrirEdicion() {
     setNombreEdit(conversacion.nombreContacto?.trim() || '');
@@ -137,6 +159,42 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
               : 'Reactivar el bot para esta conversación'}
           </TooltipContent>
         </Tooltip>
+
+        {conversacion.contactoId && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  disabled={!usuarioId || crearTratoMut.isPending}
+                  onClick={handleCrearOportunidad}
+                >
+                  <TrendingUp className="h-3.5 w-3.5 mr-1" />
+                  Oportunidad
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Crear oportunidad en el embudo de ventas</TooltipContent>
+            </Tooltip>
+
+            <Select
+              value={contacto?.estadoRelacion ?? ''}
+              onValueChange={(v) =>
+                cambiarEstadoMut.mutate({ id: conversacion.contactoId!, nuevoEstado: v as EstadoRelacion })
+              }
+            >
+              <SelectTrigger className="w-32 h-8 text-xs" aria-label="Estado del contacto">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PROSPECTO" className="text-xs">Prospecto</SelectItem>
+                <SelectItem value="ACTIVO" className="text-xs">Cliente</SelectItem>
+                <SelectItem value="INACTIVO" className="text-xs">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
 
         {isCerrada && (
           <>

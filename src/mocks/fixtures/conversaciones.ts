@@ -7,7 +7,7 @@ export const conversacionesFixture: Conversacion[] = [
   {
     id: 'd0000001-0000-0000-0000-000000000001',
     canalId: CANAL_ID,
-    contactoId: null,
+    contactoId: 'c0111111-cccc-0001-cccc-000000000001',
     numeroTelefono: '5215512345678@s.whatsapp.net',
     nombreContacto: 'María López',
     estado: 'ABIERTA',
