@@ -125,6 +125,7 @@ export const endpoints = {
       marcarLeido: (id: string) => `/wa/conversaciones/marcar-leido?id=${id}`,
       renombrar: (id: string) => `/wa/conversaciones/nombre?id=${id}`,
       sugerir: (id: string) => `/wa/conversaciones/${id}/sugerir`,
+      csatResumen: () => '/wa/conversaciones/csat-resumen',
       // Toggle de bot/handoff desde el panel humano (JWT). Mismo contrato de labels
       // que usa el bot de n8n vía api_access_token — ver BotConversationController.
       labels: (id: string) => `/wa/conversaciones/labels?id=${id}`,

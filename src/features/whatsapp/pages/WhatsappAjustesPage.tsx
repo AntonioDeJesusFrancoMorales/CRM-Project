@@ -20,6 +20,7 @@ interface AjustesWa {
   horarioDias: string;
   fueraHorarioTexto: string;
   csatActivo: boolean;
+  csatTexto: string;
 }
 
 function Check({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -107,6 +108,11 @@ export function WhatsappAjustesPage() {
         <h2 className="font-medium text-sm">Encuesta de satisfacción (CSAT)</h2>
         <Check checked={form.csatActivo} onChange={(v) => set('csatActivo', v)}
           label="Pedir calificación 1-5 al cerrar la conversación" />
+        <div className="space-y-1">
+          <Label className="text-xs">Pregunta de la encuesta</Label>
+          <Textarea value={form.csatTexto ?? ''} onChange={(e) => set('csatTexto', e.target.value)} rows={2}
+            placeholder="¿Cómo calificarías nuestra atención del 1 (mala) al 5 (excelente)?" />
+        </div>
       </Card>
 
       <Button onClick={() => saveMut.mutate(form)} disabled={saveMut.isPending}>

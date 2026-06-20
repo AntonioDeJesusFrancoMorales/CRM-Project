@@ -3,10 +3,13 @@
 // es bajo. "Ganados/conversión/CSAT" llegan con las Fases 3 y 4 (estado del trato y CSAT).
 
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
-  Wallet, TrendingUp, Layers, Receipt, UserCheck, UserPlus, Contact2, AlertCircle, Trophy, Download, Target, Percent,
+  Wallet, TrendingUp, Layers, Receipt, UserCheck, UserPlus, Contact2, AlertCircle, Trophy, Download, Target, Percent, Star,
 } from 'lucide-react';
 import type { Contacto, Tarea, Trato, Usuario } from '@/api/types';
+import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -16,6 +19,8 @@ import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+
+interface CsatResumen { promedio: number | null; total: number }
 
 function esEsteMes(iso: string): boolean {
   const d = new Date(iso);
@@ -85,6 +90,10 @@ export function DashboardPage() {
   const { data: contactos = [], isLoading: lc } = useContactos();
   const { data: tareas = [] } = useTareas();
   const { data: usuarios = [] } = useUsuarios();
+  const { data: csat } = useQuery<CsatResumen>({
+    queryKey: ['wa-csat-resumen'],
+    queryFn: () => apiClient.get<CsatResumen>(endpoints.wa.conversaciones.csatResumen()),
+  });
 
   const loading = lt || lc;
   const kpis = useMemo(() => computeKpis(tratos, contactos, tareas), [tratos, contactos, tareas]);
@@ -119,6 +128,12 @@ export function DashboardPage() {
         <StatCard label="Prospectos" value={String(kpis.prospectos)} icon={Contact2} loading={loading} />
         <StatCard label="Leads del mes" value={String(kpis.leadsMes)} hint="Contactos nuevos este mes" icon={UserPlus} loading={loading} />
         <StatCard label="Tareas urgentes" value={String(kpis.tareasUrgentes)} hint="Pendientes y vencidas" icon={AlertCircle} loading={loading} />
+        <StatCard
+          label="CSAT promedio"
+          value={csat?.promedio != null ? `${csat.promedio.toFixed(1)}/5` : '—'}
+          hint={`${csat?.total ?? 0} respuestas`}
+          icon={Star}
+        />
       </div>
 
       <Card className="shadow-sm">

@@ -150,6 +150,17 @@ export const whatsappHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  // GET /api/wa/conversaciones/csat-resumen — promedio global de CSAT (dashboard)
+  http.get(`${API}/wa/conversaciones/csat-resumen`, async () => {
+    await withDelay();
+    const scores = conversacionesFixture
+      .map((c) => c.csatScore)
+      .filter((s): s is number => s != null);
+    const total = scores.length;
+    const promedio = total > 0 ? scores.reduce((a, b) => a + b, 0) / total : null;
+    return HttpResponse.json({ promedio, total });
+  }),
+
   // ── Conversaciones ────────────────────────────────────────────────
   http.get(`${API}/wa/conversaciones/get-all`, async ({ request }) => {
     await withDelay();
