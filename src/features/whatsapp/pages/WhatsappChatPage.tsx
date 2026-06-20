@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Search } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
@@ -65,9 +66,20 @@ export function WhatsappChatPage() {
   const canalSeleccionado = canales.find((c) => c.id === canalId) ?? null;
   const empresaId = canalSeleccionado?.empresaId ?? '';
 
+  const [busqueda, setBusqueda] = useState('');
+
   const { data: todasConversaciones = [], isLoading: loadingConvs } = useConversaciones(empresaId);
   // Una empresa puede tener varios canales: nos quedamos solo con los del canal activo.
-  const conversaciones = todasConversaciones.filter((c) => c.canalId === canalId);
+  const conversacionesCanal = todasConversaciones.filter((c) => c.canalId === canalId);
+
+  // Búsqueda client-side por nombre, número o texto del último mensaje.
+  const q = busqueda.trim().toLowerCase();
+  const conversaciones = q
+    ? conversacionesCanal.filter((c) =>
+        [c.nombreContacto, c.numeroTelefono, c.ultimoMensajeTexto]
+          .some((campo) => campo?.toLowerCase().includes(q)),
+      )
+    : conversacionesCanal;
 
   const selectedConv = conversaciones.find((c) => c.id === selectedConvId) ?? null;
 
@@ -140,6 +152,19 @@ export function WhatsappChatPage() {
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-80 shrink-0 border-r flex flex-col overflow-hidden">
+          {canalId && (
+            <div className="p-2 border-b shrink-0">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar conversación..."
+                  className="h-9 pl-8 text-sm"
+                />
+              </div>
+            </div>
+          )}
           {!canalId ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-6 text-center">
               Conecta un canal de WhatsApp para ver las conversaciones.

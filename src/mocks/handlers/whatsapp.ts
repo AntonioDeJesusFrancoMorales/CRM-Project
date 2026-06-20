@@ -246,6 +246,7 @@ export const whatsappHandlers = [
       mediaUrl: (body['mediaUrl'] as string) ?? null,
       status: 'ENVIADO',
       enviadoPor: 'b0000001-0000-0000-0000-000000000001',
+      interna: body['interna'] === true,
       creadoEn: nowIso(),
     };
     (mensajesFixture[conversacionId] ??= []).push(mensaje);

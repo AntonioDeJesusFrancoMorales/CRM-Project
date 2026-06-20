@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import type { Conversacion, Mensaje, TipoMensaje, Usuario } from '@/api/types';
 import { useMensajes } from '../hooks/useMensajes';
 import { useSendMensaje } from '../hooks/useSendMensaje';
+import { usePlantillas } from '../hooks/usePlantillas';
 import { ConversacionHeader } from './ConversacionHeader';
 
 function fileToBase64(file: File): Promise<string> {
@@ -85,6 +88,7 @@ function StatusCheck({ status }: { status: Mensaje['status'] }) {
 
 function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
   const isSaliente = mensaje.direccion === 'SALIENTE';
+  const esNota = mensaje.interna;
   // En documento el contenido es el nombre del archivo (ya se muestra en el link).
   const mostrarTexto = mensaje.contenido && mensaje.tipo !== 'DOCUMENTO';
   return (
@@ -92,18 +96,27 @@ function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
       <div
         className={cn(
           'max-w-[75%] min-w-0 rounded-2xl px-3 py-2 text-sm space-y-1',
-          isSaliente
-            ? 'bg-primary text-primary-foreground rounded-br-sm'
-            : 'bg-muted rounded-bl-sm',
+          esNota
+            ? 'bg-amber-100 text-amber-900 border border-amber-300 rounded-br-sm dark:bg-amber-950 dark:text-amber-100 dark:border-amber-800'
+            : isSaliente
+              ? 'bg-primary text-primary-foreground rounded-br-sm'
+              : 'bg-muted rounded-bl-sm',
         )}
       >
+        {esNota && (
+          <p className="text-[10px] font-semibold flex items-center gap-1 opacity-80">
+            <StickyNote className="h-3 w-3" /> Nota interna
+          </p>
+        )}
         {mensaje.mediaUrl && <MediaContent mensaje={mensaje} />}
         {mostrarTexto && (
           <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{mensaje.contenido}</p>
         )}
-        <p className={cn('text-[10px] flex items-center gap-1', isSaliente ? 'text-primary-foreground/70 justify-end' : 'text-muted-foreground')}>
+        <p className={cn('text-[10px] flex items-center gap-1',
+          esNota ? 'text-amber-700 dark:text-amber-300 justify-end'
+          : isSaliente ? 'text-primary-foreground/70 justify-end' : 'text-muted-foreground')}>
           {formatHora(mensaje.creadoEn)}
-          {isSaliente && <StatusCheck status={mensaje.status} />}
+          {isSaliente && !esNota && <StatusCheck status={mensaje.status} />}
         </p>
       </div>
     </div>
@@ -112,13 +125,22 @@ function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
 
 export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
   const [texto, setTexto] = useState('');
+  const [notaInterna, setNotaInterna] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: mensajes, isLoading } = useMensajes(conversacion.id);
+  const { data: plantillas = [] } = usePlantillas();
   const sendMut = useSendMensaje();
   const isCerrada = conversacion.estado === 'CERRADA';
+
+  // Inserta el contenido de una plantilla en el input, resolviendo {{nombre}}.
+  function insertarPlantilla(contenido: string) {
+    const nombre = conversacion.nombreContacto?.trim() || '';
+    const resuelto = contenido.replace(/\{\{nombre\}\}/g, nombre);
+    setTexto((prev) => (prev ? `${prev} ${resuelto}` : resuelto));
+  }
 
   // El SSE vive a nivel de página (WhatsappChatPage) — una sola conexión por
   // usuario, igual que registra el backend (SseEmitterRegistry es 1:1 por
@@ -134,7 +156,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
     const contenido = texto.trim();
     if (!contenido || isCerrada) return;
     sendMut.mutate(
-      { conversacionId: conversacion.id, payload: { tipo: 'TEXTO', contenido } },
+      { conversacionId: conversacion.id, payload: { tipo: 'TEXTO', contenido, interna: notaInterna } },
       { onSuccess: () => setTexto('') },
     );
   }
@@ -198,7 +220,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
       </ScrollArea>
 
       {!isCerrada && (
-        <div className="border-t p-3 flex gap-2 items-end bg-card">
+        <div className={cn('border-t p-3 flex gap-2 items-end', notaInterna ? 'bg-amber-50 dark:bg-amber-950/40' : 'bg-card')}>
           <input
             ref={fileRef}
             type="file"
@@ -215,22 +237,64 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
           >
             {subiendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
           </Button>
+
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" aria-label="Insertar plantilla">
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Insertar plantilla</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto w-64">
+              {plantillas.length === 0 ? (
+                <DropdownMenuItem disabled>No hay plantillas</DropdownMenuItem>
+              ) : (
+                plantillas.map((p) => (
+                  <DropdownMenuItem key={p.id} onSelect={() => insertarPlantilla(p.contenido)} className="flex flex-col items-start gap-0.5">
+                    <span className="text-xs font-medium">{p.titulo}</span>
+                    <span className="text-[11px] text-muted-foreground truncate max-w-full">{p.contenido}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant={notaInterna ? 'secondary' : 'ghost'}
+                aria-label="Nota interna"
+                onClick={() => setNotaInterna((v) => !v)}
+              >
+                <StickyNote className={cn('h-4 w-4', notaInterna && 'text-amber-600')} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{notaInterna ? 'Modo nota interna (no se envía a WhatsApp)' : 'Escribir nota interna'}</TooltipContent>
+          </Tooltip>
+
           <Textarea
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribe un mensaje... (Enter para enviar)"
+            placeholder={notaInterna ? 'Nota interna (no se envía al cliente)...' : 'Escribe un mensaje... (Enter para enviar)'}
             className="resize-none min-h-[40px] max-h-32 text-sm"
             rows={1}
           />
           <Button
             size="icon"
-            aria-label="Enviar mensaje"
+            aria-label={notaInterna ? 'Guardar nota' : 'Enviar mensaje'}
             onClick={handleSend}
             disabled={!texto.trim() || sendMut.isPending}
           >
             {sendMut.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : notaInterna ? (
+              <StickyNote className="h-4 w-4" />
             ) : (
               <Send className="h-4 w-4" />
             )}

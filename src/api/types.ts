@@ -239,6 +239,7 @@ export interface Mensaje {
   mediaUrl: string | null;
   status: StatusMensaje;
   enviadoPor: string | null;
+  interna: boolean;
   creadoEn: string;
 }
 
@@ -285,4 +286,5 @@ export interface SendMensajePayload {
   tipo: TipoMensaje;
   contenido?: string | null;
   mediaUrl?: string | null;
+  interna?: boolean;
 }

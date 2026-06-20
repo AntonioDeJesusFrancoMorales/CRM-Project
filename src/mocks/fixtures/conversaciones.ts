@@ -51,6 +51,7 @@ export const mensajesFixture: Record<string, Mensaje[]> = {
       mediaUrl: null,
       status: 'ENTREGADO',
       enviadoPor: null,
+      interna: false,
       creadoEn: '2026-06-18T15:28:00.000Z',
     },
     {
@@ -63,6 +64,7 @@ export const mensajesFixture: Record<string, Mensaje[]> = {
       mediaUrl: null,
       status: 'ENTREGADO',
       enviadoPor: null,
+      interna: false,
       creadoEn: '2026-06-18T15:30:00.000Z',
     },
   ],
@@ -77,6 +79,7 @@ export const mensajesFixture: Record<string, Mensaje[]> = {
       mediaUrl: null,
       status: 'LEIDO',
       enviadoPor: 'b0000001-0000-0000-0000-000000000001',
+      interna: false,
       creadoEn: '2026-06-18T12:05:00.000Z',
     },
     {
@@ -89,6 +92,7 @@ export const mensajesFixture: Record<string, Mensaje[]> = {
       mediaUrl: null,
       status: 'ENTREGADO',
       enviadoPor: null,
+      interna: false,
       creadoEn: '2026-06-18T12:10:00.000Z',
     },
   ],
