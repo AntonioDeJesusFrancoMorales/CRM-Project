@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+import { cn } from '@/lib/utils';
 import { useAllCanales } from '../hooks/useCanales';
 import { useConversaciones, conversacionesKeys } from '../hooks/useConversaciones';
 import { mensajesKeys } from '../hooks/useMensajes';
@@ -191,7 +192,12 @@ export function WhatsappChatPage() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-80 shrink-0 border-r flex flex-col overflow-hidden">
+        <aside
+          className={cn(
+            'w-full lg:w-80 shrink-0 border-r flex flex-col overflow-hidden',
+            selectedConv && 'hidden lg:flex',
+          )}
+        >
           {canalId && (
             <div className="p-2 border-b shrink-0">
               <div className="relative">
@@ -222,7 +228,7 @@ export function WhatsappChatPage() {
           )}
         </aside>
 
-        <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <main className={cn('flex-1 min-w-0 flex flex-col overflow-hidden', !selectedConv && 'hidden lg:flex')}>
           {selectedConv ? (
             // key por conversacion.id: sin esto React reutiliza la misma instancia
             // de ChatWindow al cambiar de chat y el borrador de texto sin enviar
@@ -232,6 +238,7 @@ export function WhatsappChatPage() {
               conversacion={selectedConv}
               usuarios={usuarios}
               empresaId={empresaId}
+              onBack={() => setSelectedConvId(null)}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">

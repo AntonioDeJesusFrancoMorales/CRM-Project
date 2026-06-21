@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText, Mic, Square, Sparkles } from 'lucide-react';
+import { Send, Loader2, Check, CheckCheck, Paperclip, StickyNote, FileText, Mic, Square, Sparkles, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +36,7 @@ interface Props {
   conversacion: Conversacion;
   usuarios: Usuario[];
   empresaId: string;
+  onBack?: () => void;
 }
 
 function formatHora(iso: string) {
@@ -123,7 +124,7 @@ function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
   );
 }
 
-export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
+export function ChatWindow({ conversacion, usuarios, empresaId, onBack }: Props) {
   const [texto, setTexto] = useState('');
   const [notaInterna, setNotaInterna] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
@@ -260,6 +261,14 @@ export function ChatWindow({ conversacion, usuarios, empresaId }: Props) {
 
   return (
     <div className="flex flex-col h-full min-w-0">
+      {onBack && (
+        <div className="lg:hidden border-b px-2 py-1.5">
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
+        </div>
+      )}
       <ConversacionHeader
         conversacion={conversacion}
         usuarios={usuarios}

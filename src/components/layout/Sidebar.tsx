@@ -44,7 +44,7 @@ const adminItems: NavItem[] = [
 const baseClasses =
   'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors';
 
-function NavItemLink({ item }: { item: NavItem }) {
+function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon;
 
   if (item.disabled) {
@@ -71,6 +71,7 @@ function NavItemLink({ item }: { item: NavItem }) {
     <NavLink
       to={item.to}
       end={item.end}
+      onClick={onNavigate}
       className={({ isActive }) =>
         cn(
           baseClasses,
@@ -85,7 +86,7 @@ function NavItemLink({ item }: { item: NavItem }) {
   );
 }
 
-function WhatsappNavGroup() {
+function WhatsappNavGroup({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const isSubItemActive = whatsappSubItems.some((item) => location.pathname.startsWith(item.to));
   const [open, setOpen] = useState(isSubItemActive);
@@ -96,6 +97,7 @@ function WhatsappNavGroup() {
       <div className="flex items-center">
         <NavLink
           to={whatsappItem.to}
+          onClick={onNavigate}
           className={({ isActive }) =>
             cn(
               baseClasses,
@@ -119,33 +121,34 @@ function WhatsappNavGroup() {
       </div>
       <CollapsibleContent className="pl-6 space-y-1 pt-1">
         {whatsappSubItems.map((item) => (
-          <NavItemLink key={item.to} item={item} />
+          <NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
         ))}
       </CollapsibleContent>
     </Collapsible>
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   // Todos los ítems se muestran a cualquier usuario autenticado. El back NO enforza
   // autorización por rol (solo autenticación), así que ocultar ítems por "rol" sería
   // falsa seguridad. Ver capability frontend-authorization.
   const usuario = useAuthStore((s) => s.usuario);
 
   return (
-    <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
+    <aside className="w-60 h-full shrink-0 border-r bg-card flex flex-col" role="navigation" aria-label="Menú principal">
       <div className="h-14 flex items-center px-4 border-b">
         <span className="font-semibold tracking-tight">Pipely</span>
       </div>
-      <nav className="flex-1 p-3 flex flex-col space-y-1">
+      <nav className="flex-1 p-3 flex flex-col space-y-1 overflow-y-auto">
         {mainItems.map((item) => (
-          <NavItemLink key={item.to} item={item} />
+          <NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
         ))}
 
         {/* "Mis tareas" — ítem dinámico: filtra por responsable_id del usuario logueado (ADR-054) */}
         {usuario && (
           <NavLink
             to={`/tareas?responsable_id=${usuario.usuario_id}`}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 baseClasses,
@@ -160,15 +163,15 @@ export function Sidebar() {
         )}
 
         {/* Tableros — justo debajo de "Mis tareas" */}
-        <NavItemLink item={tablerosItem} />
+        <NavItemLink item={tablerosItem} onNavigate={onNavigate} />
 
         {/* WhatsApp inbox + submenú colapsable (grupos, canales, ajustes, plantillas) */}
-        <WhatsappNavGroup />
+        <WhatsappNavGroup onNavigate={onNavigate} />
 
         {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
         <div className="mt-auto pt-3 border-t space-y-1">
           {adminItems.map((item) => (
-            <NavItemLink key={item.to} item={item} />
+            <NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
           ))}
         </div>
       </nav>

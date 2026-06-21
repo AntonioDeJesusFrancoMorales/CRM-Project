@@ -6,8 +6,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { Topbar } from '../Topbar';
 import { useAuthStore } from '@/store/authStore';
+
+// Topbar usa useLocation() para mostrar el título de la página — requiere un Router.
+function renderTopbar() {
+  return render(
+    <MemoryRouter>
+      <Topbar />
+    </MemoryRouter>,
+  );
+}
 
 // Mocks mínimos para evitar errores de hooks sin contexto
 import { vi } from 'vitest';
@@ -48,14 +58,14 @@ beforeEach(() => {
 describe('Topbar — usa username para iniciales y nombre', () => {
   it('(a) muestra iniciales derivadas de username con dos palabras (J P)', () => {
     useAuthStore.setState({ token: 'tok', usuario: usuarioNombre });
-    render(<Topbar />);
+    renderTopbar();
     // getInitials("Juan Pérez") = "JP"
     expect(screen.getByText('JP')).toBeInTheDocument();
   });
 
   it('(b) muestra username como texto del botón', () => {
     useAuthStore.setState({ token: 'tok', usuario: usuarioNombre });
-    render(<Topbar />);
+    renderTopbar();
     expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
   });
 });
@@ -63,7 +73,7 @@ describe('Topbar — usa username para iniciales y nombre', () => {
 describe('Topbar — getInitials maneja username de una sola palabra', () => {
   it('(c) username="jdoe" → iniciales "JD" (2 primeros chars)', () => {
     useAuthStore.setState({ token: 'tok', usuario: usuarioSingleWord });
-    render(<Topbar />);
+    renderTopbar();
     // getInitials("jdoe") con slice(0,2).toUpperCase() = "JD"
     expect(screen.getByText('JD')).toBeInTheDocument();
   });
@@ -73,7 +83,7 @@ describe('Topbar — dropdown muestra email', () => {
   it('(d) el dropdown label muestra el email del usuario al abrir el menú', async () => {
     const user = userEvent.setup();
     useAuthStore.setState({ token: 'tok', usuario: usuarioNombre });
-    render(<Topbar />);
+    renderTopbar();
     // Abrir el dropdown del avatar — tiene texto con el username del usuario
     const trigger = screen.getByRole('button', { name: /juan pérez/i });
     await user.click(trigger);
