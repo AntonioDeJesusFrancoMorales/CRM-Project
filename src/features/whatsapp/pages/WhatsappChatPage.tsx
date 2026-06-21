@@ -38,6 +38,17 @@ function beep() {
   }
 }
 
+// Notificación nativa del SO cuando llega un mensaje y la pestaña no está visible.
+function notificarNavegador(titulo: string, cuerpo: string) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!document.hidden) return;
+    new Notification(titulo, { body: cuerpo });
+  } catch {
+    // ignorar
+  }
+}
+
 export function WhatsappChatPage() {
   const queryClient = useQueryClient();
   // El usuario trabaja por canal (número conectado), no por empresa. La empresa se
@@ -50,6 +61,13 @@ export function WhatsappChatPage() {
 
   const { data: canales = [], isLoading: loadingCanales } = useAllCanales();
   const { data: usuarios = [] } = useUsuarios();
+
+  // Pide permiso de notificaciones del navegador una vez (no bloquea si lo rechazan).
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      void Notification.requestPermission();
+    }
+  }, []);
 
   // Auto-selección: el canal guardado si aún existe, si no el primero disponible.
   useEffect(() => {
@@ -121,7 +139,9 @@ export function WhatsappChatPage() {
       void queryClient.invalidateQueries({ queryKey: conversacionesKeys.all });
       if (data.direccion === 'ENTRANTE' && data.conversacionId !== selectedRef.current) {
         beep();
-        toast.message('Nuevo mensaje de WhatsApp', { description: data.contenido?.slice(0, 80) || 'Adjunto' });
+        const desc = data.contenido?.slice(0, 80) || 'Adjunto';
+        toast.message('Nuevo mensaje de WhatsApp', { description: desc });
+        notificarNavegador('Nuevo mensaje de WhatsApp', desc);
       }
     },
     [queryClient],
