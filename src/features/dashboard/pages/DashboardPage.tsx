@@ -3,15 +3,17 @@
 // es bajo. "Ganados/conversión/CSAT" llegan con las Fases 3 y 4 (estado del trato y CSAT).
 
 import { useMemo } from 'react';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Wallet, TrendingUp, Layers, Receipt, UserCheck, UserPlus, Contact2, AlertCircle, Trophy, Download, Target, Percent, Star,
+  Wallet, TrendingUp, Layers, Receipt, UserCheck, UserPlus, Contact2, AlertCircle, Trophy, Download, Target, Percent, Star, Building2, Handshake, Rocket,
 } from 'lucide-react';
 import type { Contacto, Tarea, Trato, Usuario } from '@/api/types';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { formatCurrency } from '@/lib/format';
@@ -106,16 +108,62 @@ export function DashboardPage() {
         title="Inicio"
         description="Resumen del negocio."
         actions={
-          <Button
-            variant="outline"
-            disabled={tratos.length === 0}
-            onClick={() => exportarTratosCsv(tratos, contactos, usuarios)}
-          >
-            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-            Exportar tratos (CSV)
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={tratos.length === 0 ? 0 : undefined}>
+                <Button
+                  variant="outline"
+                  disabled={tratos.length === 0}
+                  onClick={() => exportarTratosCsv(tratos, contactos, usuarios)}
+                  className={tratos.length === 0 ? 'pointer-events-none' : undefined}
+                >
+                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Exportar tratos (CSV)
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {tratos.length === 0 && (
+              <TooltipContent>Crea tratos primero para poder exportarlos</TooltipContent>
+            )}
+          </Tooltip>
         }
       />
+
+      {!loading && contactos.length === 0 && tratos.length === 0 && (
+        <Card className="shadow-sm border-dashed">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Rocket className="h-4 w-4 text-primary" /> Primeros pasos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Link
+              to="/empresas"
+              className="flex flex-col gap-2 rounded-lg border p-4 text-sm hover:bg-accent transition-colors"
+            >
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">1. Crea una empresa</span>
+              <span className="text-muted-foreground">Registra a tu primer cliente o prospecto.</span>
+            </Link>
+            <Link
+              to="/contactos"
+              className="flex flex-col gap-2 rounded-lg border p-4 text-sm hover:bg-accent transition-colors"
+            >
+              <Contact2 className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">2. Agrega contactos</span>
+              <span className="text-muted-foreground">Suma a las personas con las que hablas.</span>
+            </Link>
+            <Link
+              to="/tratos"
+              className="flex flex-col gap-2 rounded-lg border p-4 text-sm hover:bg-accent transition-colors"
+            >
+              <Handshake className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">3. Crea una oportunidad</span>
+              <span className="text-muted-foreground">Da seguimiento a tu primer trato.</span>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Valor pipeline" value={formatCurrency(kpis.pipeline)} hint="Oportunidades abiertas" icon={Wallet} loading={loading} />

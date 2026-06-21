@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Users, RefreshCw, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -135,8 +136,28 @@ export function WhatsappGruposPage() {
           {isLoading ? (
             <div className="p-4 space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
           ) : grupos.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-6 text-center">
-              No hay grupos. Usa "Importar grupos" para traerlos.
+            <div className="flex items-center justify-center h-full p-4">
+              <EmptyState
+                icon={Users}
+                title="Aún no hay grupos"
+                description='Usa "Importar grupos" para traer los grupos de este canal.'
+                className="border-0"
+                action={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!canalActivo || importarMut.isPending}
+                    onClick={() => canalActivo && importarMut.mutate(canalActivo.id)}
+                  >
+                    {importarMut.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                    )}
+                    Importar grupos
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <ScrollArea className="flex-1">

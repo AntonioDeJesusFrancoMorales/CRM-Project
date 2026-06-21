@@ -1,8 +1,9 @@
 import { Link } from 'react-router';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Plus, Users } from 'lucide-react';
 import type { Contacto } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/shared/EmptyState';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,7 @@ interface ContactosTableProps {
   onEdit: (contacto: Contacto) => void;
   onDelete: (contacto: Contacto) => void;
   searchTerm?: string;
+  onCreate?: () => void;
 }
 
 export function ContactosTable({
@@ -36,6 +38,7 @@ export function ContactosTable({
   onEdit,
   onDelete,
   searchTerm,
+  onCreate,
 }: ContactosTableProps) {
   const filtered = searchTerm
     ? contactos.filter((c) => {
@@ -64,13 +67,29 @@ export function ContactosTable({
       <TableBody>
         {filtered.length === 0 ? (
           <TableRow>
-            <TableCell
-              colSpan={7}
-              className="py-8 text-center text-muted-foreground"
-            >
-              {searchTerm
-                ? `No se encontraron contactos con "${searchTerm}"`
-                : 'No hay contactos registrados'}
+            <TableCell colSpan={7} className="p-0">
+              <EmptyState
+                icon={Users}
+                title={
+                  searchTerm
+                    ? `No se encontraron contactos con "${searchTerm}"`
+                    : 'Aún no hay contactos'
+                }
+                description={
+                  searchTerm
+                    ? undefined
+                    : 'Agrega tu primer contacto para empezar a darle seguimiento.'
+                }
+                action={
+                  !searchTerm && onCreate ? (
+                    <Button onClick={onCreate}>
+                      <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Nuevo contacto
+                    </Button>
+                  ) : undefined
+                }
+                className="border-0"
+              />
             </TableCell>
           </TableRow>
         ) : (

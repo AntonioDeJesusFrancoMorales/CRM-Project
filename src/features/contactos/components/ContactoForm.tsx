@@ -90,7 +90,9 @@ export function ContactoForm({
           name="correo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="contacto-correo">Correo</FormLabel>
+              <FormLabel htmlFor="contacto-correo">
+                Correo <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input
                   id="contacto-correo"
@@ -111,7 +113,9 @@ export function ContactoForm({
           name="telefono"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="contacto-telefono">Teléfono</FormLabel>
+              <FormLabel htmlFor="contacto-telefono">
+                Teléfono <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input
                   id="contacto-telefono"
@@ -131,7 +135,9 @@ export function ContactoForm({
           name="cargo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="contacto-cargo">Cargo</FormLabel>
+              <FormLabel htmlFor="contacto-cargo">
+                Cargo <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input
                   id="contacto-cargo"
@@ -211,7 +217,9 @@ export function ContactoForm({
           name="comoNosConocio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="contacto-como-nos-conocio">¿Cómo nos conoció?</FormLabel>
+              <FormLabel htmlFor="contacto-como-nos-conocio">
+                ¿Cómo nos conoció? <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <ComoNosConocioInput
                   value={field.value}

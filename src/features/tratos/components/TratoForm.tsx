@@ -204,7 +204,9 @@ export function TratoForm({
           name="valorEstimado"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Valor estimado (MXN)</FormLabel>
+              <FormLabel>
+                Valor estimado (MXN) <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -228,7 +230,9 @@ export function TratoForm({
           name="probabilidad"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Probabilidad (%)</FormLabel>
+              <FormLabel>
+                Probabilidad (%) <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -253,7 +257,9 @@ export function TratoForm({
           name="fechaCierreEsperada"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Fecha de cierre esperada</FormLabel>
+              <FormLabel>
+                Fecha de cierre esperada <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <DatePicker
                   value={field.value ?? null}

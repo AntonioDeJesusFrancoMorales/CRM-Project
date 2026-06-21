@@ -161,6 +161,7 @@ export function ContactosPage() {
                   searchTerm={searchTerm}
                   onEdit={(c) => setEditing(c)}
                   onDelete={(c) => setDeleting(c)}
+                  onCreate={() => setCreateOpen(true)}
                 />
               </div>
             </TabsContent>

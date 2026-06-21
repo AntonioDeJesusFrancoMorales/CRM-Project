@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Download, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -100,10 +101,26 @@ export function ContactosImportExport({ contactos }: { contactos: Contacto[] }) 
 
   return (
     <>
-      <Button variant="outline" onClick={() => exportarCsv(contactos)} disabled={contactos.length === 0}>
-        <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-        Exportar CSV
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={contactos.length === 0 ? 0 : undefined}>
+              <Button
+                variant="outline"
+                onClick={() => exportarCsv(contactos)}
+                disabled={contactos.length === 0}
+                className={contactos.length === 0 ? 'pointer-events-none' : undefined}
+              >
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                Exportar CSV
+              </Button>
+            </span>
+          </TooltipTrigger>
+          {contactos.length === 0 && (
+            <TooltipContent>Agrega contactos primero para poder exportarlos</TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
       <Button variant="outline" onClick={() => setImportOpen(true)}>
         <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
         Importar CSV

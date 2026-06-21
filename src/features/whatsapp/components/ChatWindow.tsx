@@ -292,6 +292,12 @@ export function ChatWindow({ conversacion, usuarios, empresaId, onBack, escribie
         )}
       </ScrollArea>
 
+      {isCerrada && (
+        <div className="border-t p-3 text-center text-sm text-muted-foreground bg-card">
+          Conversación cerrada — reábrela arriba para poder escribir.
+        </div>
+      )}
+
       {!isCerrada && (
         <div className={cn('border-t p-3 flex gap-2 items-end', notaInterna ? 'bg-amber-50 dark:bg-amber-950/40' : 'bg-card')}>
           <input

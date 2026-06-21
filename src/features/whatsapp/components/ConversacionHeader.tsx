@@ -238,7 +238,7 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId, escribie
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="PROSPECTO" className="text-xs">Prospecto</SelectItem>
-                <SelectItem value="ACTIVO" className="text-xs">Cliente</SelectItem>
+                <SelectItem value="ACTIVO" className="text-xs">Activo</SelectItem>
                 <SelectItem value="INACTIVO" className="text-xs">Inactivo</SelectItem>
               </SelectContent>
             </Select>

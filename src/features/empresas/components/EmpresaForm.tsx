@@ -95,7 +95,9 @@ export function EmpresaForm({
           name="sector"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Sector</FormLabel>
+              <FormLabel>
+                Sector <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="Ej. Tecnología, Salud..." {...field} />
               </FormControl>
@@ -109,7 +111,9 @@ export function EmpresaForm({
           name="telefono"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Teléfono</FormLabel>
+              <FormLabel>
+                Teléfono <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="+52 55 1234 5678" {...field} />
               </FormControl>
@@ -123,7 +127,9 @@ export function EmpresaForm({
           name="paginaWeb"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Sitio Web</FormLabel>
+              <FormLabel>
+                Sitio Web <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="https://ejemplo.com" {...field} />
               </FormControl>
@@ -137,7 +143,9 @@ export function EmpresaForm({
           name="facebook"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Facebook</FormLabel>
+              <FormLabel>
+                Facebook <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="https://facebook.com/empresa" {...field} />
               </FormControl>
@@ -151,7 +159,9 @@ export function EmpresaForm({
           name="instagram"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Instagram</FormLabel>
+              <FormLabel>
+                Instagram <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="https://instagram.com/empresa" {...field} />
               </FormControl>
@@ -165,7 +175,9 @@ export function EmpresaForm({
           name="twitter"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Twitter / X</FormLabel>
+              <FormLabel>
+                Twitter / X <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="https://twitter.com/empresa" {...field} />
               </FormControl>
@@ -202,7 +214,9 @@ export function EmpresaForm({
           name="notas"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notas</FormLabel>
+              <FormLabel>
+                Notas <span className="text-muted-foreground font-normal">(opcional)</span>
+              </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Notas internas sobre la empresa..."

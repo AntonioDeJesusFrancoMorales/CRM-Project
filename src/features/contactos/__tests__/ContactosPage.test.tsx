@@ -106,7 +106,7 @@ describe('ContactosPage', () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(/no hay contactos registrados/i),
+        screen.getByText(/aún no hay contactos/i),
       ).toBeInTheDocument(),
     );
   });
