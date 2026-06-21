@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MessageCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,26 @@ function tituloDe(conv: Conversacion) {
 function inicial(texto: string) {
   const c = texto.replace(/[^a-zA-Z0-9]/g, '').charAt(0);
   return c ? c.toUpperCase() : '#';
+}
+
+// Si la URL de la foto falla (expiró, Evolution caído, etc.), cae a la inicial actual.
+function AvatarConversacion({ fotoUrl, titulo, esNumero }: { fotoUrl: string | null; titulo: string; esNumero: boolean }) {
+  const [fallo, setFallo] = useState(false);
+  if (fotoUrl && !fallo) {
+    return (
+      <img
+        src={fotoUrl}
+        alt={titulo}
+        onError={() => setFallo(true)}
+        className="h-11 w-11 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <div className="h-11 w-11 shrink-0 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">
+      {esNumero ? <User className="h-5 w-5" /> : inicial(titulo)}
+    </div>
+  );
 }
 
 function formatTime(iso: string | null) {
@@ -70,9 +91,7 @@ export function ChatInbox({ conversaciones, selectedId, onSelect }: Props) {
                 selectedId === conv.id && 'bg-muted',
               )}
             >
-              <div className="h-11 w-11 shrink-0 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">
-                {esNumero ? <User className="h-5 w-5" /> : inicial(titulo)}
-              </div>
+              <AvatarConversacion fotoUrl={conv.fotoUrl} titulo={titulo} esNumero={esNumero} />
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">

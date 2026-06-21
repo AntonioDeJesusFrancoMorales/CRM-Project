@@ -23,13 +23,14 @@ interface Props {
   conversacion: Conversacion;
   usuarios: Usuario[];
   empresaId: string;
+  escribiendo?: boolean;
 }
 
 function limpiarNumero(jid: string) {
   return jid.replace(/@s\.whatsapp\.net$/, '').replace(/@g\.us$/, '');
 }
 
-export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props) {
+export function ConversacionHeader({ conversacion, usuarios, empresaId, escribiendo }: Props) {
   const asignarMut = useAsignarAgente();
   const cerrarMut = useCerrarConversacion();
   const reabrirMut = useReabrirConversacion();
@@ -47,6 +48,7 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
 
   const [editando, setEditando] = useState(false);
   const [nombreEdit, setNombreEdit] = useState('');
+  const [fotoFallo, setFotoFallo] = useState(false);
 
   const isCerrada = conversacion.estado === 'CERRADA';
   const botActivo = conversacion.botActivo;
@@ -100,9 +102,18 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold">
-          {titulo.replace(/[^a-zA-Z0-9]/g, '').charAt(0).toUpperCase() || '#'}
-        </div>
+        {conversacion.fotoUrl && !fotoFallo ? (
+          <img
+            src={conversacion.fotoUrl}
+            alt={titulo}
+            onError={() => setFotoFallo(true)}
+            className="h-9 w-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold">
+            {titulo.replace(/[^a-zA-Z0-9]/g, '').charAt(0).toUpperCase() || '#'}
+          </div>
+        )}
         <div className="min-w-0">
           {editando ? (
             <div className="flex items-center gap-1">
@@ -139,7 +150,11 @@ export function ConversacionHeader({ conversacion, usuarios, empresaId }: Props)
             </div>
           )}
           <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">+{numero}</p>
+            {escribiendo ? (
+              <p className="text-xs text-emerald-600 font-medium">escribiendo…</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">+{numero}</p>
+            )}
             {conversacion.csatScore != null && (
               <span className="text-[11px] text-amber-600 font-medium" title="Calificación del contacto (CSAT)">
                 ⭐ {conversacion.csatScore}/5

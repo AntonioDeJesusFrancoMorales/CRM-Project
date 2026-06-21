@@ -37,6 +37,7 @@ interface Props {
   usuarios: Usuario[];
   empresaId: string;
   onBack?: () => void;
+  escribiendo?: boolean;
 }
 
 function formatHora(iso: string) {
@@ -124,7 +125,7 @@ function MessageBubble({ mensaje }: { mensaje: Mensaje }) {
   );
 }
 
-export function ChatWindow({ conversacion, usuarios, empresaId, onBack }: Props) {
+export function ChatWindow({ conversacion, usuarios, empresaId, onBack, escribiendo }: Props) {
   const [texto, setTexto] = useState('');
   const [notaInterna, setNotaInterna] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
@@ -273,6 +274,7 @@ export function ChatWindow({ conversacion, usuarios, empresaId, onBack }: Props)
         conversacion={conversacion}
         usuarios={usuarios}
         empresaId={empresaId}
+        escribiendo={escribiendo}
       />
 
       <ScrollArea className="flex-1 p-4">

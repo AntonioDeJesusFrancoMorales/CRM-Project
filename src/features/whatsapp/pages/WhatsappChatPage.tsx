@@ -60,6 +60,10 @@ export function WhatsappChatPage() {
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selectedConvId;
 
+  // "escribiendo...": se renueva con cada evento SSE y expira solo a los ~6s sin nuevos.
+  const [escribiendoConvId, setEscribiendoConvId] = useState<string | null>(null);
+  const escribiendoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { data: canales = [], isLoading: loadingCanales } = useAllCanales();
   const { data: usuarios = [] } = useUsuarios();
 
@@ -129,6 +133,14 @@ export function WhatsappChatPage() {
   // abierta cuando el evento le corresponde a ella.
   const onSse = useCallback(
     (event: { name: string; data: unknown }) => {
+      if (event.name === 'escribiendo') {
+        const data = event.data as { conversacionId?: string };
+        if (!data?.conversacionId) return;
+        setEscribiendoConvId(data.conversacionId);
+        if (escribiendoTimeoutRef.current) clearTimeout(escribiendoTimeoutRef.current);
+        escribiendoTimeoutRef.current = setTimeout(() => setEscribiendoConvId(null), 6000);
+        return;
+      }
       if (event.name === 'nuevo_mensaje' || event.name === 'estado_mensaje') {
         const data = event.data as { conversacionId?: string; direccion?: string; contenido?: string };
         if (data?.conversacionId === selectedRef.current) {
@@ -239,6 +251,7 @@ export function WhatsappChatPage() {
               usuarios={usuarios}
               empresaId={empresaId}
               onBack={() => setSelectedConvId(null)}
+              escribiendo={escribiendoConvId === selectedConv.id}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">

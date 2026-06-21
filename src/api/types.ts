@@ -214,6 +214,7 @@ export interface Conversacion {
   contactoId: string | null;
   numeroTelefono: string;
   nombreContacto: string | null;
+  fotoUrl: string | null;
   estado: EstadoConversacion;
   asignadoA: string | null;
   noLeidos: number;
