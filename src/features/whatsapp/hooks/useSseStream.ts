@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -11,6 +11,11 @@ interface SseEvent {
 // Conecta al SSE del backend (/api/wa/stream) usando fetch con ReadableStream
 // para poder enviar el header Authorization (EventSource nativo no lo soporta).
 export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true) {
+  // onEvent vive en un ref para que el efecto no dependa de su identidad:
+  // si el caller pasa una función inline (sin useCallback), no debe reconectar el SSE.
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -63,9 +68,9 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
             } else if (line.startsWith('data:')) {
               const raw = line.slice(5).trim();
               try {
-                onEvent({ name: eventName, data: JSON.parse(raw) });
+                onEventRef.current({ name: eventName, data: JSON.parse(raw) });
               } catch {
-                onEvent({ name: eventName, data: raw });
+                onEventRef.current({ name: eventName, data: raw });
               }
               eventName = 'message';
             }
@@ -87,5 +92,5 @@ export function useSseStream(onEvent: (event: SseEvent) => void, enabled = true)
       if (watchdog) clearInterval(watchdog);
       controller.abort();
     };
-  }, [enabled, onEvent]);
+  }, [enabled]);
 }
