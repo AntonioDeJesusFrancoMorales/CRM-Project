@@ -44,11 +44,13 @@ describe('ContactoDetailPage', () => {
       ).toBeInTheDocument(),
     );
 
+    expect(screen.getByRole('tab', { name: /resumen 360/i })).toBeInTheDocument();
     // Tab Info debe existir
     expect(screen.getByRole('tab', { name: /info/i })).toBeInTheDocument();
   });
 
   it('el tab Info renderiza los campos del contacto', async () => {
+    const user = userEvent.setup();
     renderWithRouter('/contactos/c0222222-cccc-0002-cccc-000000000002');
 
     await waitFor(() =>
@@ -57,10 +59,24 @@ describe('ContactoDetailPage', () => {
       ).toBeInTheDocument(),
     );
 
-    // Correo visible en tab Info (activo por defecto)
+    await user.click(screen.getByRole('tab', { name: /info/i }));
+
+    // Correo visible en tab Info
     expect(
       screen.getByText('martin.gutierrez@example.com'),
     ).toBeInTheDocument();
+  });
+
+  it('el tab Resumen 360 muestra relaciones del contacto', async () => {
+    renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111');
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument(),
+    );
+
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
+    expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument();
+    expect(screen.getByText('Preparar propuesta de renovación')).toBeInTheDocument();
   });
 
   it('el tab Tratos muestra tratos del contacto', async () => {
@@ -118,6 +134,7 @@ describe('ContactoDetailPage', () => {
       expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument(),
     );
 
+    await user.click(screen.getByRole('tab', { name: /info/i }));
     await user.click(screen.getByRole('combobox'));
 
     // Con la regla suspendida, INACTIVO ya NO se deshabilita por tratos.
@@ -156,6 +173,7 @@ describe('ContactoDetailPage', () => {
       expect(screen.getByRole('heading', { name: /diego/i })).toBeInTheDocument(),
     );
 
+    await user.click(screen.getByRole('tab', { name: /info/i }));
     await user.click(screen.getByRole('combobox'));
 
     // La opcion INACTIVO debe estar habilitada (sin data-disabled)
@@ -181,6 +199,7 @@ describe('ContactoDetailPage', () => {
       expect(screen.getByRole('heading', { name: /martín/i })).toBeInTheDocument(),
     );
 
+    await user.click(screen.getByRole('tab', { name: /info/i }));
     await user.click(screen.getByRole('combobox'));
 
     // INACTIVO debe estar habilitado (sin tratos = no hay tratos activos)
@@ -209,6 +228,7 @@ describe('ContactoDetailPage', () => {
       expect(screen.getByRole('heading', { name: /diego/i })).toBeInTheDocument(),
     );
 
+    await user.click(screen.getByRole('tab', { name: /info/i }));
     await user.click(screen.getByRole('combobox'));
 
     // INACTIVO debe estar habilitado (trato sin ficha = estado indeterminado = no bloquea)

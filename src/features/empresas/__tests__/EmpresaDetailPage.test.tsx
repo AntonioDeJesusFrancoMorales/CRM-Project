@@ -35,6 +35,7 @@ describe('EmpresaDetailPage', () => {
     await waitFor(() =>
       expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
     );
+    expect(screen.getByRole('tab', { name: /resumen 360/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /información/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /contactos/i })).toBeInTheDocument();
     // Tabs legacy eliminados
@@ -59,6 +60,18 @@ describe('EmpresaDetailPage', () => {
       expect(screen.getByText('Lucía')).toBeInTheDocument(),
     );
     expect(screen.getByText('Sofía')).toBeInTheDocument();
+  });
+
+  it('el tab Resumen 360 muestra relaciones de la empresa', async () => {
+    renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
+
+    await waitFor(() =>
+      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
+    );
+
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
+    expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument();
+    expect(screen.getByText('Preparar propuesta de renovación')).toBeInTheDocument();
   });
 
   it('redirige a /empresas cuando el id devuelve 404', async () => {

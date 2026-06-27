@@ -22,6 +22,7 @@ import { ContactoFormDialog } from '../components/ContactoFormDialog';
 import { ContactoDeleteDialog } from '../components/ContactoDeleteDialog';
 import { EstadoRelacionSelect } from '../components/EstadoRelacionSelect';
 import { useCambiarEstadoContacto } from '../hooks/useCambiarEstadoContacto';
+import { Contacto360Tab } from '@/features/customer-360/components/Contacto360Tab';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -154,11 +155,16 @@ export function ContactoDetailPage() {
         </div>
       </header>
 
-      <Tabs defaultValue="info">
+      <Tabs defaultValue="resumen">
         <TabsList>
+          <TabsTrigger value="resumen">Resumen 360</TabsTrigger>
           <TabsTrigger value="info">Info</TabsTrigger>
           <TabsTrigger value="tratos">Tratos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="resumen" className="mt-4">
+          <Contacto360Tab contacto={contacto} />
+        </TabsContent>
 
         <TabsContent value="info" className="mt-4">
           <div className="rounded-lg border p-4 space-y-6">

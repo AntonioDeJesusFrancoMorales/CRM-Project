@@ -11,6 +11,7 @@ import { EmpresaInfoTab } from '../components/EmpresaInfoTab';
 import { EmpresaContactosTab } from '../components/EmpresaContactosTab';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
+import { Empresa360Tab } from '@/features/customer-360/components/Empresa360Tab';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -109,11 +110,15 @@ export function EmpresaDetailPage() {
         </div>
       </header>
 
-      <Tabs defaultValue="info">
+      <Tabs defaultValue="resumen">
         <TabsList>
+          <TabsTrigger value="resumen">Resumen 360</TabsTrigger>
           <TabsTrigger value="info">Información</TabsTrigger>
           <TabsTrigger value="contactos">Contactos</TabsTrigger>
         </TabsList>
+        <TabsContent value="resumen" className="mt-4">
+          <Empresa360Tab empresa={empresa} />
+        </TabsContent>
         <TabsContent value="info" className="mt-4">
           <EmpresaInfoTab empresa={empresa} />
         </TabsContent>
