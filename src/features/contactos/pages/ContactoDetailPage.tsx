@@ -202,7 +202,13 @@ export function ContactoDetailPage() {
               <ul className="divide-y">
                 {tratosDelContacto.map((trato) => (
                   <li key={trato.id} className="py-3 flex items-center justify-between">
-                    <span className="text-sm font-medium">{trato.nombre}</span>
+                    <button
+                      type="button"
+                      onClick={() => void navigate(`/tratos/${trato.id}`)}
+                      className="text-left text-sm font-medium text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+                    >
+                      {trato.nombre}
+                    </button>
                     <Badge
                       variant="outline"
                       className={cn(tipoContratoBadgeClass[trato.tipoContrato])}

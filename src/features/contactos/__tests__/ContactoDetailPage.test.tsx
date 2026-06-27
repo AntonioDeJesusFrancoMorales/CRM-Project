@@ -23,10 +23,11 @@ function renderWithRouter(initialPath: string) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <MemoryRouter initialEntries={[initialPath]}>
-          <Routes>
-            <Route path="/contactos" element={<div>Listado de contactos</div>} />
-            <Route path="/contactos/:id" element={<ContactoDetailPage />} />
-          </Routes>
+            <Routes>
+              <Route path="/contactos" element={<div>Listado de contactos</div>} />
+              <Route path="/contactos/:id" element={<ContactoDetailPage />} />
+              <Route path="/tratos/:id" element={<div>Detalle de trato</div>} />
+            </Routes>
         </MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
@@ -100,6 +101,20 @@ describe('ContactoDetailPage', () => {
         screen.getByRole('tabpanel', { name: /tratos/i }),
       ).toBeInTheDocument(),
     );
+  });
+
+  it('el tab Tratos permite navegar al detalle del trato', async () => {
+    const user = userEvent.setup();
+    renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111');
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('tab', { name: /tratos/i }));
+    await user.click(screen.getByRole('button', { name: /renovación licencia anual innovatech/i }));
+
+    await waitFor(() => expect(screen.getByText('Detalle de trato')).toBeInTheDocument());
   });
 
   it('redirige a /contactos cuando el id devuelve 404', async () => {
