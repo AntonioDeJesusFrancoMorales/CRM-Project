@@ -19,7 +19,14 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const init: RequestInit = { method, headers };
+  const init: RequestInit = {
+    method,
+    headers,
+    // Las respuestas 304 no traen body. Para endpoints RPC/get-all consumidos por
+    // React Query necesitamos siempre un JSON parseable; la cache del cliente ya la
+    // administra React Query, no el HTTP cache del navegador/proxy.
+    cache: method === 'GET' ? 'no-store' : undefined,
+  };
   if (body !== undefined) init.body = JSON.stringify(body);
 
   const res = await fetch(`${BASE_URL}${path}`, init);

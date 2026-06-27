@@ -31,6 +31,22 @@ describe('apiClient.put', () => {
   });
 });
 
+describe('apiClient.get', () => {
+  it('deshabilita HTTP cache en GET para evitar respuestas 304 sin body', async () => {
+    let capturedCache: RequestCache | undefined;
+
+    server.use(
+      http.get('/api/empresas/get-all', ({ request }) => {
+        capturedCache = request.cache;
+        return HttpResponse.json([]);
+      }),
+    );
+
+    await expect(apiClient.get('/empresas/get-all')).resolves.toEqual([]);
+    expect(capturedCache).toBe('no-store');
+  });
+});
+
 describe('apiClient — manejo de errores de autorización', () => {
   it('propaga HttpError honesto ante 403 (sin desloguear ni mensaje de rol)', async () => {
     server.use(
