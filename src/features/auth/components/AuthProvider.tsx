@@ -37,8 +37,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         setKeycloakReady(true);
         const path = initialPath.current;
-        if (path === '/' || path === '/login') {
-          navigate('/empresas', { replace: true });
+        if (path === '/login') {
+          navigate('/', { replace: true });
         }
         setIsLoading(false);
         return;
@@ -52,11 +52,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (user) {
           setKeycloakSession(user);
         }
-        // Solo mandamos al default cuando NO hay un destino real: entraste por la raíz
-        // o por /login. Si refrescaste estando en otra ruta, te quedás donde estabas.
+        // Si volvés autenticado desde /login, mandamos al Inicio (/).
+        // Si refrescaste estando en otra ruta, te quedás donde estabas.
         const path = initialPath.current;
-        if (path === '/' || path === '/login') {
-          navigate('/empresas', { replace: true });
+        if (path === '/login') {
+          navigate('/', { replace: true });
         }
       } else if (!loginRedirectStarted.current) {
         loginRedirectStarted.current = true;

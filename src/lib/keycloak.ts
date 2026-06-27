@@ -83,7 +83,7 @@ export async function initKeycloak(): Promise<boolean> {
 export async function loginWithKeycloak(): Promise<void> {
   try {
     await keycloak.login({
-      redirectUri: window.location.origin + '/empresas',
+      redirectUri: window.location.origin + '/',
     });
   } catch (error) {
     console.error('Keycloak login failed:', error);
