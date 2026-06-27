@@ -6,11 +6,19 @@ import { server } from './server';
 // Polyfills para APIs de DOM que jsdom no implementa y que Radix UI necesita.
 // hasPointerCapture: usado por Radix Select/DropdownMenu al procesar eventos de puntero.
 // scrollIntoView: usado por Radix Select al posicionar la opción seleccionada.
+// ResizeObserver: usado por Radix ScrollArea al medir viewport/scrollbars.
 if (!window.HTMLElement.prototype.hasPointerCapture) {
   window.HTMLElement.prototype.hasPointerCapture = () => false;
 }
 if (!window.HTMLElement.prototype.scrollIntoView) {
   window.HTMLElement.prototype.scrollIntoView = () => {};
+}
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));

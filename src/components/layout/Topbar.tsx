@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { GlobalSearch } from '@/features/global-search/components/GlobalSearch';
 
 function getInitials(nombre: string): string {
   const parts = nombre.trim().split(/\s+/);
@@ -66,6 +67,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
         <h1 className="text-sm font-semibold truncate">{tituloDeRuta(pathname)}</h1>
       </div>
       <div className="flex items-center gap-1">
+        <GlobalSearch />
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

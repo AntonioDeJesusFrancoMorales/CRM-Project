@@ -28,6 +28,9 @@ vi.mock('@/features/auth/hooks/useLogout', () => ({
 vi.mock('@/components/theme/ThemeToggle', () => ({
   ThemeToggle: () => null,
 }));
+vi.mock('@/features/global-search/components/GlobalSearch', () => ({
+  GlobalSearch: () => null,
+}));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 const usuarioNombre = {
