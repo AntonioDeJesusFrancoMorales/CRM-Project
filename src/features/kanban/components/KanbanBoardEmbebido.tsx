@@ -17,13 +17,14 @@ import type { TipoFicha } from '../schemas/ficha.schema';
 
 export interface KanbanBoardEmbebidoProps {
   tableroId: string;
+  allowedEntityIds?: string[];
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function KanbanBoardEmbebido({ tableroId }: KanbanBoardEmbebidoProps) {
+export function KanbanBoardEmbebido({ tableroId, allowedEntityIds }: KanbanBoardEmbebidoProps) {
   const [nuevaColumnaOpen, setNuevaColumnaOpen] = useState(false);
 
   const { data: tablero, isLoading, error } = useTablero(tableroId);
@@ -39,9 +40,14 @@ export function KanbanBoardEmbebido({ tableroId }: KanbanBoardEmbebidoProps) {
 
   // Fichas filtradas: por tipoFicha derivado del tipo de tablero + columnaId presente
   const columnaIds = new Set(tablero?.columnas.map((c) => c.id) ?? []);
-  const fichasFiltradas = fichas.filter(
-    (f) => f.tipoFicha === tipoFicha && columnaIds.has(f.columnaId),
-  );
+  const allowedIds = allowedEntityIds ? new Set(allowedEntityIds) : undefined;
+  const fichasFiltradas = fichas.filter((f) => {
+    if (f.tipoFicha !== tipoFicha || !columnaIds.has(f.columnaId)) return false;
+    if (!allowedIds) return true;
+
+    const entityId = tipoFicha === 'TRATO' ? f.tratoId : f.tareaId;
+    return entityId !== null && allowedIds.has(entityId);
+  });
 
   // Nombres de columnas existentes para el bloqueo de duplicados
   const nombresExistentes = tablero?.columnas.map((c) => c.nombre ?? '') ?? [];

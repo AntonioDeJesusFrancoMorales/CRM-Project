@@ -11,14 +11,30 @@ import {
   Plus,
   Receipt,
   Search,
+  Trash2,
   TrendingUp,
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Trato } from '@/api/types';
+import type { EstadoTrato, TipoContrato, Trato } from '@/api/types';
 import { isHttpError } from '@/api/http-error';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
@@ -26,6 +42,12 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { formatCurrency } from '@/lib/format';
 import { useTabSync } from '@/lib/useTabSync';
+import {
+  createListPreset,
+  loadListPresets,
+  saveListPresets,
+  type ListPreset,
+} from '@/features/list-presets/lib/listPresets';
 import { useTratos } from '../hooks/useTratos';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
@@ -35,6 +57,37 @@ import { TratoCreateDialog } from '../components/TratoCreateDialog';
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
 import { KanbanTabContent } from '@/features/kanban/components/KanbanTabContent';
+import {
+  applyTratoFilters,
+  createEmptyTratoFilters,
+  hasActiveTratoFilters,
+  type CierreEsperadoFilter,
+  type TratoFilters,
+} from '../lib/tratoFilters';
+import { tipoContratoLabels } from '../lib/tipoContrato';
+
+const PRESETS_STORAGE_KEY = 'crm:list-presets:tratos';
+
+const ESTADO_OPTIONS: Array<{ value: EstadoTrato; label: string }> = [
+  { value: 'ABIERTO', label: 'Abierto' },
+  { value: 'GANADO', label: 'Ganado' },
+  { value: 'PERDIDO', label: 'Perdido' },
+];
+
+const TIPO_CONTRATO_OPTIONS: TipoContrato[] = [
+  'SERVICIO',
+  'LICENCIA',
+  'SUSCRIPCION',
+  'PERMANENTE',
+  'OTRO',
+];
+
+const CIERRE_OPTIONS: Array<{ value: CierreEsperadoFilter; label: string }> = [
+  { value: 'vencidas', label: 'Vencidas' },
+  { value: 'proximos-7', label: 'Próximos 7 días' },
+  { value: 'proximos-30', label: 'Próximos 30 días' },
+  { value: 'sin-fecha', label: 'Sin fecha' },
+];
 
 /** KPIs del pipeline calculados sólo con la lista plana de tratos. */
 function computeKpis(tratos: Trato[]) {
@@ -49,8 +102,13 @@ function computeKpis(tratos: Trato[]) {
 }
 
 export function TratosListPage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<TratoFilters>(() => createEmptyTratoFilters());
+  const [presets, setPresets] = useState<Array<ListPreset<TratoFilters>>>(() =>
+    loadListPresets<TratoFilters>(PRESETS_STORAGE_KEY),
+  );
   const [createOpen, setCreateOpen] = useState(false);
+  const [savePresetOpen, setSavePresetOpen] = useState(false);
+  const [presetName, setPresetName] = useState('');
   const [editTarget, setEditTarget] = useState<Trato | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Trato | null>(null);
 
@@ -62,6 +120,61 @@ export function TratosListPage() {
   const deleteMutation = useDeleteTrato();
 
   const kpis = useMemo(() => computeKpis(tratos ?? []), [tratos]);
+  const filteredTratos = useMemo(
+    () => applyTratoFilters(tratos ?? [], filters),
+    [tratos, filters],
+  );
+  const filteredTratoIds = useMemo(
+    () => filteredTratos.map((trato) => trato.id),
+    [filteredTratos],
+  );
+  const hasFilters = hasActiveTratoFilters(filters);
+
+  function updateFilters(patch: Partial<TratoFilters>) {
+    setFilters((current) => ({ ...current, ...patch }));
+  }
+
+  function clearFilters() {
+    setFilters(createEmptyTratoFilters());
+  }
+
+  function handleNumberFilterChange(key: 'valorMin' | 'valorMax', value: string) {
+    const trimmed = value.trim();
+    updateFilters({ [key]: trimmed === '' ? undefined : Number(trimmed) });
+  }
+
+  function persistPresets(nextPresets: Array<ListPreset<TratoFilters>>) {
+    setPresets(nextPresets);
+    saveListPresets(PRESETS_STORAGE_KEY, nextPresets);
+  }
+
+  function handleSavePreset() {
+    setPresetName('');
+    setSavePresetOpen(true);
+  }
+
+  function handleConfirmSavePreset() {
+    const name = presetName.trim();
+    if (!name) return;
+
+    const nextPreset = createListPreset(name, filters);
+    persistPresets([...presets, nextPreset]);
+    setSavePresetOpen(false);
+    setPresetName('');
+    toast.success('Vista guardada');
+  }
+
+  function handleApplyPreset(presetId: string) {
+    if (presetId === 'sin-preset') return;
+    const preset = presets.find((item) => item.id === presetId);
+    if (!preset) return;
+    setFilters(preset.filters);
+  }
+
+  function handleDeletePreset(presetId: string) {
+    persistPresets(presets.filter((preset) => preset.id !== presetId));
+    toast.success('Vista eliminada');
+  }
 
   function handleConfirmDelete() {
     if (!deleteTarget) return;
@@ -123,6 +236,198 @@ export function TratosListPage() {
         </div>
       )}
 
+      {/* Filtros compartidos Lista/Kanban */}
+      <div className="space-y-4 rounded-lg border p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              placeholder="Buscar por nombre..."
+              value={filters.search}
+              onChange={(e) => updateFilters({ search: e.target.value })}
+              className="pl-9"
+              aria-label="Buscar tratos"
+            />
+          </div>
+
+          <Select value="sin-preset" onValueChange={handleApplyPreset}>
+            <SelectTrigger className="w-56" aria-label="Vistas guardadas">
+              <SelectValue placeholder="Vistas guardadas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sin-preset">Vistas guardadas</SelectItem>
+              {presets.map((preset) => (
+                <SelectItem key={preset.id} value={preset.id}>
+                  {preset.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button type="button" variant="outline" onClick={handleSavePreset}>
+            Guardar vista
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={clearFilters}
+            disabled={!hasFilters}
+          >
+            Limpiar filtros
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={filters.estado ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({ estado: value === 'todos' ? undefined : (value as EstadoTrato) })
+            }
+          >
+            <SelectTrigger className="w-40" aria-label="Estado">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              {ESTADO_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.tipoContrato ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({
+                tipoContrato: value === 'todos' ? undefined : (value as TipoContrato),
+              })
+            }
+          >
+            <SelectTrigger className="w-48" aria-label="Tipo de contrato">
+              <SelectValue placeholder="Tipo de contrato" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los tipos</SelectItem>
+              {TIPO_CONTRATO_OPTIONS.map((tipo) => (
+                <SelectItem key={tipo} value={tipo}>
+                  {tipoContratoLabels[tipo]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.responsableId ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({ responsableId: value === 'todos' ? undefined : value })
+            }
+          >
+            <SelectTrigger className="w-52" aria-label="Responsable">
+              <SelectValue placeholder="Responsable" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los responsables</SelectItem>
+              {usuarios
+                .filter((usuario) => usuario.activo)
+                .map((usuario) => (
+                  <SelectItem key={usuario.id} value={usuario.id}>
+                    {usuario.nombre}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.contactoId ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({ contactoId: value === 'todos' ? undefined : value })
+            }
+          >
+            <SelectTrigger className="w-52" aria-label="Contacto">
+              <SelectValue placeholder="Contacto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los contactos</SelectItem>
+              {contactos.map((contacto) => (
+                <SelectItem key={contacto.id} value={contacto.id}>
+                  {contacto.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            placeholder="Valor mín."
+            value={filters.valorMin ?? ''}
+            onChange={(event) => handleNumberFilterChange('valorMin', event.target.value)}
+            className="w-32"
+            aria-label="Valor mínimo"
+          />
+
+          <Input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            placeholder="Valor máx."
+            value={filters.valorMax ?? ''}
+            onChange={(event) => handleNumberFilterChange('valorMax', event.target.value)}
+            className="w-32"
+            aria-label="Valor máximo"
+          />
+
+          <Select
+            value={filters.cierreEsperado ?? 'todas'}
+            onValueChange={(value) =>
+              updateFilters({
+                cierreEsperado:
+                  value === 'todas' ? undefined : (value as CierreEsperadoFilter),
+              })
+            }
+          >
+            <SelectTrigger className="w-48" aria-label="Cierre esperado">
+              <SelectValue placeholder="Cierre esperado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las fechas</SelectItem>
+              {CIERRE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Mostrando {filteredTratos.length} de {tratos?.length ?? 0} tratos
+          </span>
+          {presets.map((preset) => (
+            <Button
+              key={preset.id}
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeletePreset(preset.id)}
+              aria-label={`Eliminar vista ${preset.name}`}
+              className="h-7 px-2 text-muted-foreground"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+              {preset.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {/* Tabs Lista / Kanban */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
@@ -130,25 +435,8 @@ export function TratosListPage() {
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
         </TabsList>
 
-        {/* Tab Lista: búsqueda + tabla actual */}
+        {/* Tab Lista: tabla filtrada */}
         <TabsContent value="lista" className="mt-4 space-y-4">
-          {/* Barra de búsqueda */}
-          <div className="flex items-center gap-3">
-            <div className="relative max-w-sm flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                placeholder="Buscar por nombre..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-                aria-label="Buscar tratos"
-              />
-            </div>
-          </div>
-
           {/* Loading: esqueleto de tabla en vez de texto plano */}
           {isLoading && (
             <div className="rounded-md border">
@@ -187,10 +475,9 @@ export function TratosListPage() {
           {!isLoading && !isError && tratos && tratos.length > 0 && (
             <div className="rounded-md border">
               <TratosTable
-                tratos={tratos}
+                tratos={filteredTratos}
                 contactos={contactos}
                 usuarios={usuarios}
-                searchTerm={searchTerm}
                 onEdit={(trato) => setEditTarget(trato)}
                 onDelete={(trato) => setDeleteTarget(trato)}
               />
@@ -200,12 +487,52 @@ export function TratosListPage() {
 
         {/* Tab Kanban: KanbanTabContent tipo TRATOS */}
         <TabsContent value="kanban" className="mt-4">
-          <KanbanTabContent tipo="TRATOS" />
+          <KanbanTabContent tipo="TRATOS" allowedEntityIds={filteredTratoIds} />
         </TabsContent>
       </Tabs>
 
       {/* Dialog crear trato */}
       <TratoCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Guardar vista</DialogTitle>
+            <DialogDescription>
+              Guardá los filtros actuales como una vista local para reutilizarlos después.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleConfirmSavePreset();
+            }}
+          >
+            <Input
+              autoFocus
+              value={presetName}
+              onChange={(event) => setPresetName(event.target.value)}
+              placeholder="Ej: Mis tratos abiertos"
+              aria-label="Nombre de la vista"
+            />
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSavePresetOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={!presetName.trim()}>
+                Guardar vista
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog editar trato */}
       {editTarget && (

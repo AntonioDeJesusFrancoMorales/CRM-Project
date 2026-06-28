@@ -28,7 +28,6 @@ interface TratosTableProps {
   tratos: Trato[];
   contactos?: Contacto[];
   usuarios?: Usuario[];
-  searchTerm?: string;
   onEdit?: (trato: Trato) => void;
   onDelete?: (trato: Trato) => void;
 }
@@ -37,7 +36,6 @@ export function TratosTable({
   tratos,
   contactos = [],
   usuarios = [],
-  searchTerm,
   onEdit,
   onDelete,
 }: TratosTableProps) {
@@ -46,12 +44,6 @@ export function TratosTable({
   // Lookup Maps para resolución client-side
   const contactosById = new Map(contactos.map((c) => [c.id, c]));
   const usuariosById = new Map(usuarios.map((u) => [u.id, u]));
-
-  const filtered = searchTerm
-    ? tratos.filter((t) =>
-        t.nombre.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    : tratos;
 
   const showActions = !!(onEdit || onDelete);
 
@@ -69,16 +61,14 @@ export function TratosTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filtered.length === 0 ? (
+        {tratos.length === 0 ? (
           <TableRow>
             <TableCell colSpan={showActions ? 7 : 6} className="py-8 text-center text-muted-foreground">
-              {searchTerm
-                ? `No se encontraron tratos con "${searchTerm}"`
-                : 'No hay tratos registrados'}
+              No hay tratos para los filtros seleccionados
             </TableCell>
           </TableRow>
         ) : (
-          filtered.map((trato) => {
+          tratos.map((trato) => {
             const contacto = contactosById.get(trato.contactoId);
             const responsable = usuariosById.get(trato.responsableId);
             return (

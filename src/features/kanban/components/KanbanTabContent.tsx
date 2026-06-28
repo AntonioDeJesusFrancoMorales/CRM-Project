@@ -16,13 +16,14 @@ import type { TipoTablero } from '../schemas/tablero.schema';
 
 export interface KanbanTabContentProps {
   tipo: TipoTablero;
+  allowedEntityIds?: string[];
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function KanbanTabContent({ tipo }: KanbanTabContentProps) {
+export function KanbanTabContent({ tipo, allowedEntityIds }: KanbanTabContentProps) {
   const { data: tableros = [], isLoading } = useTableros();
 
   if (isLoading) {
@@ -50,5 +51,10 @@ export function KanbanTabContent({ tipo }: KanbanTabContentProps) {
     );
   }
 
-  return <KanbanBoardEmbebido tableroId={tableroPrincipal.id} />;
+  return (
+    <KanbanBoardEmbebido
+      tableroId={tableroPrincipal.id}
+      allowedEntityIds={allowedEntityIds}
+    />
+  );
 }

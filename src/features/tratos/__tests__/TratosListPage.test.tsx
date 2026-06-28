@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,7 +7,10 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
 
 import { TratosListPage } from '../pages/TratosListPage';
 import { server } from '@/test/server';
+import { tratosFixture } from '@/mocks/fixtures/tratos';
 import { tableroTratosFixture, fichasFixture, columnasFixture } from '@/mocks/fixtures/tableros';
+
+const PRESETS_STORAGE_KEY = 'crm:list-presets:tratos';
 
 function renderPage(initialEntry = '/tratos') {
   const queryClient = new QueryClient({
@@ -66,6 +69,11 @@ function renderPageWithLocation(initialEntry = '/tratos') {
     </QueryClientProvider>,
   );
 }
+
+beforeEach(() => {
+  localStorage.removeItem(PRESETS_STORAGE_KEY);
+  vi.restoreAllMocks();
+});
 
 describe('TratosListPage', () => {
   it('renderiza la tabla con los tratos del fixture (en tab Lista)', async () => {
@@ -164,6 +172,128 @@ describe('TratosListPage', () => {
     // Sin toggle de tipo button — el control de vista usa tabs (role="tab"), no buttons
     expect(screen.queryByRole('button', { name: /^kanban$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^tabla$/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('TratosListPage — filtros avanzados y presets', () => {
+  it('filtro estado aplica client-side y actualiza el contador', async () => {
+    const user = userEvent.setup();
+    renderPage('/tratos?tab=lista');
+
+    await waitFor(() =>
+      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('combobox', { name: /estado/i }));
+    await user.click(await screen.findByRole('option', { name: /perdido/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Automatización logística Maya')).toBeInTheDocument();
+    expect(screen.getByText(/mostrando 1 de 5 tratos/i)).toBeInTheDocument();
+  });
+
+  it('filtro responsable aplica client-side sin refetch ni query params', async () => {
+    const user = userEvent.setup();
+    let requestCount = 0;
+    let lastUrl = '';
+
+    server.use(
+      http.get('/api/tratos/get-all', ({ request }) => {
+        requestCount++;
+        lastUrl = request.url;
+        return HttpResponse.json(tratosFixture);
+      }),
+    );
+
+    renderPage('/tratos?tab=lista');
+
+    await waitFor(() => expect(requestCount).toBeGreaterThan(0));
+    const initialCount = requestCount;
+
+    await user.click(screen.getByRole('combobox', { name: /responsable/i }));
+    await user.click(await screen.findByRole('option', { name: /antonio franco/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Consultoría procesos Maya')).toBeInTheDocument();
+    expect(requestCount).toBe(initialCount);
+    expect(new URL(lastUrl).search).toBe('');
+  });
+
+  it('guarda, aplica y elimina presets locales', async () => {
+    const user = userEvent.setup();
+    renderPage('/tratos?tab=lista');
+
+    await waitFor(() =>
+      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+    );
+
+    await user.type(screen.getByPlaceholderText(/buscar por nombre/i), 'maya');
+    await waitFor(() =>
+      expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('button', { name: /guardar vista/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/nombre de la vista/i), 'Vista Maya');
+    await user.click(within(dialog).getByRole('button', { name: /guardar vista/i }));
+
+    expect(localStorage.getItem(PRESETS_STORAGE_KEY)).toContain('Vista Maya');
+
+    await user.click(screen.getByRole('button', { name: /limpiar filtros/i }));
+    await waitFor(() =>
+      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole('combobox', { name: /vistas guardadas/i }));
+    await user.click(await screen.findByRole('option', { name: /vista maya/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Consultoría procesos Maya')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /eliminar vista vista maya/i }));
+    expect(localStorage.getItem(PRESETS_STORAGE_KEY)).toBe('[]');
+  });
+
+  it('storage corrupto de presets no rompe la página', async () => {
+    localStorage.setItem(PRESETS_STORAGE_KEY, '{bad-json');
+
+    renderPage('/tratos?tab=lista');
+
+    await waitFor(() =>
+      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('combobox', { name: /vistas guardadas/i })).toBeInTheDocument();
+  });
+
+  it('los filtros también aplican al Kanban de tratos', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/tableros/get-all', () => HttpResponse.json([tableroTratosFixture])),
+      http.get('/api/tableros/get-by-id', () => HttpResponse.json(tableroTratosFixture)),
+      http.get('/api/fichas/get-all', () => HttpResponse.json(fichasFixture)),
+      http.get('/api/columnas/get-all', () => HttpResponse.json(columnasFixture)),
+    );
+
+    renderPage('/tratos');
+
+    await waitFor(() =>
+      expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Consultoría procesos Maya')).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText(/buscar por nombre/i), 'maya');
+
+    await waitFor(() =>
+      expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Consultoría procesos Maya')).toBeInTheDocument();
+    expect(screen.getByText(/mostrando 2 de 5 tratos/i)).toBeInTheDocument();
   });
 });
 
