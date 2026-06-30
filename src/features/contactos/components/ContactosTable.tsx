@@ -29,7 +29,6 @@ interface ContactosTableProps {
   contactos: Contacto[];
   onEdit: (contacto: Contacto) => void;
   onDelete: (contacto: Contacto) => void;
-  searchTerm?: string;
   onCreate?: () => void;
 }
 
@@ -37,20 +36,8 @@ export function ContactosTable({
   contactos,
   onEdit,
   onDelete,
-  searchTerm,
   onCreate,
 }: ContactosTableProps) {
-  const filtered = searchTerm
-    ? contactos.filter((c) => {
-        const term = searchTerm.toLowerCase();
-        return (
-          c.nombre.toLowerCase().includes(term) ||
-          (c.correo?.toLowerCase().includes(term) ?? false) ||
-          (c.cargo?.toLowerCase().includes(term) ?? false)
-        );
-      })
-    : contactos;
-
   return (
     <Table>
       <TableHeader>
@@ -65,23 +52,17 @@ export function ContactosTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filtered.length === 0 ? (
+        {contactos.length === 0 ? (
           <TableRow>
             <TableCell colSpan={7} className="p-0">
               <EmptyState
                 icon={Users}
                 title={
-                  searchTerm
-                    ? `No se encontraron contactos con "${searchTerm}"`
-                    : 'Aún no hay contactos'
+                  'No hay contactos que coincidan con los filtros'
                 }
-                description={
-                  searchTerm
-                    ? undefined
-                    : 'Agrega tu primer contacto para empezar a darle seguimiento.'
-                }
+                description="Ajustá los filtros o agregá un nuevo contacto."
                 action={
-                  !searchTerm && onCreate ? (
+                  onCreate ? (
                     <Button onClick={onCreate}>
                       <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                       Nuevo contacto
@@ -93,7 +74,7 @@ export function ContactosTable({
             </TableCell>
           </TableRow>
         ) : (
-          filtered.map((contacto) => (
+          contactos.map((contacto) => (
             <TableRow key={contacto.id} className="group">
               <TableCell className="font-medium">
                 <Link
