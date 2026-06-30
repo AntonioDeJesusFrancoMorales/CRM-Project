@@ -28,7 +28,6 @@ interface EmpresasTableProps {
   onView: (empresa: Empresa) => void;
   onEdit: (empresa: Empresa) => void;
   onDelete: (empresa: Empresa) => void;
-  searchTerm?: string;
 }
 
 export function EmpresasTable({
@@ -36,18 +35,7 @@ export function EmpresasTable({
   onView,
   onEdit,
   onDelete,
-  searchTerm,
 }: EmpresasTableProps) {
-  const filtered = searchTerm
-    ? empresas.filter((e) => {
-        const term = searchTerm.toLowerCase();
-        return (
-          e.nombre.toLowerCase().includes(term) ||
-          (e.sector?.toLowerCase().includes(term) ?? false)
-        );
-      })
-    : empresas;
-
   return (
     <Table>
       <TableHeader>
@@ -62,19 +50,17 @@ export function EmpresasTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filtered.length === 0 ? (
+        {empresas.length === 0 ? (
           <TableRow>
             <TableCell
               colSpan={7}
               className="py-8 text-center text-muted-foreground"
             >
-              {searchTerm
-                ? `No se encontraron empresas con "${searchTerm}"`
-                : 'No hay empresas registradas'}
+              No hay empresas que coincidan con los filtros
             </TableCell>
           </TableRow>
         ) : (
-          filtered.map((empresa) => (
+          empresas.map((empresa) => (
             <TableRow key={empresa.id} className="group">
               <TableCell className="font-medium">
                 <button
