@@ -38,7 +38,7 @@ const TAREA_COMPLETADA: Tarea = {
   actualizadoEn: '2026-05-09T14:00:00.000Z',
 };
 
-function renderTable(tareas: Tarea[], searchTerm?: string) {
+function renderTable(tareas: Tarea[]) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
@@ -52,7 +52,7 @@ function renderTable(tareas: Tarea[], searchTerm?: string) {
         <Routes>
           <Route
             path="/tareas"
-            element={<TareasTable tareas={tareas} searchTerm={searchTerm} />}
+            element={<TareasTable tareas={tareas} />}
           />
           <Route path="/tareas/:id" element={<div>Detalle de la tarea</div>} />
         </Routes>
@@ -95,8 +95,8 @@ describe('TareasTable', () => {
     expect(screen.getByText(/no hay tareas/i)).toBeInTheDocument();
   });
 
-  it('(e) searchTerm filtra client-side por título', () => {
-    renderTable([TAREA_PENDIENTE, TAREA_COMPLETADA], 'análisis');
+  it('(e) renderiza la lista filtrada recibida desde la página', () => {
+    renderTable([TAREA_COMPLETADA]);
 
     expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
     expect(screen.getByText('Análisis de requerimientos inicial')).toBeInTheDocument();

@@ -1,7 +1,7 @@
 // TareasListPage — homologa TratosListPage.
 // 6 filtros aplicados client-side sobre el array completo (W1 fix, ADR-048).
 // Botón "Nueva tarea" → TareaCreateDialog sin tratoIdFijo (Select de trato editable y requerido).
-// Tabs Lista/Kanban: los 6 filtros + tabla viven dentro del TabsContent "lista".
+// Tabs Lista/Kanban: los filtros viven arriba de tabs y aplican a Lista y Kanban.
 // useTabSync preserva ?responsable_id= (y otros params) al cambiar de tab.
 
 import { useMemo, useState } from 'react';
@@ -12,8 +12,18 @@ import {
   ListTodo,
   Plus,
   Search,
+  Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -28,15 +38,29 @@ import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { useTabSync } from '@/lib/useTabSync';
+import {
+  createListPreset,
+  loadListPresets,
+  saveListPresets,
+  type ListPreset,
+} from '@/features/list-presets/lib/listPresets';
 import { useTareas } from '../hooks/useTareas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
-import { getTareaEstado } from '../hooks/useTareaEstado';
 import { TareasTable } from '../components/TareasTable';
 import { TareaCreateDialog } from '../components/TareaCreateDialog';
 import { PRIORIDAD_OPTIONS, TIPO_TAREA_OPTIONS } from '../schemas/tarea.schema';
 import { KanbanTabContent } from '@/features/kanban/components/KanbanTabContent';
-import type { EstadoTareaLocal, PrioridadTarea, Tarea, TipoTarea } from '@/api/types';
+import type { PrioridadTarea, Tarea, TipoTarea } from '@/api/types';
+import {
+  applyTareaFilters,
+  createEmptyTareaFilters,
+  hasActiveTareaFilters,
+  type TareaFilters,
+  type VencimientoTareaFilter,
+} from '../lib/tareaFilters';
+
+const PRESETS_STORAGE_KEY = 'crm:list-presets:tareas';
 
 /**
  * KPIs derivados de la lista plana de tareas, sólo con datos reales del back.
@@ -57,16 +81,15 @@ function computeKpis(tareas: Tarea[]) {
 
 export function TareasListPage() {
   const [searchParams] = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [estado, setEstado] = useState<EstadoTareaLocal | undefined>(undefined);
-  const [prioridad, setPrioridad] = useState<PrioridadTarea | undefined>(undefined);
-  const [responsableId, setResponsableId] = useState<string | undefined>(
-    searchParams.get('responsable_id') ?? undefined,
+  const [filters, setFilters] = useState<TareaFilters>(() =>
+    createEmptyTareaFilters({ responsableId: searchParams.get('responsable_id') ?? undefined }),
   );
-  const [vencimiento, setVencimiento] = useState<'todas' | 'vencidas' | 'proximas' | undefined>(undefined);
-  const [tratoId, setTratoId] = useState<string | undefined>(undefined);
-  const [tipo, setTipo] = useState<TipoTarea | undefined>(undefined);
+  const [presets, setPresets] = useState<Array<ListPreset<TareaFilters>>>(() =>
+    loadListPresets<TareaFilters>(PRESETS_STORAGE_KEY),
+  );
   const [createOpen, setCreateOpen] = useState(false);
+  const [savePresetOpen, setSavePresetOpen] = useState(false);
+  const [presetName, setPresetName] = useState('');
 
   // Sincroniza el tab activo con ?tab= en la URL. Preserva otros params (?responsable_id=, etc.).
   // Kanban es el tab por defecto — URL limpia cuando activo = "kanban"; ?tab=lista cuando activo = "lista".
@@ -82,57 +105,63 @@ export function TareasListPage() {
   // KPIs sobre el array COMPLETO (no sobre los filtros) — métrica de la cartera.
   const kpis = useMemo(() => computeKpis(todasLasTareas ?? []), [todasLasTareas]);
 
-  // Filtros client-side sobre el array completo
-  const tareas = useMemo(() => {
-    let result = todasLasTareas ?? [];
+  const tareas = useMemo(
+    () => applyTareaFilters(todasLasTareas ?? [], filters),
+    [todasLasTareas, filters],
+  );
+  const filteredTareaIds = useMemo(() => tareas.map((tarea) => tarea.id), [tareas]);
+  const hasFilters = hasActiveTareaFilters(filters);
 
-    if (estado) {
-      result = result.filter((t) => getTareaEstado(t.id) === estado);
-    }
-    if (prioridad) {
-      result = result.filter((t) => t.prioridad === prioridad);
-    }
-    if (responsableId) {
-      result = result.filter((t) => t.responsableId === responsableId);
-    }
-    if (tratoId) {
-      result = result.filter((t) => t.tratoId === tratoId);
-    }
-    if (tipo) {
-      result = result.filter((t) => t.tipo === tipo);
-    }
-    if (vencimiento && vencimiento !== 'todas') {
-      const ahora = new Date();
-      const en7Dias = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000);
-      if (vencimiento === 'vencidas') {
-        result = result.filter((t) => t.fechaLimite && new Date(t.fechaLimite) < ahora);
-      } else if (vencimiento === 'proximas') {
-        result = result.filter((t) => {
-          if (!t.fechaLimite) return false;
-          const fecha = new Date(t.fechaLimite);
-          return fecha >= ahora && fecha <= en7Dias;
-        });
-      }
-    }
+  function updateFilters(patch: Partial<TareaFilters>) {
+    setFilters((current) => ({ ...current, ...patch }));
+  }
 
-    return result;
-  }, [todasLasTareas, estado, prioridad, responsableId, tratoId, tipo, vencimiento]);
-
-  function setOrUnset<T>(setter: (v: T | undefined) => void, sentinel: string) {
-    return (value: string) =>
-      setter(value === sentinel ? undefined : (value as unknown as T));
+  function clearFilters() {
+    setFilters(createEmptyTareaFilters());
   }
 
   function handleEstadoChange(value: string) {
-    if (value === 'todos') setEstado(undefined);
+    if (value === 'todos') updateFilters({ estado: undefined });
     else if (value === 'pendiente' || value === 'en_progreso' || value === 'completada') {
-      setEstado(value);
+      updateFilters({ estado: value });
     }
   }
 
   function handleVencimientoChange(value: string) {
-    if (value === 'todas') setVencimiento(undefined);
-    else setVencimiento(value as 'vencidas' | 'proximas');
+    updateFilters({ vencimiento: value === 'todas' ? undefined : (value as VencimientoTareaFilter) });
+  }
+
+  function persistPresets(nextPresets: Array<ListPreset<TareaFilters>>) {
+    setPresets(nextPresets);
+    saveListPresets(PRESETS_STORAGE_KEY, nextPresets);
+  }
+
+  function handleSavePreset() {
+    setPresetName('');
+    setSavePresetOpen(true);
+  }
+
+  function handleConfirmSavePreset() {
+    const name = presetName.trim();
+    if (!name) return;
+
+    const nextPreset = createListPreset(name, filters);
+    persistPresets([...presets, nextPreset]);
+    setSavePresetOpen(false);
+    setPresetName('');
+    toast.success('Vista guardada');
+  }
+
+  function handleApplyPreset(presetId: string) {
+    if (presetId === 'sin-preset') return;
+    const preset = presets.find((item) => item.id === presetId);
+    if (!preset) return;
+    setFilters(preset.filters);
+  }
+
+  function handleDeletePreset(presetId: string) {
+    persistPresets(presets.filter((preset) => preset.id !== presetId));
+    toast.success('Vista eliminada');
   }
 
   return (
@@ -175,6 +204,170 @@ export function TareasListPage() {
         </div>
       )}
 
+      {/* Filtros compartidos Lista/Kanban */}
+      <div className="space-y-4 rounded-lg border p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              placeholder="Buscar por título..."
+              value={filters.search}
+              onChange={(e) => updateFilters({ search: e.target.value })}
+              className="pl-9"
+              aria-label="Buscar tareas"
+            />
+          </div>
+
+          <Select value="sin-preset" onValueChange={handleApplyPreset}>
+            <SelectTrigger className="w-56" aria-label="Vistas guardadas">
+              <SelectValue placeholder="Vistas guardadas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sin-preset">Vistas guardadas</SelectItem>
+              {presets.map((preset) => (
+                <SelectItem key={preset.id} value={preset.id}>
+                  {preset.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button type="button" variant="outline" onClick={handleSavePreset}>
+            Guardar vista
+          </Button>
+
+          <Button type="button" variant="ghost" onClick={clearFilters} disabled={!hasFilters}>
+            Limpiar filtros
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={filters.estado ?? 'todos'} onValueChange={handleEstadoChange}>
+            <SelectTrigger className="w-40" aria-label="Estado">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              <SelectItem value="pendiente">Pendiente</SelectItem>
+              <SelectItem value="en_progreso">En progreso</SelectItem>
+              <SelectItem value="completada">Completada</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.prioridad ?? 'todas'}
+            onValueChange={(value) =>
+              updateFilters({ prioridad: value === 'todas' ? undefined : (value as PrioridadTarea) })
+            }
+          >
+            <SelectTrigger className="w-40" aria-label="Prioridad">
+              <SelectValue placeholder="Prioridad" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las prioridades</SelectItem>
+              {PRIORIDAD_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.tipo ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({ tipo: value === 'todos' ? undefined : (value as TipoTarea) })
+            }
+          >
+            <SelectTrigger className="w-40" aria-label="Tipo">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los tipos</SelectItem>
+              {TIPO_TAREA_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.vencimiento ?? 'todas'} onValueChange={handleVencimientoChange}>
+            <SelectTrigger className="w-40" aria-label="Vencimiento">
+              <SelectValue placeholder="Vencimiento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las fechas</SelectItem>
+              <SelectItem value="vencidas">Vencidas</SelectItem>
+              <SelectItem value="proximas">Próximas (7 días)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.responsableId ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({ responsableId: value === 'todos' ? undefined : value })
+            }
+          >
+            <SelectTrigger className="w-48" aria-label="Responsable">
+              <SelectValue placeholder="Responsable" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los responsables</SelectItem>
+              {usuarios
+                .filter((u) => u.activo)
+                .map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.nombre}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.tratoId ?? 'todos'}
+            onValueChange={(value) =>
+              updateFilters({ tratoId: value === 'todos' ? undefined : value })
+            }
+          >
+            <SelectTrigger className="w-48" aria-label="Trato">
+              <SelectValue placeholder="Trato" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los tratos</SelectItem>
+              {tratos.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Mostrando {tareas.length} de {todasLasTareas?.length ?? 0} tareas
+          </span>
+          {presets.map((preset) => (
+            <Button
+              key={preset.id}
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeletePreset(preset.id)}
+              aria-label={`Eliminar vista ${preset.name}`}
+              className="h-7 px-2 text-muted-foreground"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+              {preset.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {/* Tabs Lista / Kanban */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
@@ -182,125 +375,8 @@ export function TareasListPage() {
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
         </TabsList>
 
-        {/* Tab Lista: 6 filtros + tabla */}
+        {/* Tab Lista: tabla filtrada */}
         <TabsContent value="lista" className="mt-4 space-y-4">
-          {/* Top-bar de filtros */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Búsqueda client-side por título */}
-            <div className="relative max-w-sm flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                placeholder="Buscar por título..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-                aria-label="Buscar tareas"
-              />
-            </div>
-
-            {/* Filtro estado */}
-            <Select value={estado ?? 'todos'} onValueChange={handleEstadoChange}>
-              <SelectTrigger className="w-40" aria-label="Estado">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="en_progreso">En progreso</SelectItem>
-                <SelectItem value="completada">Completada</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Filtro prioridad — usa enums del back */}
-            <Select
-              value={prioridad ?? 'todas'}
-              onValueChange={setOrUnset<PrioridadTarea>(setPrioridad, 'todas')}
-            >
-              <SelectTrigger className="w-40" aria-label="Prioridad">
-                <SelectValue placeholder="Prioridad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas las prioridades</SelectItem>
-                {PRIORIDAD_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Filtro tipo — usa enums del back */}
-            <Select
-              value={tipo ?? 'todos'}
-              onValueChange={setOrUnset<TipoTarea>(setTipo, 'todos')}
-            >
-              <SelectTrigger className="w-40" aria-label="Tipo">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los tipos</SelectItem>
-                {TIPO_TAREA_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Filtro vencimiento */}
-            <Select value={vencimiento ?? 'todas'} onValueChange={handleVencimientoChange}>
-              <SelectTrigger className="w-40" aria-label="Vencimiento">
-                <SelectValue placeholder="Vencimiento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas las fechas</SelectItem>
-                <SelectItem value="vencidas">Vencidas</SelectItem>
-                <SelectItem value="proximas">Próximas (7 días)</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Filtro responsable */}
-            <Select
-              value={responsableId ?? 'todos'}
-              onValueChange={setOrUnset<string>(setResponsableId, 'todos')}
-            >
-              <SelectTrigger className="w-48" aria-label="Responsable">
-                <SelectValue placeholder="Responsable" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los responsables</SelectItem>
-                {usuarios
-                  .filter((u) => u.activo)
-                  .map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.nombre}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-
-            {/* Filtro trato */}
-            <Select
-              value={tratoId ?? 'todos'}
-              onValueChange={setOrUnset<string>(setTratoId, 'todos')}
-            >
-              <SelectTrigger className="w-48" aria-label="Trato">
-                <SelectValue placeholder="Trato" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los tratos</SelectItem>
-                {tratos.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Loading: esqueleto de tabla en vez de texto plano */}
           {isLoading && (
             <div className="rounded-md border">
@@ -342,7 +418,6 @@ export function TareasListPage() {
                 tareas={tareas}
                 tratosById={tratosById}
                 usuariosById={usuariosById}
-                searchTerm={searchTerm}
               />
             </div>
           )}
@@ -350,12 +425,48 @@ export function TareasListPage() {
 
         {/* Tab Kanban: KanbanTabContent tipo TAREAS */}
         <TabsContent value="kanban" className="mt-4">
-          <KanbanTabContent tipo="TAREAS" />
+          <KanbanTabContent tipo="TAREAS" allowedEntityIds={filteredTareaIds} />
         </TabsContent>
       </Tabs>
 
       {/* Dialog crear tarea — sin tratoIdFijo (Select editable y requerido) */}
       <TareaCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Guardar vista</DialogTitle>
+            <DialogDescription>
+              Guardá los filtros actuales como una vista local para reutilizarlos después.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleConfirmSavePreset();
+            }}
+          >
+            <Input
+              autoFocus
+              value={presetName}
+              onChange={(event) => setPresetName(event.target.value)}
+              placeholder="Ej: Tareas urgentes"
+              aria-label="Nombre de la vista"
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setSavePresetOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={!presetName.trim()}>
+                Guardar vista
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

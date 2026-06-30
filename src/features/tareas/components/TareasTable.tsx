@@ -1,7 +1,7 @@
 // TareasTable — homologa TratosTable.
 // Columnas: título (navega a /tareas/:id), tipo, prioridad, estado (badge + TareaEstadoMenu),
 //           responsable, trato vinculado, fecha_limite, acciones (editar/eliminar).
-// Acepta searchTerm para filtro client-side por título.
+// Recibe tareas ya filtradas desde la página; no filtra internamente.
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -37,25 +37,17 @@ interface TareasTableProps {
   tratosById?: Record<string, string>;
   /** Mapa id → nombre de usuarios/responsables. */
   usuariosById?: Record<string, string>;
-  searchTerm?: string;
 }
 
 export function TareasTable({
   tareas,
   tratosById = {},
   usuariosById = {},
-  searchTerm,
 }: TareasTableProps) {
   const navigate = useNavigate();
   const [editTarea, setEditTarea] = useState<Tarea | null>(null);
   const [deleteTarea, setDeleteTarea] = useState<Tarea | null>(null);
   const deleteMutation = useDeleteTarea();
-
-  const filtered = searchTerm
-    ? tareas.filter((t) =>
-        t.titulo.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    : tareas;
 
   function handleConfirmDelete() {
     if (!deleteTarea) return;
@@ -81,16 +73,14 @@ export function TareasTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filtered.length === 0 ? (
+          {tareas.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
-                {searchTerm
-                  ? `No se encontraron tareas con "${searchTerm}"`
-                  : 'No hay tareas registradas'}
+                No hay tareas que coincidan con los filtros
               </TableCell>
             </TableRow>
           ) : (
-            filtered.map((tarea) => {
+            tareas.map((tarea) => {
               const vencida = estaVencida(tarea);
               return (
               <TableRow key={tarea.id} className="group">
