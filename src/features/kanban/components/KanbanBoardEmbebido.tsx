@@ -28,11 +28,16 @@ export function KanbanBoardEmbebido({ tableroId, allowedEntityIds }: KanbanBoard
   const [nuevaColumnaOpen, setNuevaColumnaOpen] = useState(false);
 
   const { data: tablero, isLoading, error } = useTablero(tableroId);
-  const { data: fichas = [] } = useFichas();
 
   // Derivar tipoFicha desde tipoTablero del tablero
   const tipoTableroActual = tablero?.tipoTablero ?? 'TRATOS';
   const tipoFicha: TipoFicha = tipoTableroActual === 'TAREAS' ? 'TAREA' : 'TRATO';
+  const fichaFilters = {
+    tipoFicha,
+    tratoIds: tipoFicha === 'TRATO' ? allowedEntityIds : undefined,
+    tareaIds: tipoFicha === 'TAREA' ? allowedEntityIds : undefined,
+  };
+  const { data: fichas = [] } = useFichas(fichaFilters);
 
   // NOTA: ya no se hace backfill de fichas en el front. El back crea la ficha al crear
   // la tarea/trato (CreateTareaService/CreateTratoService). El backfill client-side

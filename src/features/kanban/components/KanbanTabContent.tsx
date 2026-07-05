@@ -24,7 +24,7 @@ export interface KanbanTabContentProps {
 // ---------------------------------------------------------------------------
 
 export function KanbanTabContent({ tipo, allowedEntityIds }: KanbanTabContentProps) {
-  const { data: tableros = [], isLoading } = useTableros();
+  const { data: tableros = [], isLoading } = useTableros({ tipoTablero: tipo });
 
   if (isLoading) {
     return (

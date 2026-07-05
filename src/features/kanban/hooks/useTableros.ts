@@ -1,5 +1,4 @@
-// Hook para listar todos los tableros del Kanban.
-// queryKey plana ['tableros'] — filtros client-side (el back no filtra server-side).
+// Hook para listar tableros del Kanban con filtro server-side opcional por tipoTablero.
 // Valida la respuesta con tableroSchema (zod) — fuente de verdad del contrato.
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
@@ -10,14 +9,16 @@ import { tableroSchema, type Tablero } from '@/features/kanban/schemas/tablero.s
 
 export const tablerosKeys = {
   all: ['tableros'] as const,
+  list: (filters?: { tipoTablero?: string }) =>
+    filters ? (['tableros', filters] as const) : (['tableros'] as const),
   detail: (id: string) => ['tableros', id] as const,
 };
 
-export function useTableros(): UseQueryResult<Tablero[]> {
+export function useTableros(filters?: { tipoTablero?: string }): UseQueryResult<Tablero[]> {
   return useQuery<Tablero[]>({
-    queryKey: tablerosKeys.all,
+    queryKey: tablerosKeys.list(filters),
     queryFn: async () => {
-      const data = await apiClient.get<unknown[]>(endpoints.tableros.getAll());
+      const data = await apiClient.get<unknown[]>(endpoints.tableros.getAll(filters));
       return z.array(tableroSchema).parse(data);
     },
   });
