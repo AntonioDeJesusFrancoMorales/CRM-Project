@@ -95,7 +95,7 @@ export function TareasListPage() {
   // Kanban es el tab por defecto — URL limpia cuando activo = "kanban"; ?tab=lista cuando activo = "lista".
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
-  const { data: todasLasTareas, isLoading, isError, refetch } = useTareas();
+  const { data: todasLasTareas, isLoading, isError, refetch } = useTareas(filters);
   const { data: usuarios = [] } = useUsuarios();
   const { data: tratos = [] } = useTratos();
 

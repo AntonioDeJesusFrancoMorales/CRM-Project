@@ -1,6 +1,5 @@
-// ADR-048 — Hook para listar tareas (filtros client-side).
-// queryKey: ['tareas'] plano — NO embebe filtros (B1 fix, W-01).
-// Filtros se aplican en los componentes consumidores (useMemo sobre el array completo).
+// Hook para listar tareas. Los filtros persistidos en back se envían como query params.
+// `estado` sigue siendo local del front, por eso NO se serializa al backend.
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
@@ -18,14 +17,22 @@ export interface UseTareasFilters {
 
 export const tareasKeys = {
   all: ['tareas'] as const,
-  list: () => ['tareas'] as const,
+  list: (filters?: Partial<UseTareasFilters> & { search?: string }) =>
+    filters ? (['tareas', filters] as const) : (['tareas'] as const),
   detail: (id: string) => ['tareas', id] as const,
   byTrato: (_tratoId: string) => ['tareas'] as const,
 };
 
-export function useTareas(): UseQueryResult<Tarea[]> {
+export function useTareas(filters?: Partial<UseTareasFilters> & { search?: string; responsableId?: string; tratoId?: string }): UseQueryResult<Tarea[]> {
   return useQuery<Tarea[]>({
-    queryKey: tareasKeys.all,
-    queryFn: () => apiClient.get<Tarea[]>(endpoints.tareas.getAll()),
+    queryKey: tareasKeys.list(filters),
+    queryFn: () => apiClient.get<Tarea[]>(endpoints.tareas.getAll({
+      search: filters?.search,
+      prioridad: filters?.prioridad,
+      responsableId: filters?.responsableId ?? filters?.responsable_id,
+      tratoId: filters?.tratoId ?? filters?.trato_id,
+      tipo: filters?.tipo,
+      vencimiento: filters?.vencimiento,
+    })),
   });
 }
