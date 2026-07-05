@@ -79,7 +79,7 @@ export function EmpresasListPage() {
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [deleting, setDeleting] = useState<Empresa | null>(null);
 
-  const { data: empresas, isLoading, isError, refetch } = useEmpresas();
+  const { data: empresas, isLoading, isError, refetch } = useEmpresas(filters);
   const { data: usuarios = [] } = useUsuarios();
 
   const kpis = useMemo(() => computeKpis(empresas ?? []), [empresas]);
