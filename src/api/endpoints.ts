@@ -1,22 +1,40 @@
 // Fuente única de verdad de rutas RPC del back.
 // El prefijo /api vive en BASE_URL del cliente; estas rutas son relativas.
 
+type QueryValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
+
+function withQuery(path: string, params?: object) {
+  if (!params) return path;
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const queryValue = value as QueryValue;
+    if (queryValue === undefined || queryValue === null || queryValue === '') continue;
+    if (Array.isArray(queryValue)) {
+      for (const item of queryValue) search.append(key, String(item));
+    } else {
+      search.set(key, String(queryValue));
+    }
+  }
+  const query = search.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 export const endpoints = {
   empresas: {
-    getAll: () => '/empresas/get-all',
+    getAll: (filters?: object) => withQuery('/empresas/get-all', filters),
     create: () => '/empresas/create',
     edit: (id: string) => `/empresas/edit?id=${id}`,
     delete: (id: string) => `/empresas/delete?id=${id}`,
   },
   tareas: {
-    getAll: () => '/tareas/get-all',
+    getAll: (filters?: object) => withQuery('/tareas/get-all', filters),
     getById: (id: string) => `/tareas/get-by-id?id=${id}`,
     create: () => '/tareas/create',
     edit: (id: string) => `/tareas/edit?id=${id}`,
     delete: (id: string) => `/tareas/delete?id=${id}`,
   },
   contactos: {
-    getAll: () => '/contactos/get-all',
+    getAll: (filters?: object) => withQuery('/contactos/get-all', filters),
     getById: (id: string) => `/contactos/get-by-id?id=${id}`,
     create: () => '/contactos/create',
     edit: (id: string) => `/contactos/edit?id=${id}`,
@@ -24,7 +42,7 @@ export const endpoints = {
     delete: (id: string) => `/contactos/delete?id=${id}`,
   },
   tratos: {
-    getAll: () => '/tratos/get-all',
+    getAll: (filters?: object) => withQuery('/tratos/get-all', filters),
     getById: (id: string) => `/tratos/get-by-id?id=${id}`,
     create: () => '/tratos/create',
     edit: (id: string) => `/tratos/edit?id=${id}`,
@@ -35,7 +53,7 @@ export const endpoints = {
     notasCreate: (tratoId: string) => `/tratos/notas/create?tratoId=${tratoId}`,
   },
   tableros: {
-    getAll: () => '/tableros/get-all',
+    getAll: (filters?: object) => withQuery('/tableros/get-all', filters),
     getById: (id: string) => `/tableros/get-by-id?id=${id}`,
     create: () => '/tableros/create',
     edit: (id: string) => `/tableros/edit?id=${id}`,
@@ -65,7 +83,7 @@ export const endpoints = {
     delete: (id: string) => `/columnas/delete?id=${id}`,
   },
   fichas: {
-    getAll: () => '/fichas/get-all',
+    getAll: (filters?: object) => withQuery('/fichas/get-all', filters),
     create: () => '/fichas/create',
     edit: (id: string) => `/fichas/edit?id=${id}`,
     delete: (id: string) => `/fichas/delete?id=${id}`,
