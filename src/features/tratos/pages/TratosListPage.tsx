@@ -114,7 +114,7 @@ export function TratosListPage() {
 
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
-  const { data: tratos, isLoading, isError, refetch } = useTratos();
+  const { data: tratos, isLoading, isError, refetch } = useTratos(filters);
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
   const deleteMutation = useDeleteTrato();
