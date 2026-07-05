@@ -86,7 +86,10 @@ export function ContactosPage() {
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
 
-  const { data: contactos, isLoading, isError, refetch } = useContactos();
+  const { data: contactos, isLoading, isError, refetch } = useContactos({
+    ...filters,
+    estadoRelacion: activeTab,
+  });
   const { data: empresas = [] } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
 
