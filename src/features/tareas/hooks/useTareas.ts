@@ -4,7 +4,8 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import type { PrioridadTarea, TipoTarea, Tarea } from '@/api/types';
+import { listItems, type ListResponse } from '@/api/pagination';
+import type { ListQueryOptions, PageResponse, PrioridadTarea, TipoTarea, Tarea } from '@/api/types';
 
 export interface UseTareasFilters {
   trato_id?: string;
@@ -23,16 +24,33 @@ export const tareasKeys = {
   byTrato: (_tratoId: string) => ['tareas'] as const,
 };
 
-export function useTareas(filters?: Partial<UseTareasFilters> & { search?: string; responsableId?: string; tratoId?: string }): UseQueryResult<Tarea[]> {
+type TareaListQuery = Partial<UseTareasFilters> & { search?: string; responsableId?: string; tratoId?: string } & ListQueryOptions;
+
+function toApiFilters(filters?: TareaListQuery) {
+  return {
+    search: filters?.search,
+    prioridad: filters?.prioridad,
+    responsableId: filters?.responsableId ?? filters?.responsable_id,
+    tratoId: filters?.tratoId ?? filters?.trato_id,
+    tipo: filters?.tipo,
+    vencimiento: filters?.vencimiento,
+    page: filters?.page,
+    pageSize: filters?.pageSize,
+    sortBy: filters?.sortBy,
+    sortDirection: filters?.sortDirection,
+  };
+}
+
+export function useTareas(filters?: TareaListQuery): UseQueryResult<Tarea[]> {
   return useQuery<Tarea[]>({
     queryKey: tareasKeys.list(filters),
-    queryFn: () => apiClient.get<Tarea[]>(endpoints.tareas.getAll({
-      search: filters?.search,
-      prioridad: filters?.prioridad,
-      responsableId: filters?.responsableId ?? filters?.responsable_id,
-      tratoId: filters?.tratoId ?? filters?.trato_id,
-      tipo: filters?.tipo,
-      vencimiento: filters?.vencimiento,
-    })),
+    queryFn: async () => listItems(await apiClient.get<ListResponse<Tarea>>(endpoints.tareas.getAll(toApiFilters(filters)))),
+  });
+}
+
+export function useTareasPage(filters: TareaListQuery): UseQueryResult<PageResponse<Tarea>> {
+  return useQuery<PageResponse<Tarea>>({
+    queryKey: tareasKeys.list(filters),
+    queryFn: () => apiClient.get<PageResponse<Tarea>>(endpoints.tareas.getAll(toApiFilters(filters))),
   });
 }

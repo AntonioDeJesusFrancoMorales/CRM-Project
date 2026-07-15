@@ -184,6 +184,25 @@ export interface ApiError {
   details?: Array<{ field: string; message: string }>;
 }
 
+export type SortDirection = 'asc' | 'desc';
+
+export interface ListQueryOptions {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: SortDirection;
+}
+
+export interface PageResponse<T> {
+  items: T[];
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 // ── WhatsApp module types ────────────────────────────────────────────────────
 
 export type EstadoCanal = 'ACTIVO' | 'INACTIVO' | 'DESCONECTADO';

@@ -3,19 +3,29 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import type { Trato } from '@/api/types';
+import { listItems, type ListResponse } from '@/api/pagination';
+import type { ListQueryOptions, PageResponse, Trato } from '@/api/types';
 import type { TratoFilters } from '../lib/tratoFilters';
+
+type TratoListQuery = Partial<TratoFilters> & ListQueryOptions;
 
 export const tratosKeys = {
   all: ['tratos'] as const,
-  list: (filters?: Partial<TratoFilters>) =>
+  list: (filters?: TratoListQuery) =>
     filters ? (['tratos', filters] as const) : (['tratos'] as const),
   detail: (id: string) => ['tratos', id] as const,
 };
 
-export function useTratos(filters?: Partial<TratoFilters>): UseQueryResult<Trato[]> {
+export function useTratos(filters?: TratoListQuery): UseQueryResult<Trato[]> {
   return useQuery<Trato[]>({
     queryKey: tratosKeys.list(filters),
-    queryFn: () => apiClient.get<Trato[]>(endpoints.tratos.getAll(filters)),
+    queryFn: async () => listItems(await apiClient.get<ListResponse<Trato>>(endpoints.tratos.getAll(filters))),
+  });
+}
+
+export function useTratosPage(filters: TratoListQuery): UseQueryResult<PageResponse<Trato>> {
+  return useQuery<PageResponse<Trato>>({
+    queryKey: tratosKeys.list(filters),
+    queryFn: () => apiClient.get<PageResponse<Trato>>(endpoints.tratos.getAll(filters)),
   });
 }
