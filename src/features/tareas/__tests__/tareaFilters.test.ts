@@ -62,4 +62,30 @@ describe('tareaFilters', () => {
 
     expect(result.map((tarea) => tarea.id)).toEqual(['tarea-1']);
   });
+
+  it('filtra estado operativo por columna Kanban derivada', () => {
+    const result = applyTareaFilters(
+      tareas,
+      { search: '', estado: 'col-en-curso' },
+      new Date('2026-06-29T00:00:00.000Z'),
+      {
+        'tarea-1': {
+          tareaId: 'tarea-1',
+          fichaId: 'ficha-1',
+          columnaId: 'col-pendiente',
+          nombre: 'Pendiente',
+          color: null,
+        },
+        'tarea-2': {
+          tareaId: 'tarea-2',
+          fichaId: 'ficha-2',
+          columnaId: 'col-en-curso',
+          nombre: 'En Curso',
+          color: null,
+        },
+      },
+    );
+
+    expect(result.map((tarea) => tarea.id)).toEqual(['tarea-2']);
+  });
 });

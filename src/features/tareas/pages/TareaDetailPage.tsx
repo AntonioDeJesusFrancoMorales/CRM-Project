@@ -24,6 +24,7 @@ import { TareaDeleteDialog } from '../components/TareaDeleteDialog';
 import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
 import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
 import { FichaEtiquetasPanel } from '@/features/etiquetas/components/FichaEtiquetasPanel';
+import { useTareaWorkflowStates } from '../hooks/useTareaWorkflowStates';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -50,6 +51,10 @@ export function TareaDetailPage() {
   const { data: tarea, isLoading, error } = useTarea(id);
   const { data: trato } = useTrato(tarea?.tratoId);
   const { data: usuarios = [] } = useUsuarios();
+  const {
+    workflowByTareaId,
+    workflowColumns,
+  } = useTareaWorkflowStates(tarea ? [tarea] : []);
 
   const deleteMutation = useDeleteTarea();
 
@@ -127,6 +132,7 @@ export function TareaDetailPage() {
   }
 
   const responsable = usuarios.find((u) => u.id === tarea.responsableId);
+  const workflowState = workflowByTareaId[tarea.id];
 
   return (
     <div className="space-y-6">
@@ -143,7 +149,7 @@ export function TareaDetailPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{tarea.titulo}</h1>
             <div className="flex flex-wrap gap-2">
-              <TareaEstadoBadge tareaId={tarea.id} />
+              <TareaEstadoBadge workflowState={workflowState} />
               <Badge className={cn(prioridadBadgeClass[tarea.prioridad])}>
                 {prioridadLabels[tarea.prioridad]}
               </Badge>
@@ -152,7 +158,11 @@ export function TareaDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <TareaEstadoMenu tarea={tarea} />
+          <TareaEstadoMenu
+            tarea={tarea}
+            workflowState={workflowState}
+            workflowColumns={workflowColumns}
+          />
           <Button variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
             Editar

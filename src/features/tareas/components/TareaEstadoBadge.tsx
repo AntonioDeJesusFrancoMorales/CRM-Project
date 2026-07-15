@@ -1,28 +1,29 @@
-// TareaEstadoBadge — muestra el estado client-only de una tarea (ADR-050).
-// Reactivo: lee el estado vía useTareaEstado, así se actualiza cuando el menú lo cambia.
-
 import { Badge } from '@/components/ui/badge';
-import type { EstadoTareaLocal } from '@/api/types';
-import { useTareaEstado } from '../hooks/useTareaEstado';
+import type { TareaWorkflowState } from '../lib/tareaWorkflow';
 
-const estadoLabels: Record<EstadoTareaLocal, string> = {
-  pendiente: 'Pendiente',
-  en_progreso: 'En progreso',
-  completada: 'Completada',
-};
-
-const estadoBadgeVariant: Record<EstadoTareaLocal, 'outline' | 'secondary' | 'default'> = {
-  pendiente: 'outline',
-  en_progreso: 'secondary',
-  completada: 'default',
+const FALLBACK_STATE: TareaWorkflowState = {
+  tareaId: '',
+  fichaId: null,
+  columnaId: null,
+  nombre: 'Sin columna',
+  color: null,
 };
 
 interface TareaEstadoBadgeProps {
-  tareaId: string;
+  workflowState?: TareaWorkflowState;
+  /** @deprecated El estado ya no se resuelve por tareaId/localStorage; usar workflowState. */
+  tareaId?: string;
 }
 
-export function TareaEstadoBadge({ tareaId }: TareaEstadoBadgeProps) {
-  const [estado] = useTareaEstado(tareaId);
+export function TareaEstadoBadge({ workflowState }: TareaEstadoBadgeProps) {
+  const state = workflowState ?? FALLBACK_STATE;
 
-  return <Badge variant={estadoBadgeVariant[estado]}>{estadoLabels[estado]}</Badge>;
+  return (
+    <Badge
+      variant={state.columnaId ? 'secondary' : 'outline'}
+      style={state.color ? { borderColor: state.color } : undefined}
+    >
+      {state.nombre}
+    </Badge>
+  );
 }

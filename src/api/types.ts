@@ -5,7 +5,6 @@ export type EstadoRelacion = 'ACTIVO' | 'INACTIVO' | 'PROSPECTO';
 export type TipoContrato = 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCION' | 'PERMANENTE' | 'OTRO';
 export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
 export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
-export type EstadoTareaLocal = 'pendiente' | 'en_progreso' | 'completada';
 // TipoFicha eliminado — usar tipoFicha de src/features/kanban/schemas/ficha.schema.ts
 
 export interface Usuario {

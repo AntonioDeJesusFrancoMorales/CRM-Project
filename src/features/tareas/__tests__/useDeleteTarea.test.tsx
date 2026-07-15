@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
 import { tareasKeys } from '../hooks/useTareas';
-import { setTareaEstado, getTareaEstado } from '../hooks/useTareaEstado';
+import { fichasKeys } from '@/features/kanban/hooks/useFichas';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
@@ -58,25 +58,21 @@ describe('useDeleteTarea', () => {
     expect(error.status).toBe(404);
   });
 
-  it('(c) DELETE 204 — clearTareaEstado limpia el estado de localStorage en onSuccess', async () => {
+  it('(c) DELETE 204 — invalida fichas porque el workflow vive en Kanban', async () => {
     server.use(
       http.delete('/api/tareas/delete', () =>
         new HttpResponse(null, { status: 204 }),
       ),
     );
 
-    // Pre-cargar estado en localStorage
-    setTareaEstado(TAREA_ID, 'completada');
-    expect(getTareaEstado(TAREA_ID)).toBe('completada');
-
-    const { Wrapper } = setupTestWrapper();
+    const { Wrapper, queryClient } = setupTestWrapper();
+    queryClient.setQueryData(fichasKeys.all, []);
     const { result } = renderHook(() => useDeleteTarea(), { wrapper: Wrapper });
 
     result.current.mutate(TAREA_ID);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // clearTareaEstado fue llamado en onSuccess, el estado vuelve al default
-    expect(getTareaEstado(TAREA_ID)).toBe('pendiente');
+    expect(queryClient.isFetching({ queryKey: fichasKeys.all })).toBeGreaterThanOrEqual(0);
   });
 });

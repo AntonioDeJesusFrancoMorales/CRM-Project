@@ -26,7 +26,7 @@ import { useGanarTrato, usePerderTrato } from '../hooks/useCambiarEstadoTrato';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
-import { getTareaEstado } from '@/features/tareas/hooks/useTareaEstado';
+import { useTareaWorkflowStates } from '@/features/tareas/hooks/useTareaWorkflowStates';
 import { FichaEtiquetasPanel } from '@/features/etiquetas/components/FichaEtiquetasPanel';
 import { TratoInfoTab } from '../components/TratoInfoTab';
 import { TratoTareasTab } from '../components/TratoTareasTab';
@@ -44,12 +44,16 @@ export function TratoDetailPage() {
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
 
-  // Badge de pendientes: estado client-only (localStorage), traemos todas las
-  // tareas y filtramos client-side por tratoId + estado 'pendiente'.
   const { data: todasLasTareas = [] } = useTareas();
+  const tareasDelTrato = todasLasTareas.filter((t) => t.tratoId === id);
+  const { workflowByTareaId } = useTareaWorkflowStates(tareasDelTrato);
   const tareasPendientes = todasLasTareas
     .filter((t) => t.tratoId === id)
-    .filter((t) => getTareaEstado(t.id) === 'pendiente');
+    .filter((t) => {
+      const workflow = workflowByTareaId[t.id];
+      const nombre = workflow?.nombre.toLowerCase() ?? '';
+      return nombre !== 'finalizada' && nombre !== 'cancelada';
+    });
 
   const deleteMutation = useDeleteTrato();
   const ganarMutation = useGanarTrato();

@@ -1,11 +1,11 @@
-import type { EstadoTareaLocal, PrioridadTarea, Tarea, TipoTarea } from '@/api/types';
-import { getTareaEstado } from '../hooks/useTareaEstado';
+import type { PrioridadTarea, Tarea, TipoTarea } from '@/api/types';
+import { matchesTareaWorkflowFilter, type TareaWorkflowById } from './tareaWorkflow';
 
 export type VencimientoTareaFilter = 'vencidas' | 'proximas';
 
 export interface TareaFilters {
   search: string;
-  estado?: EstadoTareaLocal;
+  estado?: string;
   prioridad?: PrioridadTarea;
   responsableId?: string;
   tratoId?: string;
@@ -35,12 +35,13 @@ export function applyTareaFilters(
   tareas: Tarea[],
   filters: TareaFilters,
   now: Date = new Date(),
+  workflowByTareaId: TareaWorkflowById = {},
 ): Tarea[] {
   const term = filters.search.trim().toLowerCase();
 
   return tareas.filter((tarea) => {
     if (term && !tarea.titulo.toLowerCase().includes(term)) return false;
-    if (filters.estado && getTareaEstado(tarea.id) !== filters.estado) return false;
+    if (!matchesTareaWorkflowFilter(workflowByTareaId[tarea.id], filters.estado)) return false;
     if (filters.prioridad && tarea.prioridad !== filters.prioridad) return false;
     if (filters.responsableId && tarea.responsableId !== filters.responsableId) return false;
     if (filters.tratoId && tarea.tratoId !== filters.tratoId) return false;

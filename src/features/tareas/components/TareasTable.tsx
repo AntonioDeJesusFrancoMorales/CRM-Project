@@ -25,6 +25,8 @@ import { TareaEditDialog } from './TareaEditDialog';
 import { TareaDeleteDialog } from './TareaDeleteDialog';
 import { useDeleteTarea } from '../hooks/useDeleteTarea';
 import { prioridadBadgeClass, prioridadLabels, tipoLabels } from '../lib/tareaBadges';
+import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
+import type { TareaWorkflowById } from '../lib/tareaWorkflow';
 
 /** Una tarea está vencida si su fecha límite ya pasó y aún no fue completada. */
 function estaVencida(tarea: Tarea): boolean {
@@ -37,12 +39,16 @@ interface TareasTableProps {
   tratosById?: Record<string, string>;
   /** Mapa id → nombre de usuarios/responsables. */
   usuariosById?: Record<string, string>;
+  workflowByTareaId?: TareaWorkflowById;
+  workflowColumns?: ColumnaTablero[];
 }
 
 export function TareasTable({
   tareas,
   tratosById = {},
   usuariosById = {},
+  workflowByTareaId = {},
+  workflowColumns = [],
 }: TareasTableProps) {
   const navigate = useNavigate();
   const [editTarea, setEditTarea] = useState<Tarea | null>(null);
@@ -82,6 +88,7 @@ export function TareasTable({
           ) : (
             tareas.map((tarea) => {
               const vencida = estaVencida(tarea);
+              const workflowState = workflowByTareaId[tarea.id];
               return (
               <TableRow key={tarea.id} className="group">
                 <TableCell className="font-medium">
@@ -101,8 +108,12 @@ export function TareasTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <TareaEstadoBadge tareaId={tarea.id} />
-                    <TareaEstadoMenu tarea={tarea} />
+                    <TareaEstadoBadge workflowState={workflowState} />
+                    <TareaEstadoMenu
+                      tarea={tarea}
+                      workflowState={workflowState}
+                      workflowColumns={workflowColumns}
+                    />
                   </div>
                 </TableCell>
                 <TableCell>{usuariosById[tarea.responsableId] ?? '—'}</TableCell>

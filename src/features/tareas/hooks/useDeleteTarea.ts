@@ -3,7 +3,7 @@
 // El back NO cascadea (DeleteTareaService borra solo la tarea), así que el front
 // borra también la ficha TAREA asociada (eliminarFichaAsociada). Esto cubre TODAS
 // las vistas: lista, detalle y Kanban (vía useEliminarTarjeta, que delega aquí).
-// onSuccess: limpia cache de detalle, invalida lista + fichas, y borra estado local (ADR-050).
+// onSuccess: limpia cache de detalle e invalida lista + fichas.
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -12,7 +12,6 @@ import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { eliminarFichaAsociada } from '@/features/kanban/lib/eliminarFichaAsociada';
 import { fichasKeys } from '@/features/kanban/hooks/useFichas';
-import { clearTareaEstado } from './useTareaEstado';
 import { tareasKeys } from './useTareas';
 
 export function useDeleteTarea(): UseMutationResult<void, Error, string> {
@@ -28,7 +27,6 @@ export function useDeleteTarea(): UseMutationResult<void, Error, string> {
       queryClient.removeQueries({ queryKey: tareasKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: tareasKeys.all });
       void queryClient.invalidateQueries({ queryKey: fichasKeys.all });
-      clearTareaEstado(id);
       toast.success('Tarea eliminada');
     },
     onError: (error) => {

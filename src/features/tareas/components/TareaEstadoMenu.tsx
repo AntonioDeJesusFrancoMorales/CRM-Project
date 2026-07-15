@@ -1,10 +1,3 @@
-// TareaEstadoMenu: DropdownMenu (3 puntos) con ítems para cambiar el estado de una tarea.
-// Estado es client-only (localStorage, ADR-050). No emite calls al back para estado.
-//
-// Usa el hook reactivo useTareaEstado: al cambiar el estado, persiste en localStorage y
-// notifica a todas las instancias suscritas (badge en tabla, badge en detalle, este menú),
-// que re-renderizan. La visualización del estado vive en TareaEstadoBadge, no acá.
-
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,14 +7,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Tarea } from '@/api/types';
-import { useTareaEstado } from '../hooks/useTareaEstado';
+import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
+import { useMoverFicha } from '@/features/kanban/hooks/useMoverFicha';
+import type { TareaWorkflowState } from '../lib/tareaWorkflow';
 
 interface TareaEstadoMenuProps {
   tarea: Tarea;
+  workflowState?: TareaWorkflowState;
+  workflowColumns?: ColumnaTablero[];
 }
 
-export function TareaEstadoMenu({ tarea }: TareaEstadoMenuProps) {
-  const [estado, setEstado] = useTareaEstado(tarea.id);
+export function TareaEstadoMenu({
+  workflowState,
+  workflowColumns = [],
+}: TareaEstadoMenuProps) {
+  const moverFicha = useMoverFicha();
+  const canMove = workflowState?.fichaId !== null && workflowState?.fichaId !== undefined;
+
+  function moveTo(columnaId: string) {
+    if (!workflowState?.fichaId) return;
+    moverFicha.mutate({ id: workflowState.fichaId, targetColumnaId: columnaId });
+  }
 
   return (
     <DropdownMenu>
@@ -35,24 +41,18 @@ export function TareaEstadoMenu({ tarea }: TareaEstadoMenuProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          disabled={estado !== 'pendiente'}
-          onClick={() => setEstado('en_progreso')}
-        >
-          Iniciar
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={estado === 'completada'}
-          onClick={() => setEstado('completada')}
-        >
-          Completar
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={estado !== 'completada'}
-          onClick={() => setEstado('pendiente')}
-        >
-          Reabrir
-        </DropdownMenuItem>
+        {workflowColumns.length === 0 && (
+          <DropdownMenuItem disabled>Sin columnas disponibles</DropdownMenuItem>
+        )}
+        {workflowColumns.map((columna) => (
+          <DropdownMenuItem
+            key={columna.id}
+            disabled={!canMove || workflowState?.columnaId === columna.id || moverFicha.isPending}
+            onClick={() => moveTo(columna.id)}
+          >
+            Mover a {columna.nombre ?? 'Sin nombre'}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );

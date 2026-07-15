@@ -11,7 +11,7 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 import { TareaDetailPage } from '../pages/TareaDetailPage';
 import { server } from '@/test/server';
 
-// e1111111 → "Demo presencial con CTO", estado: pendiente, trato: d1111111
+// e1111111 → "Demo presencial con CTO", workflow fallback sin ficha en fixture, trato: d1111111
 const TAREA_ID = 'e1111111-eeee-1111-eeee-111111111111';
 const TRATO_ID = 'd1111111-dddd-1111-dddd-111111111111';
 
@@ -46,8 +46,8 @@ describe('TareaDetailPage — render de datos', () => {
       ).toBeInTheDocument();
     });
 
-    // Badge de estado
-    expect(screen.getByText(/pendiente/i)).toBeInTheDocument();
+    // Badge de estado operativo derivado de Kanban; sin ficha en fixture => fallback seguro.
+    expect(screen.getByText(/sin columna/i)).toBeInTheDocument();
 
     // Link al trato vinculado — esperar que cargue el trato (query separada)
     await waitFor(() => {

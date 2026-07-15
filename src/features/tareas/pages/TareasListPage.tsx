@@ -52,6 +52,7 @@ import { TareaCreateDialog } from '../components/TareaCreateDialog';
 import { PRIORIDAD_OPTIONS, TIPO_TAREA_OPTIONS } from '../schemas/tarea.schema';
 import { KanbanTabContent } from '@/features/kanban/components/KanbanTabContent';
 import type { PrioridadTarea, Tarea, TipoTarea } from '@/api/types';
+import { useTareaWorkflowStates } from '../hooks/useTareaWorkflowStates';
 import {
   applyTareaFilters,
   createEmptyTareaFilters,
@@ -98,6 +99,11 @@ export function TareasListPage() {
   const { data: todasLasTareas, isLoading, isError, refetch } = useTareas(filters);
   const { data: usuarios = [] } = useUsuarios();
   const { data: tratos = [] } = useTratos();
+  const {
+    workflowByTareaId,
+    workflowColumns,
+    isLoading: isLoadingWorkflow,
+  } = useTareaWorkflowStates(todasLasTareas ?? []);
 
   const usuariosById = Object.fromEntries(usuarios.map((u) => [u.id, u.nombre]));
   const tratosById = Object.fromEntries(tratos.map((t) => [t.id, t.nombre]));
@@ -106,8 +112,8 @@ export function TareasListPage() {
   const kpis = useMemo(() => computeKpis(todasLasTareas ?? []), [todasLasTareas]);
 
   const tareas = useMemo(
-    () => applyTareaFilters(todasLasTareas ?? [], filters),
-    [todasLasTareas, filters],
+    () => applyTareaFilters(todasLasTareas ?? [], filters, new Date(), workflowByTareaId),
+    [todasLasTareas, filters, workflowByTareaId],
   );
   const filteredTareaIds = useMemo(() => tareas.map((tarea) => tarea.id), [tareas]);
   const hasFilters = hasActiveTareaFilters(filters);
@@ -122,9 +128,7 @@ export function TareasListPage() {
 
   function handleEstadoChange(value: string) {
     if (value === 'todos') updateFilters({ estado: undefined });
-    else if (value === 'pendiente' || value === 'en_progreso' || value === 'completada') {
-      updateFilters({ estado: value });
-    }
+    else updateFilters({ estado: value });
   }
 
   function handleVencimientoChange(value: string) {
@@ -251,9 +255,11 @@ export function TareasListPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos los estados</SelectItem>
-              <SelectItem value="pendiente">Pendiente</SelectItem>
-              <SelectItem value="en_progreso">En progreso</SelectItem>
-              <SelectItem value="completada">Completada</SelectItem>
+              {workflowColumns.map((columna) => (
+                <SelectItem key={columna.id} value={columna.id}>
+                  {columna.nombre ?? 'Sin nombre'}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -378,7 +384,7 @@ export function TareasListPage() {
         {/* Tab Lista: tabla filtrada */}
         <TabsContent value="lista" className="mt-4 space-y-4">
           {/* Loading: esqueleto de tabla en vez de texto plano */}
-          {isLoading && (
+          {(isLoading || isLoadingWorkflow) && (
             <div className="rounded-md border">
               <TableSkeleton columns={8} rows={6} />
             </div>
@@ -397,7 +403,7 @@ export function TareasListPage() {
           )}
 
           {/* Empty state rico: no hay tareas registradas en absoluto */}
-          {!isLoading && !isError && todasLasTareas && todasLasTareas.length === 0 && (
+          {!isLoading && !isLoadingWorkflow && !isError && todasLasTareas && todasLasTareas.length === 0 && (
             <EmptyState
               icon={ListTodo}
               title="Aún no hay tareas"
@@ -412,12 +418,14 @@ export function TareasListPage() {
           )}
 
           {/* Tabla */}
-          {!isLoading && !isError && todasLasTareas && todasLasTareas.length > 0 && (
+          {!isLoading && !isLoadingWorkflow && !isError && todasLasTareas && todasLasTareas.length > 0 && (
             <div className="rounded-md border">
               <TareasTable
                 tareas={tareas}
                 tratosById={tratosById}
                 usuariosById={usuariosById}
+                workflowByTareaId={workflowByTareaId}
+                workflowColumns={workflowColumns}
               />
             </div>
           )}

@@ -1,18 +1,19 @@
-// ADR-050 — TareaEstadoMenu: DropdownMenu con 3 ítems siempre visibles, disabled-by-state.
-// Estado es client-only (localStorage). Los tests verifican disabled por estado
-// y que los clics persisten el estado correcto en localStorage.
-
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
 import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
-import { getTareaEstado, setTareaEstado } from '../hooks/useTareaEstado';
 import type { Tarea } from '@/api/types';
+import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 
-const TAREA_PENDIENTE: Tarea = {
+const mutateMock = vi.fn();
+
+vi.mock('@/features/kanban/hooks/useMoverFicha', () => ({
+  useMoverFicha: () => ({ mutate: mutateMock, isPending: false }),
+}));
+
+const TAREA: Tarea = {
   id: 'e1111111-eeee-1111-eeee-111111111111',
   tratoId: 'd1111111-dddd-1111-dddd-111111111111',
   responsableId: '22222222-2222-2222-2222-222222222222',
@@ -26,184 +27,91 @@ const TAREA_PENDIENTE: Tarea = {
   actualizadoEn: '2026-05-01T10:00:00.000Z',
 };
 
-const TAREA_EN_PROGRESO: Tarea = {
-  ...TAREA_PENDIENTE,
-  id: 'e2222222-eeee-2222-eeee-222222222222',
+const COLUMNAS: ColumnaTablero[] = [
+  { id: 'col-pendiente', nombre: 'Pendiente', color: '#64748B', limiteWip: 5, nota: null, totalValorEstimado: 0 },
+  { id: 'col-en-curso', nombre: 'En Curso', color: '#2563EB', limiteWip: 3, nota: null, totalValorEstimado: 0 },
+  { id: 'col-finalizada', nombre: 'Finalizada', color: '#16A34A', limiteWip: 5, nota: null, totalValorEstimado: 0 },
+];
+
+const WORKFLOW = {
+  tareaId: TAREA.id,
+  fichaId: 'ficha-1',
+  columnaId: 'col-pendiente',
+  nombre: 'Pendiente',
+  color: '#64748B',
 };
-
-const TAREA_COMPLETADA: Tarea = {
-  ...TAREA_PENDIENTE,
-  id: 'e3333333-eeee-3333-eeee-333333333333',
-  fechaCompletada: '2026-05-20T12:00:00.000Z',
-};
-
-function renderMenu(tarea: Tarea) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <TareaEstadoMenu tarea={tarea} />
-    </QueryClientProvider>,
-  );
-}
 
 async function openMenu(user: ReturnType<typeof userEvent.setup>) {
-  const trigger = screen.getByRole('button', { name: /cambiar estado de la tarea/i });
-  await user.click(trigger);
+  await user.click(screen.getByRole('button', { name: /cambiar estado de la tarea/i }));
 }
 
-describe('TareaEstadoMenu — disabled-by-state', () => {
+describe('TareaEstadoMenu — Kanban workflow', () => {
   beforeEach(() => {
+    mutateMock.mockClear();
     localStorage.clear();
   });
 
-  it('(a) estado pendiente: Iniciar habilitado, Completar habilitado, Reabrir deshabilitado', async () => {
+  it('lista columnas del tablero TAREAS como destinos de estado operativo', async () => {
     const user = userEvent.setup();
-    renderMenu(TAREA_PENDIENTE);
-    await openMenu(user);
-
-    await waitFor(() => {
-      expect(screen.getByRole('menuitem', { name: /iniciar/i })).not.toBeDisabled();
-      expect(screen.getByRole('menuitem', { name: /completar/i })).not.toBeDisabled();
-    });
-
-    // Reabrir debe estar deshabilitado en pendiente
-    const reabrir = screen.getByRole('menuitem', { name: /reabrir/i });
-    expect(reabrir).toHaveAttribute('data-disabled');
-  });
-
-  it('(b) estado en_progreso: Iniciar deshabilitado, Completar habilitado, Reabrir deshabilitado', async () => {
-    // Precargar estado en_progreso para este id
-    setTareaEstado(TAREA_EN_PROGRESO.id, 'en_progreso');
-
-    const user = userEvent.setup();
-    renderMenu(TAREA_EN_PROGRESO);
-    await openMenu(user);
-
-    await waitFor(() => {
-      expect(screen.getByRole('menuitem', { name: /completar/i })).not.toBeDisabled();
-    });
-
-    const iniciar = screen.getByRole('menuitem', { name: /iniciar/i });
-    const reabrir = screen.getByRole('menuitem', { name: /reabrir/i });
-    expect(iniciar).toHaveAttribute('data-disabled');
-    expect(reabrir).toHaveAttribute('data-disabled');
-  });
-
-  it('(c) estado completada: Iniciar deshabilitado, Completar deshabilitado, Reabrir habilitado', async () => {
-    // Precargar estado completada para este id
-    setTareaEstado(TAREA_COMPLETADA.id, 'completada');
-
-    const user = userEvent.setup();
-    renderMenu(TAREA_COMPLETADA);
-    await openMenu(user);
-
-    await waitFor(() => {
-      expect(screen.getByRole('menuitem', { name: /reabrir/i })).not.toBeDisabled();
-    });
-
-    const iniciar = screen.getByRole('menuitem', { name: /iniciar/i });
-    const completar = screen.getByRole('menuitem', { name: /completar/i });
-    expect(iniciar).toHaveAttribute('data-disabled');
-    expect(completar).toHaveAttribute('data-disabled');
-  });
-});
-
-describe('TareaEstadoMenu — persistencia en localStorage', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('(d) clic "Iniciar" persiste estado "en_progreso" en localStorage', async () => {
-    const user = userEvent.setup();
-    renderMenu(TAREA_PENDIENTE);
-    await openMenu(user);
-
-    await waitFor(() => expect(screen.getByRole('menuitem', { name: /iniciar/i })).toBeInTheDocument());
-    await user.click(screen.getByRole('menuitem', { name: /iniciar/i }));
-
-    expect(getTareaEstado(TAREA_PENDIENTE.id)).toBe('en_progreso');
-  });
-
-  it('(e) clic "Completar" persiste estado "completada" en localStorage', async () => {
-    const user = userEvent.setup();
-    renderMenu(TAREA_PENDIENTE);
-    await openMenu(user);
-
-    await waitFor(() => expect(screen.getByRole('menuitem', { name: /completar/i })).toBeInTheDocument());
-    await user.click(screen.getByRole('menuitem', { name: /completar/i }));
-
-    expect(getTareaEstado(TAREA_PENDIENTE.id)).toBe('completada');
-  });
-
-  it('(f) clic "Reabrir" persiste estado "pendiente" en localStorage', async () => {
-    setTareaEstado(TAREA_COMPLETADA.id, 'completada');
-
-    const user = userEvent.setup();
-    renderMenu(TAREA_COMPLETADA);
-    await openMenu(user);
-
-    await waitFor(() => expect(screen.getByRole('menuitem', { name: /reabrir/i })).toBeInTheDocument());
-    await user.click(screen.getByRole('menuitem', { name: /reabrir/i }));
-
-    expect(getTareaEstado(TAREA_COMPLETADA.id)).toBe('pendiente');
-  });
-});
-
-// Regresión del bug "le toco y no pasa nada": el clic debe reflejarse en la UI
-// (badge reactivo) sin re-montar el componente, no solo persistir en localStorage.
-describe('TareaEstadoMenu — reactividad visible (regresión)', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  function renderBadgeYMenu(tarea: Tarea) {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false, gcTime: 0 },
-        mutations: { retry: false },
-      },
-    });
-
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <TareaEstadoBadge tareaId={tarea.id} />
-        <TareaEstadoMenu tarea={tarea} />
-      </QueryClientProvider>,
+    render(
+      <TareaEstadoMenu
+        tarea={TAREA}
+        workflowState={WORKFLOW}
+        workflowColumns={COLUMNAS}
+      />,
     );
-  }
-
-  it('(g) clic "Iniciar" actualiza el badge a "En progreso" sin re-montar', async () => {
-    const user = userEvent.setup();
-    renderBadgeYMenu(TAREA_PENDIENTE);
-
-    // Estado inicial visible
-    expect(screen.getByText('Pendiente')).toBeInTheDocument();
 
     await openMenu(user);
-    await user.click(screen.getByRole('menuitem', { name: /iniciar/i }));
 
-    // El badge refleja el nuevo estado en el mismo render
-    await waitFor(() => {
-      expect(screen.getByText('En progreso')).toBeInTheDocument();
-    });
-    expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /mover a pendiente/i })).toHaveAttribute('data-disabled');
+    expect(screen.getByRole('menuitem', { name: /mover a en curso/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /mover a finalizada/i })).toBeInTheDocument();
   });
 
-  it('(h) clic "Completar" actualiza el badge a "Completada"', async () => {
+  it('mueve la ficha a la columna elegida y no escribe localStorage', async () => {
     const user = userEvent.setup();
-    renderBadgeYMenu(TAREA_PENDIENTE);
+    render(
+      <TareaEstadoMenu
+        tarea={TAREA}
+        workflowState={WORKFLOW}
+        workflowColumns={COLUMNAS}
+      />,
+    );
 
     await openMenu(user);
-    await user.click(screen.getByRole('menuitem', { name: /completar/i }));
+    await user.click(screen.getByRole('menuitem', { name: /mover a en curso/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Completada')).toBeInTheDocument();
-    });
+    expect(mutateMock).toHaveBeenCalledWith({ id: 'ficha-1', targetColumnaId: 'col-en-curso' });
+    expect(localStorage.getItem(`tarea-estado-${TAREA.id}`)).toBeNull();
+  });
+
+  it('deshabilita destinos cuando la tarea no tiene ficha Kanban', async () => {
+    const user = userEvent.setup();
+    render(
+      <TareaEstadoMenu
+        tarea={TAREA}
+        workflowState={{ ...WORKFLOW, fichaId: null, columnaId: null, nombre: 'Sin columna' }}
+        workflowColumns={COLUMNAS}
+      />,
+    );
+
+    await openMenu(user);
+
+    expect(screen.getByRole('menuitem', { name: /mover a pendiente/i })).toHaveAttribute('data-disabled');
+    expect(screen.getByRole('menuitem', { name: /mover a en curso/i })).toHaveAttribute('data-disabled');
+  });
+});
+
+describe('TareaEstadoBadge — Kanban workflow', () => {
+  it('muestra el nombre de la columna actual', () => {
+    render(<TareaEstadoBadge workflowState={WORKFLOW} />);
+
+    expect(screen.getByText('Pendiente')).toBeInTheDocument();
+  });
+
+  it('muestra fallback si no hay ficha o columna resuelta', () => {
+    render(<TareaEstadoBadge />);
+
+    expect(screen.getByText('Sin columna')).toBeInTheDocument();
   });
 });
