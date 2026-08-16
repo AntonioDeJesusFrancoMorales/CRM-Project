@@ -28,6 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { ListPagination } from '@/components/shared/ListPagination';
+import { useListPageState } from '@/components/shared/useListPageState';
 import {
   createListPreset,
   loadListPresets,
@@ -35,7 +37,7 @@ import {
   type ListPreset,
 } from '@/features/list-presets/lib/listPresets';
 import type { Contacto } from '@/api/types';
-import { useContactos } from '../hooks/useContactos';
+import { useContactos, useContactosPage } from '../hooks/useContactos';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { ContactosTable } from '../components/ContactosTable';
@@ -85,11 +87,11 @@ export function ContactosPage() {
   );
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
-  const { data: contactos, isLoading, isError, refetch } = useContactos({
-    ...filters,
-    estadoRelacion: activeTab,
-  });
+  const { data: contactosPage, isLoading, isError, refetch } = useContactosPage(paging.query);
+  const { data: todosLosContactos } = useContactos();
+  const contactos = todosLosContactos?.length === 0 ? [] : contactosPage?.items ?? [];
   const { data: empresas = [] } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
 
@@ -97,33 +99,36 @@ export function ContactosPage() {
   const [editing, setEditing] = useState<Contacto | null>(null);
   const [deleting, setDeleting] = useState<Contacto | null>(null);
 
-  const kpis = useMemo(() => computeKpis(contactos ?? []), [contactos]);
+  const kpis = useMemo(() => computeKpis(todosLosContactos ?? []), [todosLosContactos]);
 
   function handleTabChange(value: string) {
     setSearchParams({ tab: value }, { replace: true });
+    paging.resetPage();
   }
 
   const filteredContactos = useMemo(
-    () => applyContactoFilters(contactos ?? [], filters),
+    () => applyContactoFilters(contactos, filters),
     [contactos, filters],
   );
   const filtered = filteredContactos.filter((c) => c.estadoRelacion === activeTab);
   const hasFilters = hasActiveContactoFilters(filters);
   const origenOptions = useMemo(() => {
     const values = new Set<string>();
-    for (const contacto of contactos ?? []) {
+    for (const contacto of todosLosContactos ?? []) {
       const value = contacto.comoNosConocio?.trim();
       if (value) values.add(value);
     }
     return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [contactos]);
+  }, [todosLosContactos]);
 
   function updateFilters(patch: Partial<ContactoFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
+    paging.resetPage();
   }
 
   function clearFilters() {
     setFilters(createEmptyContactoFilters());
+    paging.resetPage();
   }
 
   function persistPresets(nextPresets: Array<ListPreset<ContactoFilters>>) {
@@ -166,7 +171,7 @@ export function ContactosPage() {
         description="Gestiona prospectos, clientes activos e inactivos."
         actions={
           <div className="flex flex-wrap gap-2">
-            <ContactosImportExport contactos={contactos ?? []} />
+            <ContactosImportExport contactos={todosLosContactos ?? []} />
             <Button onClick={() => setCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               Nuevo contacto
@@ -333,7 +338,7 @@ export function ContactosPage() {
 
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>
-                Mostrando {filtered.length} de {contactos?.length ?? 0} contactos
+                Mostrando {filtered.length} de {contactosPage?.totalItems ?? 0} contactos
               </span>
               {presets.map((preset) => (
                 <Button
@@ -360,7 +365,21 @@ export function ContactosPage() {
                   onEdit={(c) => setEditing(c)}
                   onDelete={(c) => setDeleting(c)}
                   onCreate={() => setCreateOpen(true)}
+                  sort={paging.sort}
+                  onSort={paging.setSort}
                 />
+                {tab.value === activeTab && contactosPage && (
+                  <ListPagination
+                    page={contactosPage.page}
+                    pageSize={contactosPage.pageSize}
+                    totalItems={contactosPage.totalItems}
+                    totalPages={contactosPage.totalPages}
+                    hasNext={contactosPage.hasNext}
+                    hasPrevious={contactosPage.hasPrevious}
+                    onPageChange={paging.setPage}
+                    onPageSizeChange={paging.setPageSize}
+                  />
+                )}
               </div>
             </TabsContent>
           ))}

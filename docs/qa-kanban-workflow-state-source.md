@@ -16,25 +16,25 @@ Validar que:
 
 ## P0 — Flujo crítico de Tareas
 
-- [ ] Entrar a `/tareas`.
+- [x] Entrar a `/tareas`.
   - Debe cargar lista y Kanban.
   - No debería aparecer nada roto por `localStorage`.
 
-- [ ] Ver columna **Estado** en lista.
+- [x] Ver columna **Estado** en lista.
   - Debe mostrar el nombre de la columna Kanban.
   - Si una tarea no tiene ficha, debe mostrar `Sin columna`.
 
-- [ ] Probar filtro **Estado**.
+- [x] Probar filtro **Estado**.
   - Debe listar columnas reales del tablero TAREAS.
   - Al elegir una columna, lista y Kanban deben filtrar coherentemente.
 
-- [ ] Probar menú de estado de tarea.
+- [x] Probar menú de estado de tarea.
   - Abrir los tres puntitos.
   - Debe mostrar opciones tipo `Mover a Pendiente`, `Mover a En Curso`, `Mover a Finalizada`.
   - Al elegir una, debe mover la ficha.
   - Refrescar la página: el estado debe seguir igual porque viene del backend/Kanban, no de `localStorage`.
 
-- [ ] Mover tarea desde Kanban.
+- [x] Mover tarea desde Kanban.
   - Arrastrar una tarea a otra columna.
   - Volver a lista.
   - La columna **Estado** debe reflejar el cambio.

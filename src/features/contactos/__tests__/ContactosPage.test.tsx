@@ -92,15 +92,16 @@ describe('ContactosPage', () => {
   });
 
   it('tab PROSPECTO sin datos muestra mensaje de vacío', async () => {
+    server.use(
+      http.get('/api/contactos/get-all', () => HttpResponse.json([])),
+    );
+
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false, gcTime: 0 },
         mutations: { retry: false },
       },
     });
-
-    // Inyectar cache vacío
-    queryClient.setQueryData(['contactos'], []);
 
     render(
       <QueryClientProvider client={queryClient}>

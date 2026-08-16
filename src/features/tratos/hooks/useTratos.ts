@@ -3,7 +3,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import { listItems, type ListResponse } from '@/api/pagination';
+import { listItems, toPageResponse, type ListResponse } from '@/api/pagination';
 import type { ListQueryOptions, PageResponse, Trato } from '@/api/types';
 import type { TratoFilters } from '../lib/tratoFilters';
 
@@ -26,6 +26,10 @@ export function useTratos(filters?: TratoListQuery): UseQueryResult<Trato[]> {
 export function useTratosPage(filters: TratoListQuery): UseQueryResult<PageResponse<Trato>> {
   return useQuery<PageResponse<Trato>>({
     queryKey: tratosKeys.list(filters),
-    queryFn: () => apiClient.get<PageResponse<Trato>>(endpoints.tratos.getAll(filters)),
+    queryFn: async () => toPageResponse(
+      await apiClient.get<ListResponse<Trato>>(endpoints.tratos.getAll(filters)),
+      filters.page ?? 0,
+      filters.pageSize ?? 25,
+    ),
   });
 }

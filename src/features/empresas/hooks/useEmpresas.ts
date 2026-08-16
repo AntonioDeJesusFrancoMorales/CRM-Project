@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import { listItems, type ListResponse } from '@/api/pagination';
+import { listItems, toPageResponse, type ListResponse } from '@/api/pagination';
 import type { Empresa, ListQueryOptions, PageResponse } from '@/api/types';
 import type { EmpresaFilters } from '../lib/empresaFilters';
 
@@ -26,6 +26,10 @@ export function useEmpresas(filters?: EmpresaListQuery): UseQueryResult<Empresa[
 export function useEmpresasPage(filters: EmpresaListQuery): UseQueryResult<PageResponse<Empresa>> {
   return useQuery<PageResponse<Empresa>>({
     queryKey: empresasKeys.list(filters),
-    queryFn: () => apiClient.get<PageResponse<Empresa>>(endpoints.empresas.getAll(filters)),
+    queryFn: async () => toPageResponse(
+      await apiClient.get<ListResponse<Empresa>>(endpoints.empresas.getAll(filters)),
+      filters.page ?? 0,
+      filters.pageSize ?? 25,
+    ),
   });
 }

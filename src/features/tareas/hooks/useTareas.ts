@@ -4,7 +4,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import { listItems, type ListResponse } from '@/api/pagination';
+import { listItems, toPageResponse, type ListResponse } from '@/api/pagination';
 import type { ListQueryOptions, PageResponse, PrioridadTarea, TipoTarea, Tarea } from '@/api/types';
 
 export interface UseTareasFilters {
@@ -51,6 +51,10 @@ export function useTareas(filters?: TareaListQuery): UseQueryResult<Tarea[]> {
 export function useTareasPage(filters: TareaListQuery): UseQueryResult<PageResponse<Tarea>> {
   return useQuery<PageResponse<Tarea>>({
     queryKey: tareasKeys.list(filters),
-    queryFn: () => apiClient.get<PageResponse<Tarea>>(endpoints.tareas.getAll(toApiFilters(filters))),
+    queryFn: async () => toPageResponse(
+      await apiClient.get<ListResponse<Tarea>>(endpoints.tareas.getAll(toApiFilters(filters))),
+      filters.page ?? 0,
+      filters.pageSize ?? 25,
+    ),
   });
 }

@@ -40,6 +40,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { ListPagination } from '@/components/shared/ListPagination';
+import { useListPageState } from '@/components/shared/useListPageState';
 import { formatCurrency } from '@/lib/format';
 import { useTabSync } from '@/lib/useTabSync';
 import {
@@ -48,7 +50,7 @@ import {
   saveListPresets,
   type ListPreset,
 } from '@/features/list-presets/lib/listPresets';
-import { useTratos } from '../hooks/useTratos';
+import { useTratos, useTratosPage } from '../hooks/useTratos';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
@@ -111,10 +113,12 @@ export function TratosListPage() {
   const [presetName, setPresetName] = useState('');
   const [editTarget, setEditTarget] = useState<Trato | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Trato | null>(null);
+  const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
-  const { data: tratos, isLoading, isError, refetch } = useTratos(filters);
+  const { data: tratosPage, isLoading, isError, refetch } = useTratosPage(paging.query);
+  const { data: tratos } = useTratos();
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
   const deleteMutation = useDeleteTrato();
@@ -124,6 +128,11 @@ export function TratosListPage() {
     () => applyTratoFilters(tratos ?? [], filters),
     [tratos, filters],
   );
+  const tratosPagina = tratosPage?.items ?? [];
+  const tratosLista = useMemo(
+    () => applyTratoFilters(tratosPagina, filters),
+    [tratosPagina, filters],
+  );
   const filteredTratoIds = useMemo(
     () => filteredTratos.map((trato) => trato.id),
     [filteredTratos],
@@ -132,10 +141,12 @@ export function TratosListPage() {
 
   function updateFilters(patch: Partial<TratoFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
+    paging.resetPage();
   }
 
   function clearFilters() {
     setFilters(createEmptyTratoFilters());
+    paging.resetPage();
   }
 
   function handleNumberFilterChange(key: 'valorMin' | 'valorMax', value: string) {
@@ -409,7 +420,7 @@ export function TratosListPage() {
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>
-            Mostrando {filteredTratos.length} de {tratos?.length ?? 0} tratos
+            Mostrando {tratosLista.length} de {tratosPage?.totalItems ?? 0} tratos
           </span>
           {presets.map((preset) => (
             <Button
@@ -457,7 +468,7 @@ export function TratosListPage() {
           )}
 
           {/* Empty state rico: no hay tratos registrados */}
-          {!isLoading && !isError && tratos && tratos.length === 0 && (
+          {!isLoading && !isError && tratosPage && tratosPage.totalItems === 0 && (
             <EmptyState
               icon={Handshake}
               title="Aún no hay tratos"
@@ -472,14 +483,26 @@ export function TratosListPage() {
           )}
 
           {/* Tabla */}
-          {!isLoading && !isError && tratos && tratos.length > 0 && (
+          {!isLoading && !isError && tratosPage && tratosPage.totalItems > 0 && (
             <div className="rounded-md border">
               <TratosTable
-                tratos={filteredTratos}
+                tratos={tratosLista}
                 contactos={contactos}
                 usuarios={usuarios}
                 onEdit={(trato) => setEditTarget(trato)}
                 onDelete={(trato) => setDeleteTarget(trato)}
+                sort={paging.sort}
+                onSort={paging.setSort}
+              />
+              <ListPagination
+                page={tratosPage.page}
+                pageSize={tratosPage.pageSize}
+                totalItems={tratosPage.totalItems}
+                totalPages={tratosPage.totalPages}
+                hasNext={tratosPage.hasNext}
+                hasPrevious={tratosPage.hasPrevious}
+                onPageChange={paging.setPage}
+                onPageSizeChange={paging.setPageSize}
               />
             </div>
           )}

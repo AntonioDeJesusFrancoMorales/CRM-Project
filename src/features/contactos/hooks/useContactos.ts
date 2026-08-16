@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
-import { listItems, type ListResponse } from '@/api/pagination';
+import { listItems, toPageResponse, type ListResponse } from '@/api/pagination';
 import type { Contacto, ListQueryOptions, PageResponse } from '@/api/types';
 import type { ContactoFilters } from '../lib/contactoFilters';
 
@@ -24,6 +24,10 @@ export function useContactos(filters?: ContactoListQuery): UseQueryResult<Contac
 export function useContactosPage(filters: ContactoListQuery): UseQueryResult<PageResponse<Contacto>> {
   return useQuery<PageResponse<Contacto>>({
     queryKey: contactosKeys.list(filters),
-    queryFn: () => apiClient.get<PageResponse<Contacto>>(endpoints.contactos.getAll(filters)),
+    queryFn: async () => toPageResponse(
+      await apiClient.get<ListResponse<Contacto>>(endpoints.contactos.getAll(filters)),
+      filters.page ?? 0,
+      filters.pageSize ?? 25,
+    ),
   });
 }

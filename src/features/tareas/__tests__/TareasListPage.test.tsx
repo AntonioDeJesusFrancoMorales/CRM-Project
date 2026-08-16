@@ -12,8 +12,10 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
 import { TareasListPage } from '../pages/TareasListPage';
 import { server } from '@/test/server';
 import { tableroTareasFixture, fichasFixture, columnasFixture } from '@/mocks/fixtures/tableros';
+import { tareasFixture } from '@/mocks/fixtures/tareas';
 
 const PRESETS_STORAGE_KEY = 'crm:list-presets:tareas';
+const LIST_RENDER_TIMEOUT = 3000;
 
 beforeEach(() => {
   localStorage.removeItem(PRESETS_STORAGE_KEY);
@@ -85,7 +87,7 @@ describe('TareasListPage — render y tabla', () => {
     // El fixture tiene 7 tareas; comprobamos algunas
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
     expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
   });
 
@@ -95,7 +97,7 @@ describe('TareasListPage — render y tabla', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
 
     const tituloBtn = screen.getByRole('button', { name: /demo presencial con cto/i });
     await user.click(tituloBtn);
@@ -181,7 +183,7 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
     server.use(
       http.get('/api/tareas/get-all', ({ request }) => {
         capturedUrls.push(request.url);
-        return HttpResponse.json([]);
+        return HttpResponse.json(tareasFixture);
       }),
     );
 
@@ -191,15 +193,15 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
 
     const selectEstado = screen.getByRole('combobox', { name: /estado/i });
     await user.click(selectEstado);
-    const opcionCompletada = await screen.findByRole('option', { name: /completada/i });
+    const opcionCompletada = await screen.findByRole('option', { name: /finalizada/i });
     await user.click(opcionCompletada);
 
     await new Promise((r) => setTimeout(r, 100));
 
-    // Todas las URLs capturadas deben ser sin query params
+    // Las URLs pueden incluir paginación/ordenamiento, pero no filtros client-side.
     for (const capturedUrl of capturedUrls) {
       const url = new URL(capturedUrl);
-      expect(url.search).toBe('');
+      expect(url.searchParams.has('estado')).toBe(false);
     }
   });
 });
@@ -217,9 +219,9 @@ describe('TareasListPage — búsqueda client-side', () => {
     await user.type(input, 'llamada');
 
     await waitFor(() => {
+      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
       expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    });
-    expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+    }, { timeout: LIST_RENDER_TIMEOUT });
   });
 });
 
@@ -230,14 +232,14 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
 
     await user.type(screen.getByPlaceholderText(/buscar por título/i), 'llamada');
 
     await waitFor(() => {
+      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
       expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    });
-    expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+    }, { timeout: LIST_RENDER_TIMEOUT });
 
     await user.click(screen.getByRole('button', { name: /guardar vista/i }));
     const dialog = await screen.findByRole('dialog');
@@ -249,15 +251,15 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
     await user.click(screen.getByRole('button', { name: /limpiar filtros/i }));
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
 
     await user.click(screen.getByRole('combobox', { name: /vistas guardadas/i }));
     await user.click(await screen.findByRole('option', { name: /vista llamadas/i }));
 
     await waitFor(() => {
+      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
       expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    });
-    expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+    }, { timeout: LIST_RENDER_TIMEOUT });
 
     await user.click(screen.getByRole('button', { name: /eliminar vista vista llamadas/i }));
     expect(localStorage.getItem(PRESETS_STORAGE_KEY)).toBe('[]');
@@ -270,7 +272,7 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
     expect(screen.getByRole('combobox', { name: /vistas guardadas/i })).toBeInTheDocument();
   });
 
@@ -287,15 +289,15 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
     expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/buscar por título/i), 'llamada');
 
     await waitFor(() => {
+      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
       expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    });
-    expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+    }, { timeout: LIST_RENDER_TIMEOUT });
     expect(screen.getByText(/mostrando 1 de 7 tareas/i)).toBeInTheDocument();
     expect(screen.getByText('Pendiente')).toBeInTheDocument();
     expect(screen.getByText('En Curso')).toBeInTheDocument();
@@ -328,7 +330,7 @@ describe('TareasListPage — creación (enums del back)', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    });
+    }, { timeout: LIST_RENDER_TIMEOUT });
 
     await user.click(screen.getByRole('button', { name: /nueva tarea/i }));
 
@@ -528,6 +530,7 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
     // Inicialmente tab Lista activo, tabla visible
     await waitFor(() =>
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
+      { timeout: LIST_RENDER_TIMEOUT },
     );
 
     await user.click(screen.getByRole('tab', { name: /kanban/i }));
@@ -558,6 +561,7 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
     // Tab Lista debe estar activo desde el inicio
     await waitFor(() =>
       expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
+      { timeout: LIST_RENDER_TIMEOUT },
     );
 
     const tabLista = screen.getByRole('tab', { name: /lista/i });

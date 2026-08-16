@@ -18,6 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/shared/SortableTableHead';
+import type { SortState } from '@/components/shared/listPaging';
+import { sortDirectionFor } from '@/components/shared/listPaging';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   tipoContratoBadgeClass,
@@ -30,6 +33,8 @@ interface TratosTableProps {
   usuarios?: Usuario[];
   onEdit?: (trato: Trato) => void;
   onDelete?: (trato: Trato) => void;
+  sort?: SortState;
+  onSort?: (sortBy: string) => void;
 }
 
 export function TratosTable({
@@ -38,6 +43,8 @@ export function TratosTable({
   usuarios = [],
   onEdit,
   onDelete,
+  sort,
+  onSort,
 }: TratosTableProps) {
   const navigate = useNavigate();
 
@@ -46,17 +53,41 @@ export function TratosTable({
   const usuariosById = new Map(usuarios.map((u) => [u.id, u]));
 
   const showActions = !!(onEdit || onDelete);
+  const sortable = Boolean(sort && onSort);
 
   return (
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead>Nombre</TableHead>
-          <TableHead className="text-right">Valor estimado</TableHead>
+          {sortable ? (
+            <SortableTableHead sortDirection={sortDirectionFor(sort!, 'nombre')} onSort={() => onSort!('nombre')}>
+              Nombre
+            </SortableTableHead>
+          ) : (
+            <TableHead>Nombre</TableHead>
+          )}
+          {sortable ? (
+            <SortableTableHead
+              align="right"
+              className="text-right"
+              sortDirection={sortDirectionFor(sort!, 'valorEstimado')}
+              onSort={() => onSort!('valorEstimado')}
+            >
+              Valor estimado
+            </SortableTableHead>
+          ) : (
+            <TableHead className="text-right">Valor estimado</TableHead>
+          )}
           <TableHead>Tipo de contrato</TableHead>
           <TableHead>Contacto</TableHead>
           <TableHead>Responsable</TableHead>
-          <TableHead>Cierre esperado</TableHead>
+          {sortable ? (
+            <SortableTableHead sortDirection={sortDirectionFor(sort!, 'fechaCierreEsperada')} onSort={() => onSort!('fechaCierreEsperada')}>
+              Cierre esperado
+            </SortableTableHead>
+          ) : (
+            <TableHead>Cierre esperado</TableHead>
+          )}
           {showActions && <TableHead className="w-10" />}
         </TableRow>
       </TableHeader>

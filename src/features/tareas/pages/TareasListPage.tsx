@@ -37,6 +37,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { ListPagination } from '@/components/shared/ListPagination';
+import { useListPageState } from '@/components/shared/useListPageState';
 import { useTabSync } from '@/lib/useTabSync';
 import {
   createListPreset,
@@ -44,7 +46,7 @@ import {
   saveListPresets,
   type ListPreset,
 } from '@/features/list-presets/lib/listPresets';
-import { useTareas } from '../hooks/useTareas';
+import { useTareas, useTareasPage } from '../hooks/useTareas';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { TareasTable } from '../components/TareasTable';
@@ -91,12 +93,14 @@ export function TareasListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
   // Sincroniza el tab activo con ?tab= en la URL. Preserva otros params (?responsable_id=, etc.).
   // Kanban es el tab por defecto — URL limpia cuando activo = "kanban"; ?tab=lista cuando activo = "lista".
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
-  const { data: todasLasTareas, isLoading, isError, refetch } = useTareas(filters);
+  const { data: tareasPage, isLoading, isError, refetch } = useTareasPage(paging.query);
+  const { data: todasLasTareas } = useTareas();
   const { data: usuarios = [] } = useUsuarios();
   const { data: tratos = [] } = useTratos();
   const {
@@ -111,19 +115,29 @@ export function TareasListPage() {
   // KPIs sobre el array COMPLETO (no sobre los filtros) — métrica de la cartera.
   const kpis = useMemo(() => computeKpis(todasLasTareas ?? []), [todasLasTareas]);
 
-  const tareas = useMemo(
+  const tareasFiltradas = useMemo(
     () => applyTareaFilters(todasLasTareas ?? [], filters, new Date(), workflowByTareaId),
     [todasLasTareas, filters, workflowByTareaId],
   );
-  const filteredTareaIds = useMemo(() => tareas.map((tarea) => tarea.id), [tareas]);
+  const tareasPagina = tareasPage?.items ?? [];
+  const tareasLista = useMemo(
+    () => applyTareaFilters(tareasPagina, filters, new Date(), workflowByTareaId),
+    [tareasPagina, filters, workflowByTareaId],
+  );
+  const filteredTareaIds = useMemo(
+    () => tareasFiltradas.map((tarea) => tarea.id),
+    [tareasFiltradas],
+  );
   const hasFilters = hasActiveTareaFilters(filters);
 
   function updateFilters(patch: Partial<TareaFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
+    paging.resetPage();
   }
 
   function clearFilters() {
     setFilters(createEmptyTareaFilters());
+    paging.resetPage();
   }
 
   function handleEstadoChange(value: string) {
@@ -355,7 +369,7 @@ export function TareasListPage() {
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>
-            Mostrando {tareas.length} de {todasLasTareas?.length ?? 0} tareas
+            Mostrando {tareasLista.length} de {tareasPage?.totalItems ?? 0} tareas
           </span>
           {presets.map((preset) => (
             <Button
@@ -403,7 +417,7 @@ export function TareasListPage() {
           )}
 
           {/* Empty state rico: no hay tareas registradas en absoluto */}
-          {!isLoading && !isLoadingWorkflow && !isError && todasLasTareas && todasLasTareas.length === 0 && (
+          {!isLoading && !isLoadingWorkflow && !isError && tareasPage && tareasPage.totalItems === 0 && (
             <EmptyState
               icon={ListTodo}
               title="Aún no hay tareas"
@@ -418,14 +432,26 @@ export function TareasListPage() {
           )}
 
           {/* Tabla */}
-          {!isLoading && !isLoadingWorkflow && !isError && todasLasTareas && todasLasTareas.length > 0 && (
+          {!isLoading && !isLoadingWorkflow && !isError && tareasPage && tareasPage.totalItems > 0 && (
             <div className="rounded-md border">
               <TareasTable
-                tareas={tareas}
+                tareas={tareasLista}
                 tratosById={tratosById}
                 usuariosById={usuariosById}
                 workflowByTareaId={workflowByTareaId}
                 workflowColumns={workflowColumns}
+                sort={paging.sort}
+                onSort={paging.setSort}
+              />
+              <ListPagination
+                page={tareasPage.page}
+                pageSize={tareasPage.pageSize}
+                totalItems={tareasPage.totalItems}
+                totalPages={tareasPage.totalPages}
+                hasNext={tareasPage.hasNext}
+                hasPrevious={tareasPage.hasPrevious}
+                onPageChange={paging.setPage}
+                onPageSizeChange={paging.setPageSize}
               />
             </div>
           )}

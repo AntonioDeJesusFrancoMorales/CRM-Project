@@ -15,6 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/shared/SortableTableHead';
+import type { SortState } from '@/components/shared/listPaging';
+import { sortDirectionFor } from '@/components/shared/listPaging';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -41,6 +44,8 @@ interface TareasTableProps {
   usuariosById?: Record<string, string>;
   workflowByTareaId?: TareaWorkflowById;
   workflowColumns?: ColumnaTablero[];
+  sort?: SortState;
+  onSort?: (sortBy: string) => void;
 }
 
 export function TareasTable({
@@ -49,11 +54,14 @@ export function TareasTable({
   usuariosById = {},
   workflowByTareaId = {},
   workflowColumns = [],
+  sort,
+  onSort,
 }: TareasTableProps) {
   const navigate = useNavigate();
   const [editTarea, setEditTarea] = useState<Tarea | null>(null);
   const [deleteTarea, setDeleteTarea] = useState<Tarea | null>(null);
   const deleteMutation = useDeleteTarea();
+  const sortable = Boolean(sort && onSort);
 
   function handleConfirmDelete() {
     if (!deleteTarea) return;
@@ -68,13 +76,31 @@ export function TareasTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Título</TableHead>
+            {sortable ? (
+              <SortableTableHead sortDirection={sortDirectionFor(sort!, 'titulo')} onSort={() => onSort!('titulo')}>
+                Título
+              </SortableTableHead>
+            ) : (
+              <TableHead>Título</TableHead>
+            )}
             <TableHead>Tipo</TableHead>
-            <TableHead>Prioridad</TableHead>
+            {sortable ? (
+              <SortableTableHead sortDirection={sortDirectionFor(sort!, 'prioridad')} onSort={() => onSort!('prioridad')}>
+                Prioridad
+              </SortableTableHead>
+            ) : (
+              <TableHead>Prioridad</TableHead>
+            )}
             <TableHead>Estado</TableHead>
             <TableHead>Responsable</TableHead>
             <TableHead>Trato</TableHead>
-            <TableHead>Fecha límite</TableHead>
+            {sortable ? (
+              <SortableTableHead sortDirection={sortDirectionFor(sort!, 'fechaLimite')} onSort={() => onSort!('fechaLimite')}>
+                Fecha límite
+              </SortableTableHead>
+            ) : (
+              <TableHead>Fecha límite</TableHead>
+            )}
             <TableHead className="w-24"></TableHead>
           </TableRow>
         </TableHeader>

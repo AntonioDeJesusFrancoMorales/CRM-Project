@@ -37,6 +37,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { ListPagination } from '@/components/shared/ListPagination';
+import { useListPageState } from '@/components/shared/useListPageState';
 import {
   createListPreset,
   loadListPresets,
@@ -44,7 +46,7 @@ import {
   type ListPreset,
 } from '@/features/list-presets/lib/listPresets';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
-import { useEmpresas } from '../hooks/useEmpresas';
+import { useEmpresas, useEmpresasPage } from '../hooks/useEmpresas';
 import { EmpresasTable } from '../components/EmpresasTable';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
@@ -78,31 +80,36 @@ export function EmpresasListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [deleting, setDeleting] = useState<Empresa | null>(null);
+  const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
-  const { data: empresas, isLoading, isError, refetch } = useEmpresas(filters);
+  const { data: empresasPage, isLoading, isError, refetch } = useEmpresasPage(paging.query);
+  const { data: todasLasEmpresas } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
+  const empresas = empresasPage?.items ?? [];
 
-  const kpis = useMemo(() => computeKpis(empresas ?? []), [empresas]);
+  const kpis = useMemo(() => computeKpis(todasLasEmpresas ?? []), [todasLasEmpresas]);
   const filteredEmpresas = useMemo(
-    () => applyEmpresaFilters(empresas ?? [], filters),
+    () => applyEmpresaFilters(empresas, filters),
     [empresas, filters],
   );
   const hasFilters = hasActiveEmpresaFilters(filters);
   const sectorOptions = useMemo(() => {
     const values = new Set<string>();
-    for (const empresa of empresas ?? []) {
+    for (const empresa of todasLasEmpresas ?? []) {
       const value = empresa.sector?.trim();
       if (value) values.add(value);
     }
     return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [empresas]);
+  }, [todasLasEmpresas]);
 
   function updateFilters(patch: Partial<EmpresaFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
+    paging.resetPage();
   }
 
   function clearFilters() {
     setFilters(createEmptyEmpresaFilters());
+    paging.resetPage();
   }
 
   function persistPresets(nextPresets: Array<ListPreset<EmpresaFilters>>) {
@@ -335,7 +342,7 @@ export function EmpresasListPage() {
       )}
 
       {/* Empty state rico: no hay empresas registradas */}
-      {!isLoading && !isError && empresas && empresas.length === 0 && (
+      {!isLoading && !isError && empresasPage && empresasPage.totalItems === 0 && (
         <EmptyState
           icon={Building2}
           title="Aún no hay empresas"
@@ -350,13 +357,25 @@ export function EmpresasListPage() {
       )}
 
       {/* Tabla */}
-      {!isLoading && !isError && empresas && empresas.length > 0 && (
+      {!isLoading && !isError && empresasPage && empresasPage.totalItems > 0 && (
         <div className="rounded-md border">
           <EmpresasTable
             empresas={filteredEmpresas}
             onView={(empresa) => navigate(`/empresas/${empresa.id}`)}
             onEdit={(empresa) => setEditing(empresa)}
             onDelete={(empresa) => setDeleting(empresa)}
+            sort={paging.sort}
+            onSort={paging.setSort}
+          />
+          <ListPagination
+            page={empresasPage.page}
+            pageSize={empresasPage.pageSize}
+            totalItems={empresasPage.totalItems}
+            totalPages={empresasPage.totalPages}
+            hasNext={empresasPage.hasNext}
+            hasPrevious={empresasPage.hasPrevious}
+            onPageChange={paging.setPage}
+            onPageSizeChange={paging.setPageSize}
           />
         </div>
       )}

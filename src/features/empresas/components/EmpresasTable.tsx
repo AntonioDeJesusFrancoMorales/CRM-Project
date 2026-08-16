@@ -17,6 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/shared/SortableTableHead';
+import type { SortState } from '@/components/shared/listPaging';
+import { sortDirectionFor } from '@/components/shared/listPaging';
 import { formatRelativeDate } from '@/lib/format';
 import {
   estadoRelacionBadgeClass,
@@ -28,6 +31,8 @@ interface EmpresasTableProps {
   onView: (empresa: Empresa) => void;
   onEdit: (empresa: Empresa) => void;
   onDelete: (empresa: Empresa) => void;
+  sort?: SortState;
+  onSort?: (sortBy: string) => void;
 }
 
 export function EmpresasTable({
@@ -35,17 +40,38 @@ export function EmpresasTable({
   onView,
   onEdit,
   onDelete,
+  sort,
+  onSort,
 }: EmpresasTableProps) {
+  const sortable = Boolean(sort && onSort);
   return (
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead>Nombre</TableHead>
+          {sortable ? (
+            <SortableTableHead sortDirection={sortDirectionFor(sort!, 'nombre')} onSort={() => onSort!('nombre')}>
+              Nombre
+            </SortableTableHead>
+          ) : (
+            <TableHead>Nombre</TableHead>
+          )}
           <TableHead>Estado</TableHead>
-          <TableHead>Sector</TableHead>
+          {sortable ? (
+            <SortableTableHead sortDirection={sortDirectionFor(sort!, 'sector')} onSort={() => onSort!('sector')}>
+              Sector
+            </SortableTableHead>
+          ) : (
+            <TableHead>Sector</TableHead>
+          )}
           <TableHead>Teléfono</TableHead>
           <TableHead>Sitio web</TableHead>
-          <TableHead>Creado</TableHead>
+          {sortable ? (
+            <SortableTableHead sortDirection={sortDirectionFor(sort!, 'creadoEn')} onSort={() => onSort!('creadoEn')}>
+              Creado
+            </SortableTableHead>
+          ) : (
+            <TableHead>Creado</TableHead>
+          )}
           <TableHead className="w-10" />
         </TableRow>
       </TableHeader>
