@@ -18,11 +18,14 @@ export const prioridadLabels: Record<PrioridadTarea, string> = {
  * light tintes suaves, dark fondos 900/800 con opacidad y texto 300/700.
  */
 export const prioridadBadgeClass: Record<PrioridadTarea, string> = {
-  BAJA: 'border-transparent bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300',
-  MEDIA: 'border-transparent bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
-  ALTA: 'border-transparent bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-  URGENTE: 'border-transparent bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  BAJA: 'bg-slate-100 text-slate-600 ring-slate-500/20 dark:bg-slate-400/10 dark:text-slate-300 dark:ring-slate-400/20',
+  MEDIA: 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-400/20',
+  ALTA: 'bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-500/10 dark:text-orange-400 dark:ring-orange-400/20',
+  URGENTE: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-400/20',
 };
+
+export const tareaBadgeBaseClass =
+  'inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset';
 
 /** Etiquetas legibles para el tipo de una tarea. */
 export const tipoLabels: Record<TipoTarea, string> = {

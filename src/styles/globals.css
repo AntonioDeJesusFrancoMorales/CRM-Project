@@ -4,52 +4,102 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    /* Marca: azul profesional (#2563EB) */
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 214 95% 93%;
-    --accent-foreground: 221 83% 38%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
-    --radius: 0.5rem;
+    --background: lab(100% 0 0);
+    --foreground: lab(14.5% 0 0);
+    --card: lab(100% 0 0);
+    --card-foreground: lab(14.5% 0 0);
+    --popover: lab(100% 0 0);
+    --popover-foreground: lab(14.5% 0 0);
+    --primary: lab(54.2137% 9.38562 -66.5);
+    --primary-foreground: lab(98.26% 0 0);
+    --secondary: lab(97% 0 0);
+    --secondary-foreground: lab(20.5% 0 0);
+    --muted: lab(97% 0 0);
+    --muted-foreground: lab(55.6% 0 0);
+    --accent: lab(96.8% 0.338122 -17.9463);
+    --accent-foreground: lab(54.2137% 9.38562 -66.5);
+    --destructive: lab(57.7% 60.745 31.3109);
+    --destructive-foreground: lab(98.26% 0 0);
+    --border: lab(92.2% 0 0);
+    --input: lab(92.2% 0 0);
+    --ring: lab(54.2137% 9.38562 -66.5);
+    --radius: 0.625rem;
+    --sidebar: lab(98.5% 0 0);
+    --sidebar-foreground: lab(14.5% 0 0);
+    --sidebar-primary: lab(54.2137% 9.38562 -66.5);
+    --sidebar-primary-foreground: lab(98.26% 0 0);
+    --sidebar-accent: lab(96.8% 0.338122 -17.9463);
+    --sidebar-accent-foreground: lab(54.2137% 9.38562 -66.5);
+    --sidebar-border: lab(92.2% 0 0);
+    --sidebar-ring: lab(54.2137% 9.38562 -66.5);
   }
 
   .dark {
-    --background: 222.2 47.4% 8%;
-    --foreground: 210 40% 96%;
-    --card: 222.2 47.4% 10%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222.2 47.4% 10%;
-    --popover-foreground: 210 40% 96%;
-    /* Marca azul legible sobre fondo oscuro: #4D8EF5 aprox — contraste WCAG AA con fondo 8% */
-    --primary: 217 91% 63%;
-    --primary-foreground: 222.2 47.4% 8%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 217.2 32.6% 15%;
-    --muted-foreground: 215 20.2% 62%;
-    /* accent con tinte azul coherente con el primary dark */
-    --accent: 217 60% 20%;
-    --accent-foreground: 217 91% 75%;
-    --destructive: 0 62.8% 42%;
-    --destructive-foreground: 210 40% 96%;
-    --border: 217.2 32.6% 18%;
-    --input: 217.2 32.6% 18%;
-    /* ring azul coherente con primary dark */
-    --ring: 217 91% 63%;
+    --background: lab(2.75381% 0 0);
+    --foreground: lab(98.26% 0 0);
+    --card: lab(7.78201% -0.0000149012 0);
+    --card-foreground: lab(98.26% 0 0);
+    --popover: lab(7.78201% -0.0000149012 0);
+    --popover-foreground: lab(98.26% 0 0);
+    --primary: lab(54.2137% 9.38562 -66.5);
+    --primary-foreground: lab(98.26% 0 0);
+    --secondary: lab(15.204% 0 -0.00000596046);
+    --secondary-foreground: lab(98.26% 0 0);
+    --muted: lab(15.204% 0 -0.00000596046);
+    --muted-foreground: lab(66.128% -0.0000298023 0.0000119209);
+    --accent: lab(20.8035% 0.338122 -17.9463);
+    --accent-foreground: lab(98.26% 0 0);
+    --destructive: lab(63.7053% 60.745 31.3109);
+    --destructive-foreground: lab(98.26% 0 0);
+    --border: lab(100% 0 0 / 0.1);
+    --input: lab(100% 0 0 / 0.15);
+    --ring: lab(54.2137% 9.38562 -66.5);
+    --sidebar: lab(7.78201% -0.0000149012 0);
+    --sidebar-foreground: lab(98.26% 0 0);
+    --sidebar-primary: lab(36.9089% 35.0961 -85.6872);
+    --sidebar-primary-foreground: lab(98.26% 0 0);
+    --sidebar-accent: lab(15.204% 0 -0.00000596046);
+    --sidebar-accent-foreground: lab(98.26% 0 0);
+    --sidebar-border: lab(100% 0 0 / 0.1);
+    --sidebar-ring: lab(48.496% 0 0);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --background: lab(2.75381% 0 0);
+      --foreground: lab(98.26% 0 0);
+      --card: lab(7.78201% -0.0000149012 0);
+      --card-foreground: lab(98.26% 0 0);
+      --popover: lab(7.78201% -0.0000149012 0);
+      --popover-foreground: lab(98.26% 0 0);
+      --primary: lab(54.2137% 9.38562 -66.5);
+      --primary-foreground: lab(98.26% 0 0);
+      --secondary: lab(15.204% 0 -0.00000596046);
+      --secondary-foreground: lab(98.26% 0 0);
+      --muted: lab(15.204% 0 -0.00000596046);
+      --muted-foreground: lab(66.128% -0.0000298023 0.0000119209);
+      --accent: lab(20.8035% 0.338122 -17.9463);
+      --accent-foreground: lab(98.26% 0 0);
+      --destructive: lab(63.7053% 60.745 31.3109);
+      --destructive-foreground: lab(98.26% 0 0);
+      --border: lab(100% 0 0 / 0.1);
+      --input: lab(100% 0 0 / 0.15);
+      --ring: lab(54.2137% 9.38562 -66.5);
+      --sidebar: lab(7.78201% -0.0000149012 0);
+      --sidebar-foreground: lab(98.26% 0 0);
+      --sidebar-primary: lab(36.9089% 35.0961 -85.6872);
+      --sidebar-primary-foreground: lab(98.26% 0 0);
+      --sidebar-accent: lab(15.204% 0 -0.00000596046);
+      --sidebar-accent-foreground: lab(98.26% 0 0);
+      --sidebar-border: lab(100% 0 0 / 0.1);
+      --sidebar-ring: lab(48.496% 0 0);
+    }
+  }
+}
+
+@layer components {
+  .dialog-centered {
+    transform: translate(-50%, -50%);
   }
 }
 
@@ -60,6 +110,17 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  input.no-spinner::-webkit-outer-spin-button,
+  input.no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input.no-spinner {
+    -moz-appearance: textfield;
+    appearance: textfield;
   }
 
   /*
@@ -78,10 +139,10 @@
   select:-webkit-autofill,
   select:-webkit-autofill:hover,
   select:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset;
-    box-shadow: 0 0 0 1000px hsl(var(--background)) inset;
-    -webkit-text-fill-color: hsl(var(--foreground));
-    caret-color: hsl(var(--foreground));
+    -webkit-box-shadow: 0 0 0 1000px var(--background) inset;
+    box-shadow: 0 0 0 1000px var(--background) inset;
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
     transition: background-color 9999s ease-in-out 0s;
   }
 }

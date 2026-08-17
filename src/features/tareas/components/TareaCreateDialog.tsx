@@ -51,11 +51,11 @@ export function TareaCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Nueva tarea</DialogTitle>
           <DialogDescription>
-            Completa los datos para registrar una nueva tarea.
+            Registra una nueva actividad asociada a tu pipeline comercial.
           </DialogDescription>
         </DialogHeader>
         <TareaForm

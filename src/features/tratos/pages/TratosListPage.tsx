@@ -6,14 +6,22 @@
 
 import { useMemo, useState } from 'react';
 import {
+  Bookmark,
   Handshake,
+  LayoutGrid,
   Layers,
+  List as ListIcon,
+  MoreVertical,
+  PanelTopClose,
+  PanelTopOpen,
   Plus,
   Receipt,
+  RefreshCw,
+  Scale,
   Search,
-  Trash2,
-  TrendingUp,
+  SlidersHorizontal,
   Wallet,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { EstadoTrato, TipoContrato, Trato } from '@/api/types';
@@ -29,6 +37,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -36,13 +51,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { ListPagination } from '@/components/shared/ListPagination';
 import { useListPageState } from '@/components/shared/useListPageState';
-import { formatCurrency } from '@/lib/format';
+import { PipelineKpiCard } from '@/components/shared/PipelineKpiCard';
+import { SavedViewChips } from '@/components/shared/SavedViewChips';
+import { formatCompactCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { useTabSync } from '@/lib/useTabSync';
 import {
   createListPreset,
@@ -94,13 +110,14 @@ const CIERRE_OPTIONS: Array<{ value: CierreEsperadoFilter; label: string }> = [
 /** KPIs del pipeline calculados sólo con la lista plana de tratos. */
 function computeKpis(tratos: Trato[]) {
   const total = tratos.length;
-  const pipeline = tratos.reduce((acc, t) => acc + (t.valorEstimado ?? 0), 0);
+  const open = tratos.filter((t) => t.estado === 'ABIERTO');
+  const pipeline = open.reduce((acc, t) => acc + (t.valorEstimado ?? 0), 0);
   const ponderado = tratos.reduce(
     (acc, t) => acc + (t.valorEstimado ?? 0) * ((t.probabilidad ?? 0) / 100),
     0,
   );
-  const ticketPromedio = total > 0 ? pipeline / total : 0;
-  return { total, pipeline, ponderado, ticketPromedio };
+  const ticketPromedio = open.length > 0 ? pipeline / open.length : 0;
+  return { total, pipeline, ponderado, ticketPromedio, abiertos: open.length };
 }
 
 export function TratosListPage() {
@@ -113,6 +130,7 @@ export function TratosListPage() {
   const [presetName, setPresetName] = useState('');
   const [editTarget, setEditTarget] = useState<Trato | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Trato | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
@@ -202,55 +220,90 @@ export function TratosListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5 p-4 sm:p-6">
       {/* Header */}
-      <PageHeader
-        title="Tratos"
-        description="Gestiona los tratos comerciales del CRM."
-        actions={
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Tratos</h2>
+          <p className="text-sm text-muted-foreground">Gestiona los tratos comerciales del CRM.</p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nuevo trato
           </Button>
-        }
-      />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Más acciones">
+                <MoreVertical className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => void refetch()}>
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Recargar
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
       {/* Fila de KPIs del pipeline (oculta en error de carga) */}
       {!isError && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Total de tratos"
-            value={String(kpis.total)}
-            icon={Layers}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Valor pipeline"
-            value={formatCurrency(kpis.pipeline)}
-            hint="Suma del valor estimado"
-            icon={Wallet}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Valor ponderado"
-            value={formatCurrency(kpis.ponderado)}
-            hint="Estimado × probabilidad"
-            icon={TrendingUp}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Ticket promedio"
-            value={formatCurrency(kpis.ticketPromedio)}
-            icon={Receipt}
-            loading={isLoading}
-          />
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { label: 'Total de tratos', value: String(kpis.total), hint: `${kpis.abiertos} abiertos`, icon: Layers },
+            { label: 'Valor pipeline', value: formatCompactCurrency(kpis.pipeline), hint: 'Tratos abiertos', icon: Wallet },
+            { label: 'Valor ponderado', value: formatCompactCurrency(kpis.ponderado), hint: 'Ajustado por probabilidad', icon: Scale },
+            { label: 'Ticket promedio', value: formatCompactCurrency(kpis.ticketPromedio), hint: 'Por trato abierto', icon: Receipt },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <PipelineKpiCard
+                key={item.label}
+                label={item.label}
+                value={item.value}
+                hint={item.hint}
+                icon={Icon}
+                loading={isLoading}
+              />
+            );
+          })}
         </div>
       )}
 
       {/* Filtros compartidos Lista/Kanban */}
-      <div className="space-y-4 rounded-lg border p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm flex-1">
+      <div className="mx-auto flex w-full max-w-[1400px] justify-start">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltersOpen((current) => !current)}
+          aria-pressed={filtersOpen}
+          aria-expanded={filtersOpen}
+          className="text-muted-foreground"
+        >
+          {filtersOpen ? (
+            <PanelTopClose className="mr-2 h-4 w-4" aria-hidden="true" />
+          ) : (
+            <PanelTopOpen className="mr-2 h-4 w-4" aria-hidden="true" />
+          )}
+          {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+        </Button>
+      </div>
+
+      <div
+        aria-hidden={!filtersOpen}
+        className={cn(
+          'mx-auto grid w-full max-w-[1400px] transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out motion-reduce:transition-none',
+          filtersOpen ? 'grid-rows-[1fr] opacity-100' : '-mb-5 grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="rounded-lg border border-border bg-card">
+            <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -262,10 +315,11 @@ export function TratosListPage() {
               className="pl-9"
               aria-label="Buscar tratos"
             />
-          </div>
+              </div>
 
-          <Select value="sin-preset" onValueChange={handleApplyPreset}>
-            <SelectTrigger className="w-56" aria-label="Vistas guardadas">
+              <Select value="sin-preset" onValueChange={handleApplyPreset}>
+            <SelectTrigger className="h-8 w-full sm:w-44" aria-label="Vistas guardadas">
+              <Bookmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <SelectValue placeholder="Vistas guardadas" />
             </SelectTrigger>
             <SelectContent>
@@ -276,30 +330,40 @@ export function TratosListPage() {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
+              </Select>
 
-          <Button type="button" variant="outline" onClick={handleSavePreset}>
+              <Button type="button" variant="outline" size="sm" onClick={handleSavePreset}>
+            <Bookmark className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
             Guardar vista
-          </Button>
+              </Button>
 
-          <Button
+              <Button
             type="button"
             variant="ghost"
+            size="sm"
             onClick={clearFilters}
             disabled={!hasFilters}
           >
+            <X className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
             Limpiar filtros
-          </Button>
-        </div>
+              </Button>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-2 p-3">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+            Filtros
+          </div>
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-7">
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Estado</span>
           <Select
             value={filters.estado ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({ estado: value === 'todos' ? undefined : (value as EstadoTrato) })
             }
           >
-            <SelectTrigger className="w-40" aria-label="Estado">
+            <SelectTrigger className="h-8 w-full" aria-label="Estado">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -311,7 +375,10 @@ export function TratosListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Tipo de contrato</span>
           <Select
             value={filters.tipoContrato ?? 'todos'}
             onValueChange={(value) =>
@@ -320,7 +387,7 @@ export function TratosListPage() {
               })
             }
           >
-            <SelectTrigger className="w-48" aria-label="Tipo de contrato">
+            <SelectTrigger className="h-8 w-full" aria-label="Tipo de contrato">
               <SelectValue placeholder="Tipo de contrato" />
             </SelectTrigger>
             <SelectContent>
@@ -332,14 +399,17 @@ export function TratosListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Responsable</span>
           <Select
             value={filters.responsableId ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({ responsableId: value === 'todos' ? undefined : value })
             }
           >
-            <SelectTrigger className="w-52" aria-label="Responsable">
+            <SelectTrigger className="h-8 w-full" aria-label="Responsable">
               <SelectValue placeholder="Responsable" />
             </SelectTrigger>
             <SelectContent>
@@ -353,14 +423,17 @@ export function TratosListPage() {
                 ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Contacto</span>
           <Select
             value={filters.contactoId ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({ contactoId: value === 'todos' ? undefined : value })
             }
           >
-            <SelectTrigger className="w-52" aria-label="Contacto">
+            <SelectTrigger className="h-8 w-full" aria-label="Contacto">
               <SelectValue placeholder="Contacto" />
             </SelectTrigger>
             <SelectContent>
@@ -372,29 +445,38 @@ export function TratosListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Valor mín.</span>
           <Input
             type="number"
             min="0"
             inputMode="numeric"
-            placeholder="Valor mín."
+            placeholder="0"
             value={filters.valorMin ?? ''}
             onChange={(event) => handleNumberFilterChange('valorMin', event.target.value)}
-            className="w-32"
+            className="no-spinner h-8 w-full"
             aria-label="Valor mínimo"
           />
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Valor máx.</span>
           <Input
             type="number"
             min="0"
             inputMode="numeric"
-            placeholder="Valor máx."
+            placeholder="Sin límite"
             value={filters.valorMax ?? ''}
             onChange={(event) => handleNumberFilterChange('valorMax', event.target.value)}
-            className="w-32"
+            className="no-spinner h-8 w-full"
             aria-label="Valor máximo"
           />
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Cierre esperado</span>
           <Select
             value={filters.cierreEsperado ?? 'todas'}
             onValueChange={(value) =>
@@ -404,7 +486,7 @@ export function TratosListPage() {
               })
             }
           >
-            <SelectTrigger className="w-48" aria-label="Cierre esperado">
+            <SelectTrigger className="h-8 w-full" aria-label="Cierre esperado">
               <SelectValue placeholder="Cierre esperado" />
             </SelectTrigger>
             <SelectContent>
@@ -416,41 +498,41 @@ export function TratosListPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
+          </label>
+              </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>
-            Mostrando {tratosLista.length} de {tratosPage?.totalItems ?? 0} tratos
-          </span>
-          {presets.map((preset) => (
-            <Button
-              key={preset.id}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeletePreset(preset.id)}
-              aria-label={`Eliminar vista ${preset.name}`}
-              className="h-7 px-2 text-muted-foreground"
-            >
-              <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              {preset.name}
-            </Button>
-          ))}
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground tabular-nums">
+            Mostrando <span className="font-medium text-foreground">{tratosLista.length}</span> de{' '}
+            <span className="font-medium text-foreground">{tratosPage?.totalItems ?? 0}</span> tratos
+          </p>
+          <SavedViewChips items={presets} onApply={handleApplyPreset} onDelete={handleDeletePreset} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tabs Lista / Kanban */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={setTab} className="gap-4">
+        <div className="mx-auto w-full max-w-[1400px]">
+          <TabsList>
+            <TabsTrigger value="kanban">
+              <LayoutGrid className="mr-2 h-4 w-4" aria-hidden="true" />
+              Kanban
+            </TabsTrigger>
+            <TabsTrigger value="lista">
+              <ListIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+              Lista
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Tab Lista: tabla filtrada */}
-        <TabsContent value="lista" className="mt-4 space-y-4">
+        <TabsContent value="lista" className="mx-auto mt-4 w-full max-w-[1400px] space-y-4">
           {/* Loading: esqueleto de tabla en vez de texto plano */}
           {isLoading && (
-            <div className="rounded-md border">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               <TableSkeleton columns={7} rows={6} />
             </div>
           )}
@@ -484,7 +566,7 @@ export function TratosListPage() {
 
           {/* Tabla */}
           {!isLoading && !isError && tratosPage && tratosPage.totalItems > 0 && (
-            <div className="rounded-md border">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               <TratosTable
                 tratos={tratosLista}
                 contactos={contactos}
@@ -509,7 +591,7 @@ export function TratosListPage() {
         </TabsContent>
 
         {/* Tab Kanban: KanbanTabContent tipo TRATOS */}
-        <TabsContent value="kanban" className="mt-4">
+        <TabsContent value="kanban" className="mt-4 w-full px-0">
           <KanbanTabContent tipo="TRATOS" allowedEntityIds={filteredTratoIds} />
         </TabsContent>
       </Tabs>

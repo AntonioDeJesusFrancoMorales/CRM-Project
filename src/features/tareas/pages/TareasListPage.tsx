@@ -8,14 +8,29 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   AlertTriangle,
+  Bookmark,
   CheckCircle2,
+  LayoutGrid,
   ListTodo,
+  List as ListIcon,
+  MoreVertical,
+  PanelTopClose,
+  PanelTopOpen,
   Plus,
+  RefreshCw,
   Search,
-  Trash2,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -33,12 +48,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { ListPagination } from '@/components/shared/ListPagination';
 import { useListPageState } from '@/components/shared/useListPageState';
+import { PipelineKpiCard } from '@/components/shared/PipelineKpiCard';
+import { SavedViewChips } from '@/components/shared/SavedViewChips';
+import { cn } from '@/lib/utils';
 import { useTabSync } from '@/lib/useTabSync';
 import {
   createListPreset,
@@ -93,6 +109,7 @@ export function TareasListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
   // Sincroniza el tab activo con ?tab= en la URL. Preserva otros params (?responsable_id=, etc.).
@@ -183,36 +200,53 @@ export function TareasListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5 p-4 sm:p-6">
       {/* Header */}
-      <PageHeader
-        title="Tareas"
-        description="Gestiona las tareas del CRM."
-        actions={
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Tareas</h2>
+          <p className="text-sm text-muted-foreground">Gestiona las tareas del CRM.</p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nueva tarea
           </Button>
-        }
-      />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Más acciones">
+                <MoreVertical className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => void refetch()}>
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Recargar
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
       {/* Fila de KPIs de la cartera (oculta en error de carga) */}
       {!isError && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-3 sm:grid-cols-3">
+          <PipelineKpiCard
             label="Total de tareas"
             value={String(kpis.total)}
             icon={ListTodo}
             loading={isLoading}
           />
-          <StatCard
+          <PipelineKpiCard
             label="Completadas"
             value={String(kpis.completadas)}
             hint="Con fecha de completado"
             icon={CheckCircle2}
             loading={isLoading}
           />
-          <StatCard
+          <PipelineKpiCard
             label="Vencidas"
             value={String(kpis.vencidas)}
             hint="Fecha límite pasada y sin completar"
@@ -223,9 +257,35 @@ export function TareasListPage() {
       )}
 
       {/* Filtros compartidos Lista/Kanban */}
-      <div className="space-y-4 rounded-lg border p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm flex-1">
+      <div className="mx-auto flex w-full max-w-[1400px] justify-start">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltersOpen((current) => !current)}
+          aria-pressed={filtersOpen}
+          aria-expanded={filtersOpen}
+          className="text-muted-foreground"
+        >
+          {filtersOpen ? (
+            <PanelTopClose className="mr-2 h-4 w-4" aria-hidden="true" />
+          ) : (
+            <PanelTopOpen className="mr-2 h-4 w-4" aria-hidden="true" />
+          )}
+          {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+        </Button>
+      </div>
+
+      <div
+        aria-hidden={!filtersOpen}
+        className={cn(
+          'mx-auto grid w-full max-w-[1400px] transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out motion-reduce:transition-none',
+          filtersOpen ? 'grid-rows-[1fr] opacity-100' : '-mb-5 grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="rounded-lg border border-border bg-card">
+            <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -240,7 +300,8 @@ export function TareasListPage() {
           </div>
 
           <Select value="sin-preset" onValueChange={handleApplyPreset}>
-            <SelectTrigger className="w-56" aria-label="Vistas guardadas">
+            <SelectTrigger className="h-8 w-full sm:w-44" aria-label="Vistas guardadas">
+              <Bookmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <SelectValue placeholder="Vistas guardadas" />
             </SelectTrigger>
             <SelectContent>
@@ -253,18 +314,27 @@ export function TareasListPage() {
             </SelectContent>
           </Select>
 
-          <Button type="button" variant="outline" onClick={handleSavePreset}>
+          <Button type="button" variant="outline" size="sm" onClick={handleSavePreset}>
+            <Bookmark className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
             Guardar vista
           </Button>
 
-          <Button type="button" variant="ghost" onClick={clearFilters} disabled={!hasFilters}>
+          <Button type="button" variant="ghost" size="sm" onClick={clearFilters} disabled={!hasFilters}>
+            <X className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
             Limpiar filtros
           </Button>
-        </div>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-2 p-3">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                Filtros
+              </div>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Estado</span>
           <Select value={filters.estado ?? 'todos'} onValueChange={handleEstadoChange}>
-            <SelectTrigger className="w-40" aria-label="Estado">
+            <SelectTrigger className="h-8 w-full" aria-label="Estado">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -276,14 +346,17 @@ export function TareasListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Prioridad</span>
           <Select
             value={filters.prioridad ?? 'todas'}
             onValueChange={(value) =>
               updateFilters({ prioridad: value === 'todas' ? undefined : (value as PrioridadTarea) })
             }
           >
-            <SelectTrigger className="w-40" aria-label="Prioridad">
+            <SelectTrigger className="h-8 w-full" aria-label="Prioridad">
               <SelectValue placeholder="Prioridad" />
             </SelectTrigger>
             <SelectContent>
@@ -295,14 +368,17 @@ export function TareasListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Tipo</span>
           <Select
             value={filters.tipo ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({ tipo: value === 'todos' ? undefined : (value as TipoTarea) })
             }
           >
-            <SelectTrigger className="w-40" aria-label="Tipo">
+            <SelectTrigger className="h-8 w-full" aria-label="Tipo">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -314,9 +390,12 @@ export function TareasListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Vencimiento</span>
           <Select value={filters.vencimiento ?? 'todas'} onValueChange={handleVencimientoChange}>
-            <SelectTrigger className="w-40" aria-label="Vencimiento">
+            <SelectTrigger className="h-8 w-full" aria-label="Vencimiento">
               <SelectValue placeholder="Vencimiento" />
             </SelectTrigger>
             <SelectContent>
@@ -325,14 +404,17 @@ export function TareasListPage() {
               <SelectItem value="proximas">Próximas (7 días)</SelectItem>
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Responsable</span>
           <Select
             value={filters.responsableId ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({ responsableId: value === 'todos' ? undefined : value })
             }
           >
-            <SelectTrigger className="w-48" aria-label="Responsable">
+            <SelectTrigger className="h-8 w-full" aria-label="Responsable">
               <SelectValue placeholder="Responsable" />
             </SelectTrigger>
             <SelectContent>
@@ -346,14 +428,17 @@ export function TareasListPage() {
                 ))}
             </SelectContent>
           </Select>
+          </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Trato</span>
           <Select
             value={filters.tratoId ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({ tratoId: value === 'todos' ? undefined : value })
             }
           >
-            <SelectTrigger className="w-48" aria-label="Trato">
+            <SelectTrigger className="h-8 w-full" aria-label="Trato">
               <SelectValue placeholder="Trato" />
             </SelectTrigger>
             <SelectContent>
@@ -365,41 +450,41 @@ export function TareasListPage() {
               ))}
             </SelectContent>
           </Select>
+          </label>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>
-            Mostrando {tareasLista.length} de {tareasPage?.totalItems ?? 0} tareas
-          </span>
-          {presets.map((preset) => (
-            <Button
-              key={preset.id}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeletePreset(preset.id)}
-              aria-label={`Eliminar vista ${preset.name}`}
-              className="h-7 px-2 text-muted-foreground"
-            >
-              <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              {preset.name}
-            </Button>
-          ))}
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground tabular-nums">
+            Mostrando <span className="font-medium text-foreground">{tareasLista.length}</span> de{' '}
+            <span className="font-medium text-foreground">{tareasPage?.totalItems ?? 0}</span> tareas
+          </p>
+          <SavedViewChips items={presets} onApply={handleApplyPreset} onDelete={handleDeletePreset} />
+        </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tabs Lista / Kanban */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={setTab} className="gap-4">
+        <div className="mx-auto w-full max-w-[1400px]">
+          <TabsList>
+            <TabsTrigger value="kanban">
+              <LayoutGrid className="mr-2 h-4 w-4" aria-hidden="true" />
+              Kanban
+            </TabsTrigger>
+            <TabsTrigger value="lista">
+              <ListIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+              Lista
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Tab Lista: tabla filtrada */}
-        <TabsContent value="lista" className="mt-4 space-y-4">
+        <TabsContent value="lista" className="mx-auto mt-4 w-full max-w-[1400px] space-y-4">
           {/* Loading: esqueleto de tabla en vez de texto plano */}
           {(isLoading || isLoadingWorkflow) && (
-            <div className="rounded-md border">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               <TableSkeleton columns={8} rows={6} />
             </div>
           )}
@@ -433,7 +518,7 @@ export function TareasListPage() {
 
           {/* Tabla */}
           {!isLoading && !isLoadingWorkflow && !isError && tareasPage && tareasPage.totalItems > 0 && (
-            <div className="rounded-md border">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               <TareasTable
                 tareas={tareasLista}
                 tratosById={tratosById}
@@ -458,7 +543,7 @@ export function TareasListPage() {
         </TabsContent>
 
         {/* Tab Kanban: KanbanTabContent tipo TAREAS */}
-        <TabsContent value="kanban" className="mt-4">
+        <TabsContent value="kanban" className="mt-4 w-full px-0">
           <KanbanTabContent tipo="TAREAS" allowedEntityIds={filteredTareaIds} />
         </TabsContent>
       </Tabs>

@@ -10,7 +10,8 @@
 // buildColumnReorderHandler: función pura exportada para testeo aislado de reorden de columnas.
 // onDragEnd: discrimina por active.data.current?.type ('columna' vs resto).
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import {
   DndContext,
   type DragEndEvent,
@@ -112,13 +113,14 @@ interface KanbanBoardProps {
   fichas: Ficha[];
   tableroId: string;
   tipoFicha?: TipoFicha; // default 'TRATO' (backward-compatible)
+  onAddColumn?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }: KanbanBoardProps) {
+export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', onAddColumn }: KanbanBoardProps) {
   const { mutate } = useMoverFicha();
   const { mutate: reordenarColumnas } = useReordenarColumnas();
 
@@ -148,6 +150,30 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
   // la tarjeta; esta bandera (consultada en KanbanCard) cancela esa navegación no deseada.
   // Vive a nivel del board para sobrevivir a re-renders/remounts de las tarjetas.
   const arrastreRecienteRef = useRef(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function updateScrollHint() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  }
+
+  useEffect(() => {
+    updateScrollHint();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateScrollHint, { passive: true });
+    window.addEventListener('resize', updateScrollHint);
+    return () => {
+      el.removeEventListener('scroll', updateScrollHint);
+      window.removeEventListener('resize', updateScrollHint);
+    };
+  }, [columnas.length, fichasFiltradas.length, onAddColumn]);
+
+  function scrollRight() {
+    scrollRef.current?.scrollBy({ left: 320, behavior: 'smooth' });
+  }
 
   function handleDragEndConGuard(event: DragEndEvent) {
     const tipo = event.active.data.current?.type as string | undefined;
@@ -187,24 +213,54 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO' }
           items={columnas.map((c) => c.id)}
           strategy={horizontalListSortingStrategy}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {columnas.map((columna) => {
-              // Nombres de las demás columnas (excluye la propia) para bloqueo de duplicados en edición
-              const nombresHermanos = columnas
-                .filter((c) => c.id !== columna.id)
-                .map((c) => c.nombre ?? '');
+          <div className="relative">
+            <div
+              ref={scrollRef}
+              className="-mx-4 flex min-h-[calc(100dvh-25rem)] gap-3 overflow-x-auto overflow-y-visible px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden"
+            >
+              {columnas.map((columna) => {
+                // Nombres de las demás columnas (excluye la propia) para bloqueo de duplicados en edición
+                const nombresHermanos = columnas
+                  .filter((c) => c.id !== columna.id)
+                  .map((c) => c.nombre ?? '');
 
-              return (
-                <KanbanColumn
-                  key={columna.id}
-                  columna={columna}
-                  fichas={fichasPorColumna.get(columna.id) ?? []}
-                  tableroId={tableroId}
-                  tipoFicha={tipoFicha}
-                  nombresHermanos={nombresHermanos}
-                />
-              );
-            })}
+                return (
+                  <KanbanColumn
+                    key={columna.id}
+                    columna={columna}
+                    fichas={fichasPorColumna.get(columna.id) ?? []}
+                    tableroId={tableroId}
+                    tipoFicha={tipoFicha}
+                    nombresHermanos={nombresHermanos}
+                  />
+                );
+              })}
+              {onAddColumn && (
+                <div className="w-72 shrink-0">
+                  <button
+                    type="button"
+                    onClick={onAddColumn}
+                    className="flex h-28 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    Nueva columna
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {canScrollRight && (
+              <>
+                <div className="pointer-events-none fixed bottom-0 right-0 top-14 z-10 w-20 bg-gradient-to-l from-background via-background/80 to-transparent" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={scrollRight}
+                  className="fixed right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-popover/90 text-muted-foreground shadow-lg ring-1 ring-foreground/10 backdrop-blur transition-colors hover:text-foreground"
+                  aria-label="Mostrar más columnas"
+                >
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </>
+            )}
           </div>
         </SortableContext>
       </ArrastreRecienteContext.Provider>

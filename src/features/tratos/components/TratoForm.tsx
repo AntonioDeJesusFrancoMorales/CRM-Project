@@ -39,6 +39,9 @@ const TIPO_CONTRATO_OPTIONS: Array<{ value: 'SERVICIO' | 'LICENCIA' | 'SUSCRIPCI
   { value: 'OTRO', label: 'Otro' },
 ];
 
+const dialogInputClass =
+  'no-spinner h-9 rounded-lg px-2.5 text-sm tabular-nums focus-visible:ring-3 focus-visible:ring-ring/50';
+
 interface TratoFormProps {
   mode: 'create' | 'edit';
   defaultValues?: Partial<TratoCreateInput>;
@@ -78,13 +81,13 @@ export function TratoForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3.5" noValidate autoComplete="off">
         {/* Contacto (único select unificado) */}
         <FormField
           control={form.control}
           name="contactoId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Contacto{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
@@ -95,7 +98,7 @@ export function TratoForm({
                 disabled={contactosLoading}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 w-full">
                     <SelectValue
                       placeholder={contactosLoading ? 'Cargando contactos...' : 'Selecciona un contacto'}
                     />
@@ -119,13 +122,13 @@ export function TratoForm({
           control={form.control}
           name="nombre"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Nombre del trato{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input placeholder="Ej: Demo CTO Acme" {...field} />
+                <Input className={dialogInputClass} placeholder="Ej: Implementación CRM Innovatech" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -137,7 +140,7 @@ export function TratoForm({
           control={form.control}
           name="responsableId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Responsable{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
@@ -148,7 +151,7 @@ export function TratoForm({
                 disabled={usuariosLoading}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 w-full">
                     <SelectValue
                       placeholder={usuariosLoading ? 'Cargando responsables...' : 'Selecciona un responsable'}
                     />
@@ -169,109 +172,115 @@ export function TratoForm({
           )}
         />
 
-        {/* Tipo de contrato */}
-        <FormField
-          control={form.control}
-          name="tipoContrato"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo de contrato</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? ''}
-              >
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          {/* Tipo de contrato */}
+          <FormField
+            control={form.control}
+            name="tipoContrato"
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
+                <FormLabel>Tipo de contrato <span className="text-muted-foreground font-normal">(opcional)</span></FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value ?? ''}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue placeholder="Selecciona" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TIPO_CONTRATO_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Valor estimado */}
+          <FormField
+            control={form.control}
+            name="valorEstimado"
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
+                <FormLabel>
+                  Valor estimado (MXN) <span className="text-muted-foreground font-normal">(opcional)</span>
+                </FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un tipo" />
-                  </SelectTrigger>
+                  <Input
+                    className={dialogInputClass}
+                    type="number"
+                    min={0}
+                    step={1000}
+                    placeholder="0"
+                    value={field.value ?? ''}
+                    onChange={(e) =>
+                      field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                    }
+                  />
                 </FormControl>
-                <SelectContent>
-                  {TIPO_CONTRATO_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        {/* Valor estimado */}
-        <FormField
-          control={form.control}
-          name="valorEstimado"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Valor estimado (MXN) <span className="text-muted-foreground font-normal">(opcional)</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1000}
-                  placeholder="50000"
-                  value={field.value ?? ''}
-                  onChange={(e) =>
-                    field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                  }
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          {/* Probabilidad */}
+          <FormField
+            control={form.control}
+            name="probabilidad"
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
+                <FormLabel>
+                  Probabilidad (%) <span className="text-muted-foreground font-normal">(opcional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    className={dialogInputClass}
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={5}
+                    placeholder="0 - 100"
+                    value={field.value ?? ''}
+                    onChange={(e) =>
+                      field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Probabilidad */}
-        <FormField
-          control={form.control}
-          name="probabilidad"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Probabilidad (%) <span className="text-muted-foreground font-normal">(opcional)</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  placeholder="70"
-                  value={field.value ?? ''}
-                  onChange={(e) =>
-                    field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                  }
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          {/* Fecha cierre esperada */}
+          <FormField
+            control={form.control}
+            name="fechaCierreEsperada"
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
+                <FormLabel>
+                  Cierre esperado <span className="text-muted-foreground font-normal">(opcional)</span>
+                </FormLabel>
+                <FormControl>
+                  <DatePicker
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        {/* Fecha cierre esperada */}
-        <FormField
-          control={form.control}
-          name="fechaCierreEsperada"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Fecha de cierre esperada <span className="text-muted-foreground font-normal">(opcional)</span>
-              </FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value ?? null}
-                  onChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="-mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
           {onCancel && (
             <Button
               type="button"

@@ -22,8 +22,15 @@ import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
+import { MoreHorizontal, Trash2, Pencil, GripVertical, Trophy, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import type { TipoFicha } from '@/features/kanban/schemas/ficha.schema';
@@ -32,9 +39,13 @@ import { useColumnas } from '@/features/kanban/hooks/useColumnas';
 import { esPredeterminada } from '@/features/kanban/lib/esPredeterminada';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
+import { useContactos } from '@/features/contactos/hooks/useContactos';
+import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
+import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useEtiquetas } from '@/features/etiquetas/hooks/useEtiquetas';
 import { TIPO_TAREA_OPTIONS, PRIORIDAD_OPTIONS } from '@/features/tareas/schemas/tarea.schema';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCompactCurrency, formatCurrency, formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { FichaCreateDialog } from './FichaCreateDialog';
 import { ColumnaEditDialog } from './ColumnaEditDialog';
 import { KanbanCard } from './KanbanCard';
@@ -88,6 +99,35 @@ function sortByFechaAsc(fichas: Ficha[]): Ficha[] {
  */
 const HEADER_TINT_ALPHA = '40';
 
+function stageTone(nombre: string) {
+  const normalized = nombre.toLowerCase();
+  if (normalized.includes('ganad')) {
+    return {
+      Icon: Trophy,
+      column: 'border-emerald-200/60 bg-emerald-50/40 dark:border-emerald-500/15 dark:bg-emerald-500/[0.03]',
+      header: 'border-b border-emerald-200/50 bg-emerald-50/60 dark:border-emerald-500/10 dark:bg-emerald-500/[0.06]',
+      title: 'text-emerald-700/90 dark:text-emerald-300/90',
+      icon: 'text-emerald-600/90 dark:text-emerald-400/90',
+      count: 'bg-emerald-100/70 text-emerald-700/90 ring-emerald-600/15 dark:bg-emerald-500/10 dark:text-emerald-300/90 dark:ring-emerald-400/15',
+      empty: 'border-emerald-200/50 text-emerald-600/90 dark:border-emerald-500/15 dark:text-emerald-400/90',
+      emptyLabel: 'Aún sin tratos ganados',
+    };
+  }
+  if (normalized.includes('perdid')) {
+    return {
+      Icon: XCircle,
+      column: 'border-rose-200/60 bg-rose-50/40 dark:border-rose-500/15 dark:bg-rose-500/[0.03]',
+      header: 'border-b border-rose-200/50 bg-rose-50/60 dark:border-rose-500/10 dark:bg-rose-500/[0.06]',
+      title: 'text-rose-600/90 dark:text-rose-300/90',
+      icon: 'text-rose-500/90 dark:text-rose-400/90',
+      count: 'bg-rose-100/70 text-rose-600/90 ring-rose-500/15 dark:bg-rose-500/10 dark:text-rose-300/90 dark:ring-rose-400/15',
+      empty: 'border-rose-200/50 text-rose-500/90 dark:border-rose-500/15 dark:text-rose-400/90',
+      emptyLabel: 'Sin tratos perdidos',
+    };
+  }
+  return null;
+}
+
 /** Label en español para tipo de tarea. */
 function tipoTareaLabel(tipo: string): string {
   return TIPO_TAREA_OPTIONS.find((o) => o.value === tipo)?.label ?? tipo;
@@ -128,6 +168,9 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
 
   const { data: tareas } = useTareas();
   const { data: tratos } = useTratos();
+  const { data: contactos = [] } = useContactos();
+  const { data: empresas = [] } = useEmpresas();
+  const { data: usuarios = [] } = useUsuarios();
   // Catálogo de etiquetas (full) — fuente de verdad de nombre+color. Las fichas solo
   // traen el id, así que el chip se resuelve por join contra este mapa.
   const { data: catalogoEtiquetas = [] } = useEtiquetas();
@@ -144,6 +187,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
 
   const nombre = columna.nombre ?? 'Sin nombre';
   const color = columna.color ?? DEFAULT_COLUMN_COLOR;
+  const tone = stageTone(nombre);
   const sortedFichas = sortByFechaAsc(fichas);
 
   // Total derivado: solo para tableros TRATOS — suma de valorEstimado de los tratos de las fichas.
@@ -158,6 +202,10 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
 
   const wipExcedido =
     columna.limiteWip !== null && fichas.length > columna.limiteWip;
+  const wipAlMaximo =
+    columna.limiteWip !== null && fichas.length >= columna.limiteWip;
+  const wipAdvertencia =
+    columna.limiteWip !== null && fichas.length >= Math.ceil(columna.limiteWip * 0.75);
 
   function handleQuitarColumna() {
     quitarColumna({ tableroId, columnaId: columna.id });
@@ -170,6 +218,8 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     badge: KanbanCardBadge | undefined;
     to: string | undefined;
     chatTo: string | undefined;
+    empresaNombre: string | undefined;
+    responsableNombre: string | undefined;
   } {
     if (tipoFicha === 'TAREA') {
       const tarea = tareas?.find((t) => t.id === ficha.tareaId);
@@ -198,11 +248,14 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       // Solo navegar si hay tareaId válido
       const to = ficha.tareaId ? `/tareas/${ficha.tareaId}` : undefined;
 
-      return { titulo, detalles, badge, to, chatTo: undefined };
+      return { titulo, detalles, badge, to, chatTo: undefined, empresaNombre: undefined, responsableNombre: undefined };
     }
 
     // TRATO (default)
     const trato = tratos?.find((t) => t.id === ficha.tratoId);
+    const contacto = trato ? contactos.find((c) => c.id === trato.contactoId) : undefined;
+    const empresa = contacto ? empresas.find((e) => e.id === contacto.empresaId) : undefined;
+    const responsable = trato ? usuarios.find((u) => u.id === trato.responsableId) : undefined;
     const titulo = trato?.nombre ?? ficha.tratoId ?? 'Sin trato';
     const detalles: KanbanCardDetalle[] = [];
     let badge: KanbanCardBadge | undefined;
@@ -230,7 +283,15 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     // Atajo al chat del contacto del trato (best-effort: lo resuelve WhatsappChatPage).
     const chatTo = trato?.contactoId ? `/whatsapp?contacto=${trato.contactoId}` : undefined;
 
-    return { titulo, detalles, badge, to, chatTo };
+    return {
+      titulo,
+      detalles,
+      badge,
+      to,
+      chatTo,
+      empresaNombre: empresa?.nombre,
+      responsableNombre: responsable?.nombre,
+    };
   }
 
   // Estilo de transformación para la columna durante el reorden
@@ -244,16 +305,19 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     <div
       ref={setSortableRef}
       style={columnStyle}
-      className="flex w-72 flex-shrink-0 flex-col gap-2"
+      className={cn(
+        'group flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-lg border transition-colors',
+        isOver
+          ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/20'
+          : tone?.column ?? 'border-border bg-muted/40',
+      )}
     >
-      {/* Header de la columna — dos filas: (1) nombre + acciones, (2) badges informativos */}
+      {/* Header de la columna — alineado al diseño v0: nombre, contador, total compacto y menú. */}
       <div
-        className="flex flex-col gap-1.5 rounded-t-md px-3 py-2"
-        style={{ backgroundColor: color + HEADER_TINT_ALPHA /* tinte ~25%, fijo para light y dark */ }}
+        className={cn('flex items-center gap-2 px-3 py-2.5', tone?.header)}
+        style={!tone ? { backgroundColor: color + HEADER_TINT_ALPHA } : undefined}
       >
-        {/* Fila 1: handle + color + nombre (trunca) + acciones */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             {/* Handle de reordenamiento — SOLO este elemento inicia el drag de columna */}
             <button
               type="button"
@@ -271,76 +335,59 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
               style={{ backgroundColor: color }}
               aria-hidden="true"
             />
-            <h3 className="truncate text-sm font-semibold text-foreground" title={nombre}>
+            <h3 className={cn('truncate text-sm font-semibold', tone?.title ?? 'font-medium text-foreground')} title={nombre}>
               {nombre}
             </h3>
             {/* Contador de fichas — visible junto al nombre (cuántas ocupa la columna) */}
             <span
-              className="flex-shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+              className={cn('flex-shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ring-1 ring-inset', tone?.count ?? 'bg-background text-muted-foreground ring-border')}
               aria-label={`${fichas.length} fichas`}
             >
               {fichas.length}
             </span>
           </div>
-
-          {/* Acciones — no se encogen */}
-          <div className="flex flex-shrink-0 items-center gap-0.5">
-            {/* Botón "+" — abre FichaCreateDialog */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              aria-label="Nueva ficha"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-
-            {/* Botón "Editar columna" — siempre visible */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              aria-label="Editar columna"
-              onClick={() => setEditOpen(true)}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-
-            {/* Botón "Quitar columna" — solo si la columna NO es PREDETERMINADA */}
-            {!predeterminada && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-destructive hover:text-destructive"
-                aria-label="Quitar columna"
-                onClick={handleQuitarColumna}
-                disabled={isQuitando}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Fila 2: Total derivado — SOLO tableros TRATOS. El estado de columna se omite
-            a propósito (el nombre ya lo comunica), así que esta fila no aparece en TAREA. */}
         {totalDerivado !== null && (
-          <div className="flex flex-wrap items-center gap-1">
-            <span
-              data-testid="columna-total-derivado"
-              className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300"
-            >
-              Total: {formatCurrency(totalDerivado)}
-            </span>
-          </div>
+          <span data-testid="columna-total-derivado" className="mr-1 hidden text-xs tabular-nums text-muted-foreground sm:inline">
+            {formatCompactCurrency(totalDerivado)}
+          </span>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-xs" className="text-muted-foreground" aria-label={`Acciones de la columna ${nombre}`}>
+              <MoreHorizontal className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}>Agregar trato</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Renombrar columna
+              </DropdownMenuItem>
+              {!predeterminada && (
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleQuitarColumna} disabled={isQuitando}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Ocultar columna
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Indicador limiteWip */}
       {columna.limiteWip !== null && (
-        <div className="flex items-center justify-between px-3">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-1.5">
+          <span
+            className={cn(
+              'text-xs font-medium tabular-nums transition-colors',
+              wipAlMaximo
+                ? 'text-red-600 dark:text-red-400'
+                : wipAdvertencia
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-muted-foreground',
+            )}
+          >
             WIP: {fichas.length}/{columna.limiteWip}
           </span>
           {wipExcedido && (
@@ -361,17 +408,18 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       <div
         ref={setDropRef}
         className={[
-          'flex min-h-16 flex-col gap-2 rounded-b-md border-2 p-2 transition-colors',
-          isOver ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/30',
+          'flex min-h-24 flex-1 flex-col gap-2 px-2 pb-2 transition-colors',
+          columna.limiteWip === null ? 'pt-2' : '',
+          isOver ? 'bg-primary/5' : '',
         ].join(' ')}
       >
         {sortedFichas.length === 0 ? (
-          <p className="flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/20 px-2 py-3 text-center text-xs text-muted-foreground/60">
-            Suelta fichas aquí
+          <p className={cn('flex flex-1 items-center justify-center rounded-md border border-dashed px-3 py-6 text-center text-xs', tone?.empty ?? 'border-border/70 text-muted-foreground')}>
+            {tone?.emptyLabel ?? 'Sin tratos'}
           </p>
         ) : (
           sortedFichas.map((ficha) => {
-            const { titulo, detalles, badge, to, chatTo } = resolveCardProps(ficha);
+            const { titulo, detalles, badge, to, chatTo, empresaNombre, responsableNombre } = resolveCardProps(ficha);
             return (
               <KanbanCard
                 key={ficha.id}
@@ -382,6 +430,8 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
                 etiquetas={resolveEtiquetas(ficha)}
                 to={to}
                 chatTo={chatTo}
+                empresaNombre={empresaNombre}
+                responsableNombre={responsableNombre}
               />
             );
           })
