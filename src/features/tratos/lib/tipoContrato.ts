@@ -15,13 +15,16 @@ export const tipoContratoLabels: Record<TipoContrato, string> = {
  */
 export const tipoContratoBadgeClass: Record<TipoContrato, string> = {
   SERVICIO:
-    'border-transparent bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-400/20',
   LICENCIA:
-    'border-transparent bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+    'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-400/20',
   SUSCRIPCION:
-    'border-transparent bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-400/20',
   PERMANENTE:
-    'border-transparent bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-400/20',
   OTRO:
-    'border-transparent bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300',
+    'bg-slate-100 text-slate-600 ring-slate-500/20 dark:bg-slate-400/10 dark:text-slate-300 dark:ring-slate-400/20',
 };
+
+export const tipoContratoBadgeBaseClass =
+  'inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset';

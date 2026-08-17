@@ -16,18 +16,21 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { MoreVertical } from 'lucide-react';
+import { CalendarClock, GripVertical, MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 import { useEliminarTarjeta } from '../hooks/useEliminarTarjeta';
 import { useArrastreReciente } from './arrastreReciente';
 import { FichaDeleteDialog } from './FichaDeleteDialog';
+import { cn } from '@/lib/utils';
 
 export interface KanbanCardDetalle {
   label: string;
@@ -62,9 +65,11 @@ interface KanbanCardProps {
   to?: string;
   /** Ruta al chat del contacto (solo tratos con contacto). Añade "Abrir chat" al menú. */
   chatTo?: string;
+  empresaNombre?: string;
+  responsableNombre?: string;
 }
 
-export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to, chatTo }: KanbanCardProps) {
+export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to, chatTo, empresaNombre, responsableNombre }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
     // type: 'ficha' permite discriminar fichas vs columnas en el onDragEnd del DndContext
@@ -94,21 +99,21 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
         style={style}
         data-testid="kanban-card"
         className={[
-          'rounded-md border bg-card p-3 shadow-sm',
-          'cursor-grab select-none',
-          'transition-shadow',
-          isDragging ? 'opacity-50 shadow-lg ring-2 ring-primary' : 'hover:shadow-md',
+          'group/card relative rounded-lg border border-border bg-card p-3',
+          'cursor-grab select-none transition-shadow active:cursor-grabbing',
+          isDragging ? 'opacity-40' : 'hover:shadow-sm',
         ].join(' ')}
         {...attributes}
         {...listeners}
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-1.5">
+          <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 opacity-0 transition-opacity group-hover/card:opacity-100" />
           <div className="min-w-0 flex-1">
             {/* Título: ÚNICO punto de entrada al detalle (click). El resto de la tarjeta solo arrastra. */}
             {to ? (
               <Link
                 to={to}
-                className="block truncate text-sm font-medium text-card-foreground hover:underline"
+                className="block truncate text-sm font-medium text-foreground hover:text-primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   // Backup: si el click llega justo tras soltar un arrastre, no navegar.
@@ -122,54 +127,10 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
                 {titulo}
               </Link>
             ) : (
-              <p className="truncate text-sm font-medium text-card-foreground">{titulo}</p>
+              <p className="truncate text-sm font-medium text-foreground">{titulo}</p>
             )}
 
             {/* Badge de prioridad u otro indicador — área de arrastre, NO navegable */}
-            {badge && (
-              <span
-                className={[
-                  'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                  badge.classes,
-                ].join(' ')}
-              >
-                {badge.text}
-              </span>
-            )}
-
-            {/* Detalles adicionales (valor, probabilidad, fecha, tipo, etc.) — área de arrastre, NO navegable */}
-            {detalles.length > 0 && (
-              <dl className="mt-1.5 space-y-0.5">
-                {detalles.map((d) => (
-                  <div key={d.label} className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <dt className="shrink-0 font-medium">{d.label}:</dt>
-                    <dd className="truncate">{d.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-
-            {/* Chips de etiquetas — punto de color + nombre. Fondo tenue derivado del color
-                de la etiqueta (sufijo alpha fijo, funciona en light y dark). */}
-            {etiquetas.length > 0 && (
-              <ul className="mt-2 flex flex-wrap gap-1" aria-label="Etiquetas">
-                {etiquetas.map((e) => (
-                  <li
-                    key={e.id}
-                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
-                    style={{ borderColor: e.color, backgroundColor: e.color + '1A', color: e.color }}
-                    title={e.nombre}
-                  >
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: e.color }}
-                      aria-hidden="true"
-                    />
-                    <span className="max-w-[8rem] truncate">{e.nombre}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* Dropdown de acciones — stopPropagation evita que el drag intercepte el click */}
@@ -181,29 +142,87 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="icon-xs"
                   aria-label="Acciones de ficha"
-                  className="h-6 w-6 shrink-0"
+                  className="-mr-1 -mt-1 shrink-0 text-muted-foreground opacity-0 group-hover/card:opacity-100 data-[state=open]:opacity-100"
                 >
-                  <MoreVertical className="h-3 w-3" />
+                  <MoreHorizontal className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuGroup>
+                  {to && (
+                    <DropdownMenuItem asChild>
+                      <Link to={to}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 {chatTo && (
                   <DropdownMenuItem asChild>
-                    <Link to={chatTo}>Abrir chat</Link>
+                    <Link to={chatTo}>
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Abrir chat
+                    </Link>
                   </DropdownMenuItem>
                 )}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setDeleteOpen(true)}
                 >
+                  <Trash2 className="mr-2 h-4 w-4" />
                   Eliminar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
+
+        {detalles.length > 0 && (
+          <div className="mt-2 flex items-baseline justify-between gap-2 pl-5">
+            <span className="text-sm font-semibold tabular-nums text-foreground">{detalles[0]?.value}</span>
+            {detalles[1] && <span className="text-xs font-medium tabular-nums text-muted-foreground">{detalles[1].value}</span>}
+          </div>
+        )}
+
+        {(badge || empresaNombre) && (
+          <div className="mt-2 flex items-center gap-2 pl-5">
+            {badge && (
+              <span className={cn('inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset', badge.classes)}>
+                {badge.text}
+              </span>
+            )}
+            {empresaNombre && <span className="truncate text-xs text-muted-foreground">{empresaNombre}</span>}
+          </div>
+        )}
+
+        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5 pl-5">
+          <div className="inline-flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+            <CalendarClock className="h-3.5 w-3.5" />
+            {detalles[2]?.value ?? 'Sin fecha'}
+          </div>
+          {responsableNombre && (
+            <span className="flex min-w-0 items-center gap-1.5" title={`Responsable: ${responsableNombre}`}>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                {initials(responsableNombre)}
+              </span>
+              <span className="truncate text-xs font-medium text-foreground">{responsableNombre}</span>
+            </span>
+          )}
+        </div>
+
+        {etiquetas.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1 pl-5" aria-label="Etiquetas">
+            {etiquetas.map((e) => (
+              <li key={e.id} className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border" title={e.nombre}>
+                {e.nombre}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <FichaDeleteDialog
@@ -217,4 +236,13 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
       />
     </>
   );
+}
+
+function initials(name: string): string {
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 }

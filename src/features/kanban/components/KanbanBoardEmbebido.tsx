@@ -4,7 +4,6 @@
 // Fase 3: reemplaza el viejo "Asignar columna" (Select catálogo) por ColumnaCreateDialog.
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { useTablero } from '../hooks/useTablero';
 import { useFichas } from '../hooks/useFichas';
 import { KanbanBoard } from './KanbanBoard';
@@ -76,14 +75,7 @@ export function KanbanBoardEmbebido({ tableroId, allowedEntityIds }: KanbanBoard
   }
 
   return (
-    <div className="space-y-4">
-      {/* Botón Nueva columna */}
-      <div className="flex justify-end">
-        <Button onClick={() => setNuevaColumnaOpen(true)}>
-          Nueva columna
-        </Button>
-      </div>
-
+    <div>
       {/* Tablero Kanban o mensaje de sin columnas */}
       {tablero.columnas.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
@@ -95,6 +87,7 @@ export function KanbanBoardEmbebido({ tableroId, allowedEntityIds }: KanbanBoard
           fichas={fichasFiltradas}
           tableroId={tablero.id}
           tipoFicha={tipoFicha}
+          onAddColumn={() => setNuevaColumnaOpen(true)}
         />
       )}
 

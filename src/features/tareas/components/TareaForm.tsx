@@ -36,6 +36,9 @@ import {
   type TareaCreateInput,
 } from '../schemas/tarea.schema';
 
+const dialogInputClass =
+  'no-spinner h-9 rounded-lg px-2.5 text-sm tabular-nums focus-visible:ring-3 focus-visible:ring-ring/50';
+
 interface TareaFormProps {
   mode: 'create' | 'edit';
   defaultValues?: Partial<TareaCreateInput>;
@@ -88,14 +91,14 @@ export function TareaForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3.5" noValidate autoComplete="off">
 
         {/* Select de Trato */}
         <FormField
           control={form.control}
           name="tratoId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Trato{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
@@ -107,7 +110,7 @@ export function TareaForm({
                   disabled
                 >
                   <FormControl>
-                    <SelectTrigger aria-label="Trato">
+                    <SelectTrigger className="h-9 w-full" aria-label="Trato">
                       <SelectValue>
                         {tratoSeleccionado?.nombre ?? tratoIdFijo}
                       </SelectValue>
@@ -129,7 +132,7 @@ export function TareaForm({
                   disabled={tratosLoading}
                 >
                   <FormControl>
-                    <SelectTrigger aria-label="Trato">
+                    <SelectTrigger className="h-9 w-full" aria-label="Trato">
                       <SelectValue
                         placeholder={tratosLoading ? 'Cargando tratos...' : 'Selecciona un trato'}
                       />
@@ -154,13 +157,14 @@ export function TareaForm({
           control={form.control}
           name="titulo"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Título{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
                 <Input
+                  className={dialogInputClass}
                   placeholder="Ej: Llamada de seguimiento"
                   aria-label="Título"
                   {...field}
@@ -176,10 +180,11 @@ export function TareaForm({
           control={form.control}
           name="descripcion"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>Descripción</FormLabel>
               <FormControl>
                 <Input
+                  className={dialogInputClass}
                   placeholder="Opcional"
                   {...field}
                   value={field.value ?? ''}
@@ -191,73 +196,73 @@ export function TareaForm({
           )}
         />
 
-        {/* Tipo */}
-        <FormField
-          control={form.control}
-          name="tipo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Tipo{' '}
-                <span aria-hidden="true" className="text-destructive">*</span>
-              </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger aria-label="Tipo">
-                    <SelectValue placeholder="Selecciona un tipo" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {TIPO_TAREA_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          {/* Tipo */}
+          <FormField
+            control={form.control}
+            name="tipo"
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
+                <FormLabel>
+                  Tipo <span aria-hidden="true" className="text-destructive">*</span>
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="h-9 w-full" aria-label="Tipo">
+                      <SelectValue placeholder="Selecciona un tipo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TIPO_TAREA_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Prioridad */}
-        <FormField
-          control={form.control}
-          name="prioridad"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Prioridad{' '}
-                <span aria-hidden="true" className="text-destructive">*</span>
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger aria-label="Prioridad">
-                    <SelectValue placeholder="Selecciona la prioridad" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {PRIORIDAD_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          {/* Prioridad */}
+          <FormField
+            control={form.control}
+            name="prioridad"
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
+                <FormLabel>
+                  Prioridad <span aria-hidden="true" className="text-destructive">*</span>
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-9 w-full" aria-label="Prioridad">
+                      <SelectValue placeholder="Selecciona la prioridad" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PRIORIDAD_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {/* Responsable */}
         <FormField
           control={form.control}
           name="responsableId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Responsable{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
@@ -268,7 +273,7 @@ export function TareaForm({
                 disabled={usuariosLoading}
               >
                 <FormControl>
-                  <SelectTrigger aria-label="Responsable">
+                  <SelectTrigger className="h-9 w-full" aria-label="Responsable">
                     <SelectValue
                       placeholder={usuariosLoading ? 'Cargando responsables...' : 'Selecciona un responsable'}
                     />
@@ -294,7 +299,7 @@ export function TareaForm({
           control={form.control}
           name="fechaLimite"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Fecha límite{' '}
                 <span aria-hidden="true" className="text-destructive">*</span>
@@ -310,7 +315,7 @@ export function TareaForm({
           )}
         />
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="-mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
           {onCancel && (
             <Button
               type="button"

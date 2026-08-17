@@ -12,7 +12,7 @@
 //   - DateTimePicker  → valor "YYYY-MM-DDTHH:mm"  (LocalDateTime del back)
 
 import * as React from 'react';
-import { Calendar as CalendarIcon, Clock, X, ChevronDown } from 'lucide-react';
+import { CalendarDays, Clock, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -33,7 +33,7 @@ import {
 
 // Estilo del trigger — homologa SelectTrigger.
 const TRIGGER_CLASS =
-  'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
+  'flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-left text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
 
 // Contenedor del panel inline (calendario / calendario+hora).
 // Se despliega HACIA ARRIBA: posicionado en absolute sobre el trigger (bottom-full)
@@ -41,7 +41,9 @@ const TRIGGER_CLASS =
 // dirección de apertura para no empujar el contenido de abajo ni quedar tapado por
 // el borde inferior de los Dialogs.
 const PANEL_CLASS =
-  'absolute bottom-full left-0 z-50 mb-2 w-max rounded-md border border-border bg-popover p-3 shadow-md';
+  'absolute left-0 z-50 w-72 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-lg outline-none';
+
+const PANEL_HEIGHT_ESTIMATE = 360;
 
 const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
@@ -129,30 +131,65 @@ interface DatePickerProps
 export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
   ({ value, onChange, placeholder = 'Elegí una fecha', className, disabled, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
+    const [dropUp, setDropUp] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
     const selected = parseYmd(value);
+
+    React.useEffect(() => {
+      if (!open) return;
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < PANEL_HEIGHT_ESTIMATE && rect.top > spaceBelow);
+    }, [open]);
 
     return (
       <div className="relative">
         <button
-          ref={ref}
+          ref={(node) => {
+            triggerRef.current = node;
+            if (typeof ref === 'function') ref(node);
+            else if (ref) ref.current = node;
+          }}
           type="button"
           disabled={disabled}
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className={cn(TRIGGER_CLASS, !selected && 'text-muted-foreground', className)}
+          className={cn(TRIGGER_CLASS, className)}
           {...props}
         >
-          <span className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
+          <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className={cn('flex-1 truncate capitalize tabular-nums', selected ? 'text-foreground' : 'text-muted-foreground')}>
             {selected ? formatDisplayDate(selected) : placeholder}
           </span>
-          <ChevronDown
-            className={cn('h-4 w-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')}
-            aria-hidden="true"
-          />
+          {selected && (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Limpiar fecha"
+              onClick={(event) => {
+                event.stopPropagation();
+                onChange('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange('');
+                }
+              }}
+              className="grid h-5 w-5 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
         </button>
         {open && (
-          <div className={PANEL_CLASS}>
+          <div
+            role="dialog"
+            aria-label="Selector de calendario"
+            className={cn(PANEL_CLASS, dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5')}
+          >
             <Calendar
               selected={selected}
               onSelect={(date) => {
@@ -182,13 +219,27 @@ interface DateTimePickerProps
 export const DateTimePicker = React.forwardRef<HTMLButtonElement, DateTimePickerProps>(
   ({ value, onChange, placeholder = 'Elegí fecha y hora', className, disabled, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
+    const [dropUp, setDropUp] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
     const { date, time } = splitDateTime(value);
     const selected = parseYmd(date);
+
+    React.useEffect(() => {
+      if (!open) return;
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < PANEL_HEIGHT_ESTIMATE && rect.top > spaceBelow);
+    }, [open]);
 
     return (
       <div className="relative">
         <button
-          ref={ref}
+          ref={(node) => {
+            triggerRef.current = node;
+            if (typeof ref === 'function') ref(node);
+            else if (ref) ref.current = node;
+          }}
           type="button"
           disabled={disabled}
           aria-expanded={open}
@@ -196,17 +247,15 @@ export const DateTimePicker = React.forwardRef<HTMLButtonElement, DateTimePicker
           className={cn(TRIGGER_CLASS, !selected && 'text-muted-foreground', className)}
           {...props}
         >
-          <span className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
-            {selected ? `${formatDisplayDate(selected)}, ${time ?? '09:00'}` : placeholder}
+          <span className="flex flex-1 items-center gap-2 truncate">
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className={cn('truncate capitalize tabular-nums', selected ? 'text-foreground' : 'text-muted-foreground')}>
+              {selected ? `${formatDisplayDate(selected)}, ${time ?? '09:00'}` : placeholder}
+            </span>
           </span>
-          <ChevronDown
-            className={cn('h-4 w-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')}
-            aria-hidden="true"
-          />
         </button>
         {open && (
-          <div className={cn(PANEL_CLASS, 'space-y-3')}>
+          <div className={cn(PANEL_CLASS, 'space-y-3', dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5')}>
             <Calendar
               selected={selected}
               onSelect={(picked) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
-import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, Bot, ChevronDown, LayoutDashboard, type LucideIcon } from 'lucide-react';
+import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, MessageSquare, Wifi, Users, FileText, Bot, ChevronDown, LayoutDashboard, Waypoints, type LucideIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -20,7 +20,7 @@ const mainItems: NavItem[] = [
   { label: 'Empresas', to: '/empresas', icon: Building2 },
   { label: 'Contactos', to: '/contactos', icon: Contact2 },
   { label: 'Agenda', to: '/agenda', icon: CalendarClock },
-  { label: 'Tratos', to: '/tratos', icon: Handshake },
+  { label: 'Tratos', to: '/tratos', icon: Handshake, badge: '7' },
 ];
 
 // "Tableros" va DEBAJO de "Mis tareas" (no en el grupo principal).
@@ -42,9 +42,9 @@ const adminItems: NavItem[] = [
 ];
 
 const baseClasses =
-  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors';
+  'relative flex items-center rounded-md text-sm font-medium transition-colors';
 
-function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+function NavItemLink({ item, onNavigate, collapsed }: { item: NavItem; onNavigate?: () => void; collapsed?: boolean }) {
   const Icon = item.icon;
 
   if (item.disabled) {
@@ -52,12 +52,13 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
       <div
         className={cn(
           baseClasses,
+          collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2.5 py-2',
           'text-muted-foreground/70 cursor-not-allowed select-none',
         )}
         aria-disabled="true"
       >
-        <Icon className="h-4 w-4" />
-        <span className="flex-1">{item.label}</span>
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
         {item.badge && (
           <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted px-2 py-0.5">
             {item.badge}
@@ -75,18 +76,34 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
       className={({ isActive }) =>
         cn(
           baseClasses,
-          'text-foreground hover:bg-muted',
-          isActive && 'bg-muted font-medium',
+          collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2.5 py-2',
+          isActive
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+            : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
         )
       }
+      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
     >
-      <Icon className="h-4 w-4" />
-      <span>{item.label}</span>
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && (
+          <>
+            <span className="flex-1 truncate">{item.label}</span>
+            {item.badge && (
+              <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-xs font-medium tabular-nums text-primary">
+                {item.badge}
+              </span>
+            )}
+          </>
+        )}
+        {collapsed && item.badge && (
+          <span className="absolute right-1.5 top-1 h-1.5 w-1.5 rounded-full bg-primary" />
+        )}
     </NavLink>
   );
 }
 
-function WhatsappNavGroup({ onNavigate }: { onNavigate?: () => void }) {
+function WhatsappNavGroup({ onNavigate, collapsed }: { onNavigate?: () => void; collapsed?: boolean }) {
   const location = useLocation();
   const isSubItemActive = whatsappSubItems.some((item) => location.pathname.startsWith(item.to));
   const [open, setOpen] = useState(isSubItemActive);
@@ -101,47 +118,61 @@ function WhatsappNavGroup({ onNavigate }: { onNavigate?: () => void }) {
           className={({ isActive }) =>
             cn(
               baseClasses,
-              'flex-1 text-foreground hover:bg-muted',
-              isActive && !isSubItemActive && 'bg-muted font-medium',
+              collapsed ? 'justify-center px-2 py-2' : 'flex-1 gap-2.5 px-2.5 py-2',
+              isActive && !isSubItemActive
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
             )
           }
+          title={collapsed ? whatsappItem.label : undefined}
+          aria-label={collapsed ? whatsappItem.label : undefined}
         >
-          <Icon className="h-4 w-4" />
-          <span>{whatsappItem.label}</span>
+          <Icon className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>{whatsappItem.label}</span>}
         </NavLink>
-        <CollapsibleTrigger asChild>
+        {!collapsed && <CollapsibleTrigger asChild>
           <button
             type="button"
             aria-label="Mostrar submenú de WhatsApp"
-            className="p-2 rounded-md hover:bg-muted text-muted-foreground"
+            className="rounded-md p-2 text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
           >
             <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
           </button>
-        </CollapsibleTrigger>
+        </CollapsibleTrigger>}
       </div>
-      <CollapsibleContent className="pl-6 space-y-1 pt-1">
+      {!collapsed && <CollapsibleContent className="space-y-1 pl-6 pt-1">
         {whatsappSubItems.map((item) => (
           <NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
         ))}
-      </CollapsibleContent>
+      </CollapsibleContent>}
     </Collapsible>
   );
 }
 
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; collapsed?: boolean }) {
   // Todos los ítems se muestran a cualquier usuario autenticado. El back NO enforza
   // autorización por rol (solo autenticación), así que ocultar ítems por "rol" sería
   // falsa seguridad. Ver capability frontend-authorization.
   const usuario = useAuthStore((s) => s.usuario);
+  const initials = usuario ? usuario.username.slice(0, 2).toUpperCase() : 'PI';
 
   return (
-    <aside className="w-60 h-full shrink-0 border-r bg-card flex flex-col" role="navigation" aria-label="Menú principal">
-      <div className="h-14 flex items-center px-4 border-b">
-        <span className="font-semibold tracking-tight">Pipely</span>
+    <aside className="flex h-full flex-col gap-6 bg-sidebar" role="navigation" aria-label="Menú principal">
+      <div className={cn('flex h-14 items-center gap-2.5 border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'px-5')}>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Waypoints className="h-4 w-4" />
+        </div>
+        {!collapsed && <span className="text-[15px] font-semibold tracking-tight text-sidebar-foreground">Pipely</span>}
       </div>
-      <nav className="flex-1 p-3 flex flex-col space-y-1 overflow-y-auto">
+      <nav className={cn('flex flex-1 flex-col gap-6 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
+        <div className="flex flex-col gap-1.5">
+          {!collapsed && (
+            <p className="px-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
+              Comercial
+            </p>
+          )}
         {mainItems.map((item) => (
-          <NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
+          <NavItemLink key={item.to} item={item} onNavigate={onNavigate} collapsed={collapsed} />
         ))}
 
         {/* "Mis tareas" — ítem dinámico: filtra por responsable_id del usuario logueado (ADR-054) */}
@@ -152,32 +183,46 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             className={({ isActive }) =>
               cn(
                 baseClasses,
-                'text-foreground hover:bg-muted',
-                isActive && 'bg-muted font-medium',
+                collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2.5 py-2',
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
               )
             }
+            title={collapsed ? 'Mis tareas' : undefined}
+            aria-label={collapsed ? 'Mis tareas' : undefined}
           >
-            <ClipboardList className="h-4 w-4" />
-            <span>Mis tareas</span>
+            <ClipboardList className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Mis tareas</span>}
           </NavLink>
         )}
 
         {/* Tableros — justo debajo de "Mis tareas" */}
-        <NavItemLink item={tablerosItem} onNavigate={onNavigate} />
+        <NavItemLink item={tablerosItem} onNavigate={onNavigate} collapsed={collapsed} />
 
         {/* WhatsApp inbox + submenú colapsable (grupos, canales, ajustes, plantillas) */}
-        <WhatsappNavGroup onNavigate={onNavigate} />
+        <WhatsappNavGroup onNavigate={onNavigate} collapsed={collapsed} />
+        </div>
 
         {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
-        <div className="mt-auto pt-3 border-t space-y-1">
+        <div className="mt-auto flex flex-col gap-1.5 border-t border-sidebar-border pt-3">
           {adminItems.map((item) => (
-            <NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
+            <NavItemLink key={item.to} item={item} onNavigate={onNavigate} collapsed={collapsed} />
           ))}
         </div>
       </nav>
-      <div className="p-3 border-t text-[11px] text-muted-foreground">
-        <p>Pipely</p>
-        <p className="opacity-70">Residencia · v0.1.0</p>
+      <div className={cn('border-t border-sidebar-border p-3', collapsed && 'flex justify-center')}>
+        <div className={cn('flex items-center rounded-md', collapsed ? 'px-0 py-0' : 'gap-2.5 px-2 py-1.5')}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+            {initials}
+          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{usuario?.username ?? 'Pipely'}</p>
+              <p className="truncate text-xs text-muted-foreground">Equipo comercial</p>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );

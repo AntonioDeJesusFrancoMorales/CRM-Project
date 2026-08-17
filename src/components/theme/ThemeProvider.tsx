@@ -36,7 +36,7 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('dark');
+    root.classList.remove('dark', 'light');
 
     const effectiveTheme =
       theme === 'system'
@@ -47,6 +47,8 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
 
     if (effectiveTheme === 'dark') {
       root.classList.add('dark');
+    } else {
+      root.classList.add('light');
     }
   }, [theme]);
 

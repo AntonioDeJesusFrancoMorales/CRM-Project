@@ -44,6 +44,13 @@ const currencyFmt = new Intl.NumberFormat('es-MX', {
   maximumFractionDigits: 0,
 });
 
+const compactCurrencyFmt = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
 /**
  * Formato de moneda en pesos mexicanos sin decimales.
  * `null`/`undefined` → guion largo. Para KPIs y columnas de valor.
@@ -51,4 +58,10 @@ const currencyFmt = new Intl.NumberFormat('es-MX', {
 export function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
   return currencyFmt.format(value);
+}
+
+/** Formato compacto de moneda para KPIs y totales de Kanban. */
+export function formatCompactCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return compactCurrencyFmt.format(value);
 }
