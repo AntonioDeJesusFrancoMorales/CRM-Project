@@ -7,7 +7,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Phone, Video } from 'lucide-react';
+import { Bell, Phone, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -79,16 +79,25 @@ export function AgendaForm({
   const tipo = form.watch('tipo');
   const recordatorioHabilitado = form.watch('recordatorioHabilitado');
 
+  function handleValidSubmit(values: AgendaCreateInput) {
+    onSubmit({
+      ...values,
+      ubicacion: values.tipo === 'REUNION' ? values.ubicacion : null,
+      linkVideollamada: values.tipo === 'LLAMADA' ? values.linkVideollamada : null,
+      minutosAntes: values.recordatorioHabilitado ? values.minutosAntes : null,
+    });
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
+      <form onSubmit={form.handleSubmit(handleValidSubmit)} className="flex flex-col gap-3.5" noValidate autoComplete="off">
         {/* Tipo — dos cuadros seleccionables (uno u otro). Al cambiar de tipo se limpia
             el campo del otro (ubicación ↔ link) para no arrastrar datos del tipo anterior. */}
         <FormField
           control={form.control}
           name="tipo"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Tipo <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
@@ -107,14 +116,19 @@ export function AgendaForm({
                         onClick={() => {
                           field.onChange(opt.value);
                           // Limpia el campo que no aplica al nuevo tipo.
-                          if (opt.value === 'LLAMADA') form.setValue('ubicacion', null);
-                          else form.setValue('linkVideollamada', null);
+                          if (opt.value === 'LLAMADA') {
+                            form.setValue('ubicacion', null);
+                            form.clearErrors('ubicacion');
+                          } else {
+                            form.setValue('linkVideollamada', null);
+                            form.clearErrors('linkVideollamada');
+                          }
                         }}
                         className={cn(
-                          'flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-sm transition-colors',
+                          'flex items-center justify-center gap-2 rounded-lg border p-3 text-sm outline-none transition-all focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
                           selected
-                            ? 'border-primary bg-primary/5 font-medium text-foreground'
-                            : 'border-input text-muted-foreground hover:bg-muted',
+                            ? 'border-primary bg-primary/10 font-medium text-primary ring-1 ring-primary/30'
+                            : 'border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground dark:bg-input/30',
                         )}
                       >
                         <Icono className="h-5 w-5" aria-hidden="true" />
@@ -134,7 +148,7 @@ export function AgendaForm({
           control={form.control}
           name="asunto"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>
                 Asunto <span aria-hidden="true" className="text-destructive">*</span>
               </FormLabel>
@@ -156,7 +170,7 @@ export function AgendaForm({
           control={form.control}
           name="descripcion"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
               <FormLabel>Descripción</FormLabel>
               <FormControl>
                 <Textarea
@@ -190,12 +204,12 @@ export function AgendaForm({
         />
 
         {/* Horas inicio / fin */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="horaInicio"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
                 <FormLabel>
                   Inicio <span aria-hidden="true" className="text-destructive">*</span>
                 </FormLabel>
@@ -214,7 +228,7 @@ export function AgendaForm({
             control={form.control}
             name="horaFin"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
                 <FormLabel>Fin</FormLabel>
                 <FormControl>
                   <TimeField
@@ -236,7 +250,7 @@ export function AgendaForm({
             control={form.control}
             name="ubicacion"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
                 <FormLabel>
                   Ubicación <span aria-hidden="true" className="text-destructive">*</span>
                 </FormLabel>
@@ -262,7 +276,7 @@ export function AgendaForm({
             control={form.control}
             name="linkVideollamada"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col gap-1.5 space-y-0">
                 <FormLabel>
                   Link de videollamada{' '}
                   <span aria-hidden="true" className="text-destructive">*</span>
@@ -288,8 +302,8 @@ export function AgendaForm({
           control={form.control}
           name="tratoId"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Trato relacionado</FormLabel>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
+              <FormLabel>Trato relacionado <span className="font-normal text-muted-foreground">(opcional)</span></FormLabel>
               <Select
                 onValueChange={(v) => field.onChange(v === SIN_VINCULO ? null : v)}
                 value={field.value ?? SIN_VINCULO}
@@ -319,8 +333,8 @@ export function AgendaForm({
           control={form.control}
           name="tareaId"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tarea relacionada</FormLabel>
+            <FormItem className="flex flex-col gap-1.5 space-y-0">
+              <FormLabel>Tarea relacionada <span className="font-normal text-muted-foreground">(opcional)</span></FormLabel>
               <Select
                 onValueChange={(v) => field.onChange(v === SIN_VINCULO ? null : v)}
                 value={field.value ?? SIN_VINCULO}
@@ -350,51 +364,71 @@ export function AgendaForm({
           control={form.control}
           name="recordatorioHabilitado"
           render={({ field }) => (
-            <FormItem>
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-input"
-                  checked={field.value}
-                  onChange={(e) => field.onChange(e.target.checked)}
+            <FormItem className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <FormLabel>Recordatorio por email</FormLabel>
+                    <p className="text-xs text-muted-foreground">Recibe un aviso antes del evento.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={field.value}
                   aria-label="Habilitar recordatorio por email"
-                />
-                Enviar recordatorio por email
-              </label>
+                  onClick={() => {
+                    const enabled = !field.value;
+                    field.onChange(enabled);
+                    if (!enabled) {
+                      form.setValue('minutosAntes', null);
+                      form.clearErrors('minutosAntes');
+                    }
+                  }}
+                  className={cn(
+                    'inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    field.value
+                      ? 'justify-end border-primary bg-primary'
+                      : 'justify-start border-foreground/20 bg-foreground/30 dark:bg-foreground/35',
+                  )}
+                >
+                  <span className="block h-5 w-5 rounded-full bg-white shadow-sm" />
+                </button>
+              </div>
+              <FormField
+                control={form.control}
+                name="minutosAntes"
+                render={({ field: minutesField }) => (
+                  <FormItem className="flex flex-col gap-1.5 space-y-0">
+                    <FormLabel>
+                      Minutos antes <span aria-hidden="true" className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="Ej: 15"
+                        aria-label="Minutos antes"
+                        disabled={!recordatorioHabilitado}
+                        value={minutesField.value ?? ''}
+                        onChange={(e) =>
+                          minutesField.onChange(e.target.value === '' ? null : Number(e.target.value))
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Minutos antes — solo si el recordatorio está habilitado */}
-        {recordatorioHabilitado && (
-          <FormField
-            control={form.control}
-            name="minutosAntes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Minutos antes <span aria-hidden="true" className="text-destructive">*</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={1}
-                    placeholder="Ej: 15"
-                    aria-label="Minutos antes"
-                    value={field.value ?? ''}
-                    onChange={(e) =>
-                      field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="-mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancelar

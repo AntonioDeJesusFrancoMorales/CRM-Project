@@ -20,7 +20,9 @@ describe('AgendaListPage', () => {
   });
 
   it('(b) carga y muestra los eventos de la fixture', async () => {
+    const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
     expect(
       await screen.findByText('Llamada de seguimiento con Innovatech'),
     ).toBeInTheDocument();
@@ -28,7 +30,9 @@ describe('AgendaListPage', () => {
   });
 
   it('(c) muestra la hora de inicio del evento', async () => {
+    const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
     await screen.findByText('Llamada de seguimiento con Innovatech');
     // El evento de las 09:00 debe mostrar su hora
     expect(screen.getByText('09:00')).toBeInTheDocument();
@@ -37,7 +41,6 @@ describe('AgendaListPage', () => {
   it('(d) el botón "Nuevo evento" abre el dialog de creación', async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText('Llamada de seguimiento con Innovatech');
 
     await user.click(screen.getByRole('button', { name: /nuevo evento/i }));
 
@@ -47,12 +50,24 @@ describe('AgendaListPage', () => {
   });
 
   it('(e) cada evento expone acciones de editar y eliminar', async () => {
+    const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
     await screen.findByText('Llamada de seguimiento con Innovatech');
 
     await waitFor(() => {
       expect(screen.getAllByRole('button', { name: /editar evento/i }).length).toBeGreaterThan(0);
       expect(screen.getAllByRole('button', { name: /eliminar evento/i }).length).toBeGreaterThan(0);
     });
+  });
+
+  it('(f) permite alternar entre calendario y lista', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.getByRole('tab', { name: /calendario/i })).toHaveAttribute('data-state', 'active');
+    await user.click(screen.getByRole('tab', { name: /lista/i }));
+    expect(screen.getByRole('tab', { name: /lista/i })).toHaveAttribute('data-state', 'active');
+    expect(await screen.findByText('Llamada de seguimiento con Innovatech')).toBeInTheDocument();
   });
 });

@@ -55,7 +55,7 @@ export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Editar evento</DialogTitle>
           <DialogDescription>Modificá los datos de este evento de tu agenda.</DialogDescription>

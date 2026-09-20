@@ -1,241 +1,200 @@
-// AgendaListPage — vista principal de la agenda del usuario (lista cronológica).
-// Eventos agrupados por fecha (Hoy / Mañana / fecha larga), ordenados por hora de inicio.
-// Botón "Nuevo evento" → AgendaCreateDialog. Editar/eliminar por evento vía dialogs.
-// Homologa el layout de TareasListPage (header + estados loading/error/empty).
-
 import { useMemo, useState } from 'react';
-import { CalendarClock, CalendarCheck2, CalendarDays, Plus, Sun } from 'lucide-react';
+import {
+  CalendarCheck2,
+  CalendarClock,
+  CalendarDays,
+  List,
+  Plus,
+  RefreshCw,
+  Sun,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { StatCard } from '@/components/shared/StatCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { PipelineKpiCard } from '@/components/shared/PipelineKpiCard';
 import { useAgendas } from '../hooks/useAgendas';
 import { useDeleteAgenda } from '../hooks/useDeleteAgenda';
+import { AgendaCalendarView } from '../components/AgendaCalendarView';
 import { AgendaEventoRow } from '../components/AgendaEventoRow';
 import { AgendaCreateDialog } from '../components/AgendaCreateDialog';
 import { AgendaEditDialog } from '../components/AgendaEditDialog';
 import { AgendaDeleteDialog } from '../components/AgendaDeleteDialog';
 import type { Agenda } from '../schemas/agenda.schema';
 
-/** Construye una Date local a partir de "YYYY-MM-DD" (evita el corrimiento por UTC). */
-function parseFechaLocal(fecha: string): Date {
-  const [y, m, d] = fecha.split('-').map(Number);
-  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1);
 }
 
-/** "YYYY-MM-DD" de una Date en horario local. */
-function toFechaKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+function dateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-const fechaLargaFmt = new Intl.DateTimeFormat('es', {
+const longDateFormatter = new Intl.DateTimeFormat('es-MX', {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 });
 
-/** Label del grupo: "Hoy", "Mañana" o la fecha larga en español. */
-function labelGrupo(fecha: string): string {
-  const hoy = new Date();
-  const manana = new Date(hoy);
-  manana.setDate(hoy.getDate() + 1);
-
-  if (fecha === toFechaKey(hoy)) return 'Hoy';
-  if (fecha === toFechaKey(manana)) return 'Mañana';
-  return fechaLargaFmt.format(parseFechaLocal(fecha));
+function groupLabel(value: string): string {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (value === dateKey(today)) return 'Hoy';
+  if (value === dateKey(tomorrow)) return 'Mañana';
+  return longDateFormatter.format(parseLocalDate(value));
 }
 
-interface GrupoAgenda {
-  fecha: string;
-  eventos: Agenda[];
+interface AgendaGroup {
+  date: string;
+  events: Agenda[];
 }
 
-/**
- * KPIs derivados sólo de la lista de eventos, usando el campo real `fecha` (YYYY-MM-DD).
- * - total: todos los eventos.
- * - proximos: fecha >= hoy (incluye hoy y futuros).
- * - hoy: fecha === hoy.
- */
 function computeKpis(agendas: Agenda[]) {
-  const hoyKey = toFechaKey(new Date());
-  let proximos = 0;
-  let hoy = 0;
-  for (const evento of agendas) {
-    if (evento.fecha >= hoyKey) proximos += 1;
-    if (evento.fecha === hoyKey) hoy += 1;
-  }
-  return { total: agendas.length, proximos, hoy };
+  const today = dateKey(new Date());
+  return {
+    total: agendas.length,
+    upcoming: agendas.filter((agenda) => agenda.fecha >= today).length,
+    today: agendas.filter((agenda) => agenda.fecha === today).length,
+  };
 }
 
 export function AgendaListPage() {
-  const { data: agendas, isLoading, isError, refetch } = useAgendas();
+  const { data: agendas = [], isLoading, isError, refetch } = useAgendas();
   const deleteMutation = useDeleteAgenda();
-
+  const [view, setView] = useState('calendario');
   const [createOpen, setCreateOpen] = useState(false);
-  const [editando, setEditando] = useState<Agenda | null>(null);
-  const [eliminando, setEliminando] = useState<Agenda | null>(null);
+  const [createDate, setCreateDate] = useState<string>();
+  const [editing, setEditing] = useState<Agenda | null>(null);
+  const [deleting, setDeleting] = useState<Agenda | null>(null);
 
-  const kpis = useMemo(() => computeKpis(agendas ?? []), [agendas]);
-
-  // Agrupa por fecha y ordena cronológicamente (fecha asc, luego horaInicio asc).
-  const grupos = useMemo<GrupoAgenda[]>(() => {
-    const porFecha = new Map<string, Agenda[]>();
-    for (const evento of agendas ?? []) {
-      const lista = porFecha.get(evento.fecha) ?? [];
-      lista.push(evento);
-      porFecha.set(evento.fecha, lista);
+  const kpis = useMemo(() => computeKpis(agendas), [agendas]);
+  const groups = useMemo<AgendaGroup[]>(() => {
+    const byDate = new Map<string, Agenda[]>();
+    for (const agenda of agendas) {
+      const events = byDate.get(agenda.fecha) ?? [];
+      events.push(agenda);
+      byDate.set(agenda.fecha, events);
     }
-    return [...porFecha.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([fecha, eventos]) => ({
-        fecha,
-        eventos: [...eventos].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)),
+    return [...byDate.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([date, events]) => ({
+        date,
+        events: [...events].sort((left, right) => left.horaInicio.localeCompare(right.horaInicio)),
       }));
   }, [agendas]);
 
+  function openCreate(date?: string) {
+    setCreateDate(date);
+    setCreateOpen(true);
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    setCreateOpen(open);
+    if (!open) setCreateDate(undefined);
+  }
+
   function handleConfirmDelete() {
-    if (!eliminando) return;
-    deleteMutation.mutate(eliminando.id, { onSuccess: () => setEliminando(null) });
+    if (!deleting) return;
+    deleteMutation.mutate(deleting.id, { onSuccess: () => setDeleting(null) });
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Agenda"
-        description="Tus llamadas y reuniones, ordenadas por fecha."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
+    <div className="flex flex-col gap-5 p-4 sm:p-6">
+      <header className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Agenda</h1>
+          <p className="text-sm text-muted-foreground">Organiza tus llamadas y reuniones.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => openCreate()}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nuevo evento
           </Button>
-        }
-      />
-
-      {/* Fila de KPIs derivados de la lista (oculta en error de carga) */}
-      {!isError && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Total de eventos"
-            value={String(kpis.total)}
-            icon={CalendarDays}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Próximos"
-            value={String(kpis.proximos)}
-            hint="Hoy y a futuro"
-            icon={CalendarCheck2}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Hoy"
-            value={String(kpis.hoy)}
-            hint="Eventos del día"
-            icon={Sun}
-            loading={isLoading}
-          />
-        </div>
-      )}
-
-      {/* Loading: esqueleto de la lista cronológica en vez de texto plano */}
-      {isLoading && (
-        <div className="space-y-6" aria-hidden="true">
-          {Array.from({ length: 2 }).map((_, g) => (
-            <section key={g} className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, r) => (
-                  <div
-                    key={r}
-                    className="flex items-start gap-3 rounded-md border bg-card px-3 py-2.5"
-                  >
-                    <Skeleton className="h-4 w-16 flex-shrink-0" />
-                    <Skeleton className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full" />
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-
-      {/* Error */}
-      {isError && (
-        <div className="space-y-3 py-12 text-center">
-          <p className="text-sm text-destructive">
-            No fue posible cargar la agenda. Intenta de nuevo.
-          </p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button variant="outline" size="icon" onClick={() => void refetch()} aria-label="Recargar agenda">
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
-      )}
+      </header>
 
-      {/* Empty state rico: no hay eventos en la agenda */}
-      {!isLoading && !isError && grupos.length === 0 && (
-        <EmptyState
-          icon={CalendarClock}
-          title="Aún no hay eventos"
-          description="Programá tu primera llamada o reunión para empezar a organizar tu agenda."
-          action={
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Nuevo evento
-            </Button>
-          }
-        />
-      )}
-
-      {/* Lista cronológica agrupada por día */}
-      {!isLoading && !isError && grupos.length > 0 && (
-        <div className="space-y-6">
-          {grupos.map((grupo) => (
-            <section key={grupo.fecha} className="space-y-2">
-              <h2 className="text-sm font-semibold capitalize text-muted-foreground">
-                {labelGrupo(grupo.fecha)}
-              </h2>
-              <div className="space-y-2">
-                {grupo.eventos.map((evento) => (
-                  <AgendaEventoRow
-                    key={evento.id}
-                    agenda={evento}
-                    onEdit={setEditando}
-                    onDelete={setEliminando}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
+      {!isError && (
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-3 sm:grid-cols-3">
+          <PipelineKpiCard label="Total de eventos" value={String(kpis.total)} hint="En tu agenda" icon={CalendarDays} loading={isLoading} />
+          <PipelineKpiCard label="Próximos" value={String(kpis.upcoming)} hint="Hoy y a futuro" icon={CalendarCheck2} loading={isLoading} />
+          <PipelineKpiCard label="Hoy" value={String(kpis.today)} hint="Eventos del día" icon={Sun} loading={isLoading} />
         </div>
       )}
 
-      {/* Dialogs */}
-      <AgendaCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <Tabs value={view} onValueChange={setView} className="gap-4">
+        <div className="mx-auto w-full max-w-[1400px]">
+          <TabsList>
+            <TabsTrigger value="calendario">
+              <CalendarDays aria-hidden="true" />
+              Calendario
+            </TabsTrigger>
+            <TabsTrigger value="lista">
+              <List aria-hidden="true" />
+              Lista
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      {editando && (
-        <AgendaEditDialog
-          open={Boolean(editando)}
-          onOpenChange={(open) => !open && setEditando(null)}
-          agenda={editando}
-        />
-      )}
+        {isLoading && (
+          <div className="mx-auto w-full max-w-[1400px] space-y-3" aria-hidden="true">
+            <Skeleton className="h-12 rounded-lg" />
+            <Skeleton className="h-96 rounded-lg" />
+          </div>
+        )}
 
-      <AgendaDeleteDialog
-        open={Boolean(eliminando)}
-        onOpenChange={(open) => !open && setEliminando(null)}
-        asunto={eliminando?.asunto ?? ''}
-        onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending}
-      />
+        {isError && (
+          <div className="mx-auto w-full max-w-[1400px] space-y-3 py-12 text-center">
+            <p className="text-sm text-destructive">No fue posible cargar la agenda. Intenta de nuevo.</p>
+            <Button variant="outline" onClick={() => void refetch()}>Reintentar</Button>
+          </div>
+        )}
+
+        {!isLoading && !isError && agendas.length === 0 && (
+          <div className="mx-auto w-full max-w-[1400px]">
+            <EmptyState
+              icon={CalendarClock}
+              title="Aún no hay eventos"
+              description="Crea tu primera llamada o reunión para empezar a organizar tu agenda."
+              action={<Button onClick={() => openCreate()}><Plus className="mr-2 h-4 w-4" aria-hidden="true" />Nuevo evento</Button>}
+            />
+          </div>
+        )}
+
+        {!isLoading && !isError && agendas.length > 0 && (
+          <>
+            <TabsContent value="calendario" className="mt-0">
+              <AgendaCalendarView agendas={agendas} onEdit={setEditing} onDelete={setDeleting} onCreate={openCreate} />
+            </TabsContent>
+            <TabsContent value="lista" className="mx-auto mt-0 w-full max-w-[1400px]">
+              <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-5">
+                {groups.map((group) => (
+                  <section key={group.date} className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-sm font-semibold capitalize text-foreground">{groupLabel(group.date)}</h2>
+                      <span className="text-xs tabular-nums text-muted-foreground">{group.events.length} evento{group.events.length === 1 ? '' : 's'}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {group.events.map((agenda) => <AgendaEventoRow key={agenda.id} agenda={agenda} onEdit={setEditing} onDelete={setDeleting} />)}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
+
+      <AgendaCreateDialog open={createOpen} onOpenChange={handleCreateOpenChange} defaultValues={createDate ? { fecha: createDate } : undefined} />
+      {editing && <AgendaEditDialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)} agenda={editing} />}
+      <AgendaDeleteDialog open={Boolean(deleting)} onOpenChange={(open) => !open && setDeleting(null)} asunto={deleting?.asunto ?? ''} onConfirm={handleConfirmDelete} isDeleting={deleteMutation.isPending} />
     </div>
   );
 }

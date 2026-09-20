@@ -33,15 +33,17 @@ export function AgendaEventoRow({ agenda, onEdit, onDelete }: AgendaEventoRowPro
   const fin = hhmm(agenda.horaFin);
 
   return (
-    <div className="flex items-start gap-3 rounded-md border bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+    <article className="flex items-start gap-3 rounded-lg border border-border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/20">
       {/* Hora */}
-      <div className="w-24 flex-shrink-0 pt-0.5 text-sm font-medium tabular-nums text-foreground">
+      <div className="w-20 flex-shrink-0 pt-1 text-sm font-medium tabular-nums text-foreground sm:w-24">
         {inicio}
         {fin && <span className="text-muted-foreground"> – {fin}</span>}
       </div>
 
       {/* Icono tipo */}
-      <Icono className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icono className="h-3.5 w-3.5" aria-hidden="true" />
+      </span>
 
       {/* Contenido */}
       <div className="min-w-0 flex-1 space-y-1">
@@ -107,6 +109,6 @@ export function AgendaEventoRow({ agenda, onEdit, onDelete }: AgendaEventoRowPro
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
-    </div>
+    </article>
   );
 }
