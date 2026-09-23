@@ -5,15 +5,7 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Building2,
-  Layers,
-  Plus,
-  Search,
-  Trash2,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { Building2, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Empresa } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -33,8 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { ListPagination } from '@/components/shared/ListPagination';
@@ -48,6 +38,8 @@ import {
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useEmpresas, useEmpresasPage } from '../hooks/useEmpresas';
 import { EmpresasTable } from '../components/EmpresasTable';
+import { EmpresasHeader } from '../components/EmpresasHeader';
+import { EmpresasKpis } from '../components/EmpresasKpis';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
 import {
@@ -63,9 +55,7 @@ const PRESETS_STORAGE_KEY = 'crm:list-presets:empresas';
 function computeKpis(empresas: Empresa[]) {
   const total = empresas.length;
   const activas = empresas.filter((e) => e.estadoRelacion === 'ACTIVO').length;
-  const prospectos = empresas.filter(
-    (e) => e.estadoRelacion === 'PROSPECTO',
-  ).length;
+  const prospectos = empresas.filter((e) => e.estadoRelacion === 'PROSPECTO').length;
   return { total, activas, prospectos };
 }
 
@@ -145,43 +135,16 @@ export function EmpresasListPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Empresas"
-        description="Gestiona las empresas vinculadas al CRM."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nueva empresa
-          </Button>
-        }
-      />
+    <div className="flex flex-col gap-5 p-4 sm:p-6">
+      <EmpresasHeader onRefresh={() => void refetch()} onCreate={() => setCreateOpen(true)} />
 
-      {/* Fila de KPIs de la cartera (oculta en error de carga) */}
       {!isError && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Total de empresas"
-            value={String(kpis.total)}
-            icon={Layers}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Activas"
-            value={String(kpis.activas)}
-            hint="Con estadoRelación ACTIVO"
-            icon={TrendingUp}
-            loading={isLoading}
-          />
-          <StatCard
-            label="Prospectos"
-            value={String(kpis.prospectos)}
-            hint="Con estadoRelación PROSPECTO"
-            icon={Users}
-            loading={isLoading}
-          />
-        </div>
+        <EmpresasKpis
+          total={kpis.total}
+          activas={kpis.activas}
+          prospectos={kpis.prospectos}
+          loading={isLoading}
+        />
       )}
 
       {/* Filtros frontend-only */}
@@ -229,7 +192,8 @@ export function EmpresasListPage() {
             value={filters.estadoRelacion ?? 'todos'}
             onValueChange={(value) =>
               updateFilters({
-                estadoRelacion: value === 'todos' ? undefined : (value as Empresa['estadoRelacion']),
+                estadoRelacion:
+                  value === 'todos' ? undefined : (value as Empresa['estadoRelacion']),
               })
             }
           >
@@ -287,7 +251,9 @@ export function EmpresasListPage() {
           <Select
             value={filters.web ?? 'todas'}
             onValueChange={(value) =>
-              updateFilters({ web: value === 'todas' ? undefined : (value as EmpresaFilters['web']) })
+              updateFilters({
+                web: value === 'todas' ? undefined : (value as EmpresaFilters['web']),
+              })
             }
           >
             <SelectTrigger className="w-44" aria-label="Sitio web">
@@ -381,11 +347,7 @@ export function EmpresasListPage() {
       )}
 
       {/* Dialog crear empresa */}
-      <EmpresaFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
+      <EmpresaFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
 
       {/* Dialog editar empresa */}
       {editing && (
