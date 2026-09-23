@@ -1,0 +1,52 @@
+name: Pull request validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  validate-metadata:
+    name: Validate issue and PR metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate linked issue and labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request;
+            const body = pullRequest.body || '';
+            const references = [...body.matchAll(/\b(?:Closes|Fixes|Resolves)\s+#(\d+)\b/gi)];
+
+            if (references.length !== 1) {
+              core.setFailed('The PR body must contain exactly one Closes/Fixes/Resolves #N reference.');
+              return;
+            }
+
+            const issueNumber = Number(references[0][1]);
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+
+            const issueLabels = issue.data.labels.map((label) =>
+              typeof label === 'string' ? label : label.name,
+            );
+
+            if (!issueLabels.includes('status:approved')) {
+              core.setFailed(`Issue #${issueNumber} must have the status:approved label.`);
+              return;
+            }
+
+            const pullRequestLabels = pullRequest.labels
+              .map((label) => label.name)
+              .filter((name) => name.startsWith('type:'));
+
+            if (pullRequestLabels.length !== 1) {
+              core.setFailed('The PR must have exactly one type:* label.');
+            }

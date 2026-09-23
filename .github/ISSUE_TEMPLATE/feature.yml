@@ -1,0 +1,70 @@
+name: Feature request
+description: Propose a new product capability or user-facing change.
+title: "feat: "
+labels:
+  - type:feature
+  - status:needs-review
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the desired outcome rather than prescribing an implementation.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and intent
+      description: What problem are we solving, for whom, and why does it matter?
+      placeholder: Explain the user problem and the desired outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: What behavior is included in this change?
+      placeholder: List the user-visible behavior and important constraints.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will we know the change is complete?
+      placeholder: Add observable, testable criteria.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which product area is primarily affected?
+      options:
+        - UI
+        - API or contract
+        - Data or persistence
+        - Testing
+        - Tooling or workflow
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Explicitly out of scope
+      description: What should not be included in this change?
+      placeholder: List deferred work, unsupported capabilities, or non-goals.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: What tests, checks, or manual scenarios should prove the change?
+      placeholder: Name the commands or scenarios that should be run.
+    validations:
+      required: true
