@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,10 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { nullsToStrings } from '@/lib/form-utils';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import {
   contactoCreateSchema,
+  contactoUpdateSchema,
   CONTACTO_EMPTY_DEFAULTS,
   type ContactoCreateInput,
 } from '../schemas/contacto.schema';
@@ -47,12 +47,14 @@ export function ContactoForm({
   const { data: empresas, isLoading: empresasLoading } = useEmpresas();
 
   const resolvedDefaults =
-    mode === 'edit' && defaultValues
-      ? (nullsToStrings(defaultValues as Record<string, unknown>) as Partial<ContactoCreateInput>)
-      : CONTACTO_EMPTY_DEFAULTS;
+    mode === 'edit' && defaultValues ? defaultValues : CONTACTO_EMPTY_DEFAULTS;
+
+  const resolver = zodResolver(
+    mode === 'create' ? contactoCreateSchema : contactoUpdateSchema,
+  ) as unknown as Resolver<ContactoCreateInput>;
 
   const form = useForm<ContactoCreateInput, unknown, ContactoCreateInput>({
-    resolver: zodResolver(contactoCreateSchema),
+    resolver,
     defaultValues: resolvedDefaults,
   });
 
@@ -65,8 +67,12 @@ export function ContactoForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate autoComplete="off">
-
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        noValidate
+        autoComplete="off"
+      >
         {/* nombre */}
         <FormField
           control={form.control}
@@ -74,7 +80,10 @@ export function ContactoForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel htmlFor="contacto-nombre">
-                Nombre <span aria-hidden="true" className="text-destructive">*</span>
+                Nombre{' '}
+                <span aria-hidden="true" className="text-destructive">
+                  *
+                </span>
               </FormLabel>
               <FormControl>
                 <Input id="contacto-nombre" placeholder="Nombre" {...field} />
@@ -158,12 +167,15 @@ export function ContactoForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Empresa <span aria-hidden="true" className="text-destructive">*</span>
+                Empresa{' '}
+                <span aria-hidden="true" className="text-destructive">
+                  *
+                </span>
               </FormLabel>
               <Select
                 value={field.value ?? ''}
                 onValueChange={(v) => field.onChange(v)}
-                disabled={empresasLoading}
+                disabled={empresasLoading || mode === 'edit'}
               >
                 <FormControl>
                   <SelectTrigger aria-label="Empresa">
@@ -178,6 +190,11 @@ export function ContactoForm({
                   ))}
                 </SelectContent>
               </Select>
+              {mode === 'edit' && (
+                <p className="text-xs text-muted-foreground">
+                  La empresa vinculada no puede modificarse.
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -218,7 +235,8 @@ export function ContactoForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel htmlFor="contacto-como-nos-conocio">
-                ¿Cómo nos conoció? <span className="text-muted-foreground font-normal">(opcional)</span>
+                ¿Cómo nos conoció?{' '}
+                <span className="text-muted-foreground font-normal">(opcional)</span>
               </FormLabel>
               <FormControl>
                 <ComoNosConocioInput

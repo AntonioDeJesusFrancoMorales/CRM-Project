@@ -40,9 +40,7 @@ describe('ContactosPage', () => {
     renderWithRouter('/contactos');
 
     // Espera a que carguen los datos del fixture (solo nombre — no hay apellido)
-    await waitFor(() =>
-      expect(screen.getByText('Lucía')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
 
     // Martín también es PROSPECTO
     expect(screen.getByText('Martín')).toBeInTheDocument();
@@ -56,15 +54,11 @@ describe('ContactosPage', () => {
     const user = userEvent.setup();
     renderWithRouter('/contactos');
 
-    await waitFor(() =>
-      expect(screen.getByText('Lucía')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
 
     await user.click(screen.getByRole('tab', { name: 'Activo' }));
 
-    await waitFor(() =>
-      expect(screen.getByText('Sofía')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Sofía')).toBeInTheDocument());
 
     // Dos contactos "Diego" en el fixture (ACTIVO) — usar getAllByText
     expect(screen.getAllByText('Diego').length).toBeGreaterThanOrEqual(1);
@@ -75,16 +69,12 @@ describe('ContactosPage', () => {
     const user = userEvent.setup();
     renderWithRouter('/contactos');
 
-    await waitFor(() =>
-      expect(screen.getByText('Lucía')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
 
     // Cambiar al tab INACTIVO
     await user.click(screen.getByRole('tab', { name: 'Inactivo' }));
 
-    await waitFor(() =>
-      expect(screen.getByText('Valeria')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Valeria')).toBeInTheDocument());
 
     // El tab INACTIVO debe estar activo (aria-selected)
     const tabInactivo = screen.getByRole('tab', { name: /inactivo/i });
@@ -92,9 +82,7 @@ describe('ContactosPage', () => {
   });
 
   it('tab PROSPECTO sin datos muestra mensaje de vacío', async () => {
-    server.use(
-      http.get('/api/contactos/get-all', () => HttpResponse.json([])),
-    );
+    server.use(http.get('/api/contactos/get-all', () => HttpResponse.json([])));
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -114,9 +102,7 @@ describe('ContactosPage', () => {
     );
 
     await waitFor(() =>
-      expect(
-        screen.getByText(/no hay contactos que coincidan/i),
-      ).toBeInTheDocument(),
+      expect(screen.getByText(/no hay contactos que coincidan/i)).toBeInTheDocument(),
     );
   });
 
@@ -124,9 +110,7 @@ describe('ContactosPage', () => {
     const user = userEvent.setup();
     renderWithRouter('/contactos');
 
-    await waitFor(() =>
-      expect(screen.getByText('Lucía')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /nuevo contacto/i }));
 
@@ -152,6 +136,7 @@ describe('ContactosPage', () => {
     await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
     const initialCount = requestCount;
 
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     await user.click(screen.getByRole('combobox', { name: /empresa/i }));
     await user.click(await screen.findByRole('option', { name: /corporativo maya/i }));
 
@@ -168,6 +153,7 @@ describe('ContactosPage', () => {
 
     await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
 
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     await user.type(screen.getByPlaceholderText(/buscar por nombre/i), 'gerente');
     await waitFor(() => expect(screen.queryByText('Lucía')).not.toBeInTheDocument());
     expect(screen.getByText('Martín')).toBeInTheDocument();
@@ -193,11 +179,13 @@ describe('ContactosPage', () => {
   });
 
   it('storage corrupto de presets no rompe la página', async () => {
+    const user = userEvent.setup();
     localStorage.setItem(PRESETS_STORAGE_KEY, '{bad-json');
 
     renderWithRouter('/contactos');
 
     await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     expect(screen.getByRole('combobox', { name: /vistas guardadas/i })).toBeInTheDocument();
   });
 
@@ -233,9 +221,7 @@ describe('ContactosPage', () => {
 
     // Esperar a que el error state sea visible
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /reintentar/i }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument(),
     );
 
     // El botón debe estar presente y ser clickeable

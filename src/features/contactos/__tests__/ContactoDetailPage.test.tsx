@@ -23,11 +23,11 @@ function renderWithRouter(initialPath: string) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <MemoryRouter initialEntries={[initialPath]}>
-            <Routes>
-              <Route path="/contactos" element={<div>Listado de contactos</div>} />
-              <Route path="/contactos/:id" element={<ContactoDetailPage />} />
-              <Route path="/tratos/:id" element={<div>Detalle de trato</div>} />
-            </Routes>
+          <Routes>
+            <Route path="/contactos" element={<div>Listado de contactos</div>} />
+            <Route path="/contactos/:id" element={<ContactoDetailPage />} />
+            <Route path="/tratos/:id" element={<div>Detalle de trato</div>} />
+          </Routes>
         </MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
@@ -40,9 +40,7 @@ describe('ContactoDetailPage', () => {
     renderWithRouter('/contactos/c0222222-cccc-0002-cccc-000000000002');
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('heading', { name: /martín/i }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('heading', { name: /martín/i })).toBeInTheDocument(),
     );
 
     expect(screen.getByRole('tab', { name: /resumen 360/i })).toBeInTheDocument();
@@ -55,25 +53,19 @@ describe('ContactoDetailPage', () => {
     renderWithRouter('/contactos/c0222222-cccc-0002-cccc-000000000002');
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('heading', { name: /martín/i }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('heading', { name: /martín/i })).toBeInTheDocument(),
     );
 
     await user.click(screen.getByRole('tab', { name: /info/i }));
 
     // Correo visible en tab Info
-    expect(
-      screen.getByText('martin.gutierrez@example.com'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('martin.gutierrez@example.com')).toBeInTheDocument();
   });
 
   it('el tab Resumen 360 muestra relaciones del contacto', async () => {
     renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111');
 
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument());
 
     await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
     expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument();
@@ -86,9 +78,7 @@ describe('ContactoDetailPage', () => {
     renderWithRouter('/contactos/c0333333-cccc-0003-cccc-000000000003');
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('heading', { name: /sofía/i }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('heading', { name: /sofía/i })).toBeInTheDocument(),
     );
 
     const tabTratos = screen.getByRole('tab', { name: /tratos/i });
@@ -97,9 +87,7 @@ describe('ContactoDetailPage', () => {
 
     // El tab Tratos debe renderizarse (puede estar vacío o con tratos)
     await waitFor(() =>
-      expect(
-        screen.getByRole('tabpanel', { name: /tratos/i }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('tabpanel', { name: /tratos/i })).toBeInTheDocument(),
     );
   });
 
@@ -107,30 +95,45 @@ describe('ContactoDetailPage', () => {
     const user = userEvent.setup();
     renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111');
 
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument());
 
     await user.click(screen.getByRole('tab', { name: /tratos/i }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /renovación licencia anual innovatech/i }),
+      ).toBeInTheDocument(),
+    );
     await user.click(screen.getByRole('button', { name: /renovación licencia anual innovatech/i }));
 
     await waitFor(() => expect(screen.getByText('Detalle de trato')).toBeInTheDocument());
   });
 
   it('redirige a /contactos cuando el id devuelve 404', async () => {
-    server.use(
-      http.get('/api/contactos/get-all', () => HttpResponse.json([])),
-    );
+    server.use(http.get('/api/contactos/get-all', () => HttpResponse.json([])));
 
     renderWithRouter('/contactos/id-inexistente');
 
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText('Listado de contactos'),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
+    await waitFor(() => expect(screen.getByText('Listado de contactos')).toBeInTheDocument(), {
+      timeout: 3000,
+    });
+  });
+
+  it('muestra un error genérico cuando el detalle falla con otro estado HTTP', async () => {
+    server.use(
+      http.get('/api/contactos/get-by-id', () =>
+        HttpResponse.json(
+          { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
+          { status: 500 },
+        ),
+      ),
     );
+
+    renderWithRouter('/contactos/cualquier-id');
+
+    await waitFor(() => {
+      expect(screen.getByText('No fue posible cargar el contacto.')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/este contacto no existe/i)).not.toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
@@ -145,9 +148,7 @@ describe('ContactoDetailPage', () => {
     const user = userEvent.setup();
     renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111');
 
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument());
 
     await user.click(screen.getByRole('tab', { name: /info/i }));
     await user.click(screen.getByRole('combobox'));
@@ -177,9 +178,7 @@ describe('ContactoDetailPage', () => {
       actualizadoEn: '2026-04-12T10:00:00Z',
     };
 
-    server.use(
-      http.get('/api/fichas/get-all', () => HttpResponse.json([fichaGanado])),
-    );
+    server.use(http.get('/api/fichas/get-all', () => HttpResponse.json([fichaGanado])));
 
     const user = userEvent.setup();
     renderWithRouter('/contactos/c2222222-cccc-2222-cccc-222222222222');
@@ -203,9 +202,7 @@ describe('ContactoDetailPage', () => {
   it('[W1] INACTIVO habilitado si el contacto no tiene tratos', async () => {
     // c0222222 (Martín, PROSPECTO) no tiene tratos en tratosFixture
     // Sin tratos, no hay tratos activos → INACTIVO debe estar habilitado.
-    server.use(
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-    );
+    server.use(http.get('/api/fichas/get-all', () => HttpResponse.json([])));
 
     const user = userEvent.setup();
     renderWithRouter('/contactos/c0222222-cccc-0002-cccc-000000000002');
@@ -232,9 +229,7 @@ describe('ContactoDetailPage', () => {
     // null !== 'ABIERTO' → tieneTratosActivos = false → INACTIVO debe estar habilitado.
     // Spec: "Opcion INACTIVO habilitada si los tratos del contacto no tienen ficha asignada"
     // (sin ficha, el estado es indeterminado — no bloquea la transición).
-    server.use(
-      http.get('/api/fichas/get-all', () => HttpResponse.json([])),
-    );
+    server.use(http.get('/api/fichas/get-all', () => HttpResponse.json([])));
 
     const user = userEvent.setup();
     renderWithRouter('/contactos/c2222222-cccc-2222-cccc-222222222222');

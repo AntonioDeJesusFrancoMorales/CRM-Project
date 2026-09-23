@@ -28,16 +28,11 @@ type EditProps = {
 
 type ContactoFormDialogProps = CreateProps | EditProps;
 
-function CreateDialog({
-  open,
-  onOpenChange,
-}: Pick<CreateProps, 'open' | 'onOpenChange'>) {
+function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpenChange'>) {
   const mutation = useCreateContacto();
 
   const serverErrors =
-    isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
-    mutation.error.details
+    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
       ? mutation.error.details
       : undefined;
 
@@ -74,9 +69,7 @@ function EditDialog({
   const mutation = useUpdateContacto();
 
   const serverErrors =
-    isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
-    mutation.error.details
+    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
       ? mutation.error.details
       : undefined;
 
@@ -91,10 +84,8 @@ function EditDialog({
   };
 
   function handleSubmit(values: ContactoCreateInput) {
-    mutation.mutate(
-      { id: contacto.id, data: values },
-      { onSuccess: () => onOpenChange(false) },
-    );
+    const { empresaId: _empresaId, ...data } = values;
+    mutation.mutate({ id: contacto.id, data }, { onSuccess: () => onOpenChange(false) });
   }
 
   return (
@@ -103,8 +94,7 @@ function EditDialog({
         <DialogHeader>
           <DialogTitle>Editar contacto</DialogTitle>
           <DialogDescription>
-            Modifica los datos de{' '}
-            <strong>{contacto.nombre}</strong>.
+            Modifica los datos de <strong>{contacto.nombre}</strong>.
           </DialogDescription>
         </DialogHeader>
         <ContactoForm
@@ -125,10 +115,6 @@ export function ContactoFormDialog(props: ContactoFormDialogProps) {
     return <CreateDialog open={props.open} onOpenChange={props.onOpenChange} />;
   }
   return (
-    <EditDialog
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-      contacto={props.contacto}
-    />
+    <EditDialog open={props.open} onOpenChange={props.onOpenChange} contacto={props.contacto} />
   );
 }

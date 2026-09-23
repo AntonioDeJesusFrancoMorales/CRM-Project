@@ -3,6 +3,21 @@ import { z } from 'zod';
 // Validador laxo de teléfono LATAM: dígitos, espacios, +, (), -, mínimo 7 caracteres.
 const phoneRegex = /^[\d\s+()-]{7,20}$/;
 
+const emptyStringToNull = (value: unknown) => (value === '' ? null : value);
+
+const optionalEmail = z.preprocess(
+  emptyStringToNull,
+  z.string().email({ message: 'Correo inválido' }).nullable().optional(),
+);
+
+const optionalPhone = z.preprocess(
+  emptyStringToNull,
+  z.string().regex(phoneRegex, { message: 'Teléfono inválido' }).nullable().optional(),
+);
+
+const optionalText = (max: number) =>
+  z.preprocess(emptyStringToNull, z.string().max(max).nullable().optional());
+
 // Sugerencias para el campo comoNosConocio (combobox + texto libre).
 // El campo acepta cualquier string — estas son sugerencias, no un enum.
 export const COMO_NOS_CONOCIO_SUGERENCIAS = [
@@ -15,23 +30,13 @@ export const COMO_NOS_CONOCIO_SUGERENCIAS = [
 
 export const contactoCreateSchema = z.object({
   nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(150),
-  correo: z
-    .string()
-    .email({ message: 'Correo inválido' })
-    .nullable()
-    .optional(),
-  telefono: z
-    .string()
-    .regex(phoneRegex, { message: 'Teléfono inválido' })
-    .nullable()
-    .optional(),
+  correo: optionalEmail,
+  telefono: optionalPhone,
   // empresaId requerido — @NotNull en el back (CreateContactoRequest).
-  empresaId: z
-    .string()
-    .uuid({ message: 'ID de empresa inválido' }),
+  empresaId: z.string().uuid({ message: 'ID de empresa inválido' }),
   estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']),
-  cargo: z.string().max(150).nullable().optional(),
-  comoNosConocio: z.string().max(200).nullable().optional(),
+  cargo: optionalText(150),
+  comoNosConocio: optionalText(200),
   responsableId: z.string().uuid().nullable().optional(),
 });
 
@@ -41,19 +46,11 @@ export const contactoCreateSchema = z.object({
 // estado usar useCambiarEstadoContacto (endpoint dedicado).
 export const contactoUpdateSchema = z.object({
   nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(150),
-  correo: z
-    .string()
-    .email({ message: 'Correo inválido' })
-    .nullable()
-    .optional(),
-  telefono: z
-    .string()
-    .regex(phoneRegex, { message: 'Teléfono inválido' })
-    .nullable()
-    .optional(),
+  correo: optionalEmail,
+  telefono: optionalPhone,
   estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']),
-  cargo: z.string().max(150).nullable().optional(),
-  comoNosConocio: z.string().max(200).nullable().optional(),
+  cargo: optionalText(150),
+  comoNosConocio: optionalText(200),
   responsableId: z.string().uuid().nullable().optional(),
 });
 

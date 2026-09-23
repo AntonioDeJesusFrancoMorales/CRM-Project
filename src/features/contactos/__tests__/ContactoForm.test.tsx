@@ -66,9 +66,8 @@ describe('ContactoForm', () => {
   it('submit válido llama onSubmit con los valores correctos', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
-    // empresaId requerido (@NotNull en el back).
-    // Se testea en modo 'edit' con defaultValues que incluyen empresaId válido.
-    // correo y telefono se omiten (undefined) para evitar que nullsToStrings genere '' que falla email.
+    // empresaId requerido (@NotNull en el back) sólo en creación.
+    // En edición se muestra como campo inmutable, pero no forma parte del payload.
     renderForm({
       mode: 'edit',
       onSubmit,
@@ -94,7 +93,30 @@ describe('ContactoForm', () => {
     if (!primeraLlamada) throw new Error('onSubmit no fue invocado');
     const submitted = primeraLlamada[0] as ContactoCreateInput;
     expect(submitted.nombre).toBe('Ana');
+    expect(submitted).not.toHaveProperty('empresaId');
+  });
+
+  it('modo create envía empresaId y estadoRelacion por defecto', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderForm({ onSubmit });
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Empresa' })).toBeEnabled();
+    });
+
+    await user.type(screen.getByLabelText(/^nombre/i), 'Ana');
+    await user.click(screen.getByRole('combobox', { name: 'Empresa' }));
+    await user.click(await screen.findByRole('option', { name: /innovatech solutions/i }));
+    await user.click(screen.getByRole('button', { name: /crear contacto/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+
+    const primeraLlamada = onSubmit.mock.calls[0];
+    if (!primeraLlamada) throw new Error('onSubmit no fue invocado');
+    const submitted = primeraLlamada[0] as ContactoCreateInput;
     expect(submitted.empresaId).toBe('a1111111-aaaa-1111-aaaa-111111111111');
+    expect(submitted.estadoRelacion).toBe('PROSPECTO');
   });
 
   it('modo edit inicializa con defaultValues', async () => {
