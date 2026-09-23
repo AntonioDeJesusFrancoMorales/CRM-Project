@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Building2, Plus, Search, Trash2 } from 'lucide-react';
+import { Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Empresa } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useEmpresas, useEmpresasPage } from '../hooks/useEmpresas';
 import { EmpresasTable } from '../components/EmpresasTable';
 import { EmpresasHeader } from '../components/EmpresasHeader';
+import { EmpresasFilters } from '../components/EmpresasFilters';
 import { EmpresasKpis } from '../components/EmpresasKpis';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
@@ -69,6 +70,7 @@ export function EmpresasListPage() {
   );
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [deleting, setDeleting] = useState<Empresa | null>(null);
@@ -129,6 +131,7 @@ export function EmpresasListPage() {
     const preset = presets.find((item) => item.id === presetId);
     if (!preset) return;
     setFilters(preset.filters);
+    paging.resetPage();
   }
 
   function handleDeletePreset(presetId: string) {
@@ -152,143 +155,102 @@ export function EmpresasListPage() {
         />
       )}
 
-      {/* Filtros frontend-only */}
-      <div className="space-y-4 rounded-lg border p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm flex-1">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              placeholder="Buscar por nombre, sector, teléfono o web..."
-              value={filters.search}
-              onChange={(e) => updateFilters({ search: e.target.value })}
-              className="pl-9"
-              aria-label="Buscar empresas"
-            />
-          </div>
+      {!isLoading && !isError && (
+        <EmpresasFilters
+          open={filtersOpen}
+          filters={filters}
+          presets={presets}
+          resultCount={filteredEmpresas.length}
+          totalCount={empresasPage?.totalItems ?? todasLasEmpresas?.length ?? 0}
+          hasActiveFilters={hasFilters}
+          onToggle={() => setFiltersOpen((open) => !open)}
+          onChange={updateFilters}
+          onApplyPreset={handleApplyPreset}
+          onSavePreset={handleSavePreset}
+          onDeletePreset={handleDeletePreset}
+          onClear={clearFilters}
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              value={filters.estadoRelacion ?? 'todos'}
+              onValueChange={(value) =>
+                updateFilters({
+                  estadoRelacion:
+                    value === 'todos' ? undefined : (value as Empresa['estadoRelacion']),
+                })
+              }
+            >
+              <SelectTrigger className="w-44" aria-label="Estado">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="PROSPECTO">Prospecto</SelectItem>
+                <SelectItem value="ACTIVO">Activo</SelectItem>
+                <SelectItem value="INACTIVO">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Select value="sin-preset" onValueChange={handleApplyPreset}>
-            <SelectTrigger className="w-56" aria-label="Vistas guardadas">
-              <SelectValue placeholder="Vistas guardadas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sin-preset">Vistas guardadas</SelectItem>
-              {presets.map((preset) => (
-                <SelectItem key={preset.id} value={preset.id}>
-                  {preset.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button type="button" variant="outline" onClick={handleSavePreset}>
-            Guardar vista
-          </Button>
-
-          <Button type="button" variant="ghost" onClick={clearFilters} disabled={!hasFilters}>
-            Limpiar filtros
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Select
-            value={filters.estadoRelacion ?? 'todos'}
-            onValueChange={(value) =>
-              updateFilters({
-                estadoRelacion: value === 'todos' ? undefined : (value as Empresa['estadoRelacion']),
-              })
-            }
-          >
-            <SelectTrigger className="w-44" aria-label="Estado">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los estados</SelectItem>
-              <SelectItem value="PROSPECTO">Prospecto</SelectItem>
-              <SelectItem value="ACTIVO">Activo</SelectItem>
-              <SelectItem value="INACTIVO">Inactivo</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.sector ?? 'todos'}
-            onValueChange={(value) =>
-              updateFilters({ sector: value === 'todos' ? undefined : value })
-            }
-          >
-            <SelectTrigger className="w-48" aria-label="Sector">
-              <SelectValue placeholder="Sector" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los sectores</SelectItem>
-              {sectorOptions.map((sector) => (
-                <SelectItem key={sector} value={sector}>
-                  {sector}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.responsableId ?? 'todos'}
-            onValueChange={(value) =>
-              updateFilters({ responsableId: value === 'todos' ? undefined : value })
-            }
-          >
-            <SelectTrigger className="w-52" aria-label="Responsable">
-              <SelectValue placeholder="Responsable" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los responsables</SelectItem>
-              {usuarios
-                .filter((usuario) => usuario.activo)
-                .map((usuario) => (
-                  <SelectItem key={usuario.id} value={usuario.id}>
-                    {usuario.nombre}
+            <Select
+              value={filters.sector ?? 'todos'}
+              onValueChange={(value) =>
+                updateFilters({ sector: value === 'todos' ? undefined : value })
+              }
+            >
+              <SelectTrigger className="w-48" aria-label="Sector">
+                <SelectValue placeholder="Sector" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los sectores</SelectItem>
+                {sectorOptions.map((sector) => (
+                  <SelectItem key={sector} value={sector}>
+                    {sector}
                   </SelectItem>
                 ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={filters.web ?? 'todas'}
-            onValueChange={(value) =>
-              updateFilters({ web: value === 'todas' ? undefined : (value as EmpresaFilters['web']) })
-            }
-          >
-            <SelectTrigger className="w-44" aria-label="Sitio web">
-              <SelectValue placeholder="Sitio web" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas las webs</SelectItem>
-              <SelectItem value="con-web">Con sitio web</SelectItem>
-              <SelectItem value="sin-web">Sin sitio web</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>
-            Mostrando {filteredEmpresas.length} de {empresas?.length ?? 0} empresas
-          </span>
-          {presets.map((preset) => (
-            <Button
-              key={preset.id}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeletePreset(preset.id)}
-              aria-label={`Eliminar vista ${preset.name}`}
-              className="h-7 px-2 text-muted-foreground"
+            <Select
+              value={filters.responsableId ?? 'todos'}
+              onValueChange={(value) =>
+                updateFilters({ responsableId: value === 'todos' ? undefined : value })
+              }
             >
-              <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              {preset.name}
-            </Button>
-          ))}
-        </div>
-      </div>
+              <SelectTrigger className="w-52" aria-label="Responsable">
+                <SelectValue placeholder="Responsable" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los responsables</SelectItem>
+                {usuarios
+                  .filter((usuario) => usuario.activo)
+                  .map((usuario) => (
+                    <SelectItem key={usuario.id} value={usuario.id}>
+                      {usuario.nombre}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.web ?? 'todas'}
+              onValueChange={(value) =>
+                updateFilters({
+                  web: value === 'todas' ? undefined : (value as EmpresaFilters['web']),
+                })
+              }
+            >
+              <SelectTrigger className="w-44" aria-label="Sitio web">
+                <SelectValue placeholder="Sitio web" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas las webs</SelectItem>
+                <SelectItem value="con-web">Con sitio web</SelectItem>
+                <SelectItem value="sin-web">Sin sitio web</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </EmpresasFilters>
+      )}
 
       {/* Loading: esqueleto de tabla en vez de texto plano */}
       {isLoading && (
