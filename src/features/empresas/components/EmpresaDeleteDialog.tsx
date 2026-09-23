@@ -1,4 +1,5 @@
 import type { Empresa } from '@/api/types';
+import { isHttpError } from '@/api/http-error';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,7 @@ export function EmpresaDeleteDialog({
   onSuccess,
 }: EmpresaDeleteDialogProps) {
   const mutation = useDeleteEmpresa();
+  const mutationError = mutation.error;
 
   function handleDelete() {
     if (!empresa) return;
@@ -42,17 +44,21 @@ export function EmpresaDeleteDialog({
           <AlertDialogDescription>
             {empresa && (
               <>
-                ¿Eliminar <strong>{empresa.nombre}</strong>? Esta acción no se
-                puede deshacer. Sus prospectos y clientes asociados quedarán sin
-                empresa.
+                ¿Eliminar <strong>{empresa.nombre}</strong>? Esta acción no se puede deshacer. Sus
+                prospectos y clientes asociados quedarán sin empresa.
+                {mutationError && (
+                  <span role="alert" className="mt-3 block text-destructive">
+                    {isHttpError(mutationError) && mutationError.status === 409
+                      ? mutationError.message
+                      : 'No fue posible eliminar la empresa. Intenta de nuevo.'}
+                  </span>
+                )}
               </>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>
-            Cancelar
-          </AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={mutation.isPending}
