@@ -1,6 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Bookmark, PanelTopClose, PanelTopOpen, Search, X } from 'lucide-react';
-import type { Empresa } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
