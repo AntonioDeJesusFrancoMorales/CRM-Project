@@ -28,16 +28,11 @@ type EditProps = {
 
 type EmpresaFormDialogProps = CreateProps | EditProps;
 
-function CreateDialog({
-  open,
-  onOpenChange,
-}: Pick<CreateProps, 'open' | 'onOpenChange'>) {
+function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpenChange'>) {
   const mutation = useCreateEmpresa();
 
   const serverErrors =
-    isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
-    mutation.error.details
+    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
       ? mutation.error.details
       : undefined;
 
@@ -47,11 +42,12 @@ function CreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nueva empresa</DialogTitle>
           <DialogDescription>
-            Completa los datos para registrar una nueva empresa.
+            Completa los datos para registrar una nueva empresa. Las nuevas empresas comienzan como
+            prospectos.
           </DialogDescription>
         </DialogHeader>
         <EmpresaForm
@@ -74,9 +70,7 @@ function EditDialog({
   const mutation = useUpdateEmpresa(empresa.id);
 
   const serverErrors =
-    isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
-    mutation.error.details
+    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
       ? mutation.error.details
       : undefined;
 
@@ -98,7 +92,7 @@ function EditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar empresa</DialogTitle>
           <DialogDescription>
@@ -122,11 +116,5 @@ export function EmpresaFormDialog(props: EmpresaFormDialogProps) {
   if (props.mode === 'create') {
     return <CreateDialog open={props.open} onOpenChange={props.onOpenChange} />;
   }
-  return (
-    <EditDialog
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-      empresa={props.empresa}
-    />
-  );
+  return <EditDialog open={props.open} onOpenChange={props.onOpenChange} empresa={props.empresa} />;
 }
