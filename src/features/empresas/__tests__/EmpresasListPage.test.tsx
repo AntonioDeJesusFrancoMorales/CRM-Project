@@ -20,9 +20,7 @@ describe('EmpresasListPage', () => {
     const { Wrapper } = setupTestWrapper(['/empresas']);
     render(<EmpresasListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
     expect(screen.getByText('Corporativo Maya')).toBeInTheDocument();
     expect(screen.getByText('Distribuidora del Sur')).toBeInTheDocument();
   });
@@ -32,10 +30,9 @@ describe('EmpresasListPage', () => {
     const { Wrapper } = setupTestWrapper(['/empresas']);
     render(<EmpresasListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
 
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     const input = screen.getByPlaceholderText(/buscar/i);
     await user.type(input, 'Maya');
 
@@ -61,17 +58,14 @@ describe('EmpresasListPage', () => {
     const { Wrapper } = setupTestWrapper(['/empresas']);
     render(<EmpresasListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     const initialCount = requestCount;
 
     await user.click(screen.getByRole('combobox', { name: /estado/i }));
     await user.click(await screen.findByRole('option', { name: /prospecto/i }));
 
-    await waitFor(() =>
-      expect(screen.queryByText('Innovatech Solutions')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Innovatech Solutions')).not.toBeInTheDocument());
     expect(screen.getByText('Corporativo Maya')).toBeInTheDocument();
 
     await user.click(screen.getByRole('combobox', { name: /sector/i }));
@@ -87,14 +81,11 @@ describe('EmpresasListPage', () => {
     const { Wrapper } = setupTestWrapper(['/empresas']);
     render(<EmpresasListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
 
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     await user.type(screen.getByPlaceholderText(/buscar por nombre/i), 'maya');
-    await waitFor(() =>
-      expect(screen.queryByText('Innovatech Solutions')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Innovatech Solutions')).not.toBeInTheDocument());
     expect(screen.getByText('Corporativo Maya')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /guardar vista/i }));
@@ -105,16 +96,12 @@ describe('EmpresasListPage', () => {
     expect(localStorage.getItem(PRESETS_STORAGE_KEY)).toContain('Vista Maya');
 
     await user.click(screen.getByRole('button', { name: /limpiar filtros/i }));
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
 
     await user.click(screen.getByRole('combobox', { name: /vistas guardadas/i }));
     await user.click(await screen.findByRole('option', { name: /vista maya/i }));
 
-    await waitFor(() =>
-      expect(screen.queryByText('Innovatech Solutions')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Innovatech Solutions')).not.toBeInTheDocument());
     expect(screen.getByText('Corporativo Maya')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /eliminar vista vista maya/i }));
@@ -122,13 +109,13 @@ describe('EmpresasListPage', () => {
   });
 
   it('storage corrupto de presets no rompe la página', async () => {
+    const user = userEvent.setup();
     localStorage.setItem(PRESETS_STORAGE_KEY, '{bad-json');
     const { Wrapper } = setupTestWrapper(['/empresas']);
     render(<EmpresasListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /mostrar filtros/i }));
     expect(screen.getByRole('combobox', { name: /vistas guardadas/i })).toBeInTheDocument();
   });
 
@@ -137,16 +124,12 @@ describe('EmpresasListPage', () => {
     const { Wrapper } = setupTestWrapper(['/empresas']);
     render(<EmpresasListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /nueva empresa/i }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByRole('heading', { name: /nueva empresa/i }),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: /nueva empresa/i })).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/nombre/i)).toBeInTheDocument();
   });
 });

@@ -68,7 +68,7 @@ export function EmpresasListPage() {
   );
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [deleting, setDeleting] = useState<Empresa | null>(null);
