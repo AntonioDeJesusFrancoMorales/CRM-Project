@@ -32,9 +32,7 @@ describe('EmpresaDetailPage', () => {
   it('renderiza el nombre y el tab Contactos con un id válido', async () => {
     renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
     expect(screen.getByRole('tab', { name: /resumen 360/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /información/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /contactos/i })).toBeInTheDocument();
@@ -48,26 +46,20 @@ describe('EmpresaDetailPage', () => {
     renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
 
     // Esperar que cargue la empresa
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
 
     // Activar el tab Contactos
     await user.click(screen.getByRole('tab', { name: /contactos/i }));
 
     // Lucía y Sofía son de Innovatech (contactosFixture — sin apellido)
-    await waitFor(() =>
-      expect(screen.getByText('Lucía')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
     expect(screen.getByText('Sofía')).toBeInTheDocument();
   });
 
   it('el tab Resumen 360 muestra relaciones de la empresa', async () => {
     renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
 
-    await waitFor(() =>
-      expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
 
     await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
     expect(screen.getByText('Renovación licencia anual Innovatech')).toBeInTheDocument();
@@ -77,15 +69,30 @@ describe('EmpresaDetailPage', () => {
   it('redirige a /empresas cuando el id devuelve 404', async () => {
     // Con useEmpresa resuelto desde cache del get-all, un id inexistente
     // devuelve undefined → el componente redirige a /empresas.
-    server.use(
-      http.get('/api/empresas/get-all', () => HttpResponse.json([])),
-    );
+    server.use(http.get('/api/empresas/get-all', () => HttpResponse.json([])));
 
     renderWithRouter('/empresas/inexistente');
 
-    await waitFor(
-      () => expect(screen.getByText('Listado de empresas')).toBeInTheDocument(),
-      { timeout: 3000 },
+    await waitFor(() => expect(screen.getByText('Listado de empresas')).toBeInTheDocument(), {
+      timeout: 3000,
+    });
+  });
+
+  it('muestra un error general sin tratarlo como empresa inexistente', async () => {
+    server.use(
+      http.get('/api/empresas/get-all', () =>
+        HttpResponse.json(
+          { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Boom' },
+          { status: 500 },
+        ),
+      ),
     );
+
+    renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
+
+    await waitFor(() =>
+      expect(screen.getByText('No fue posible cargar la empresa.')).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: /volver al listado/i })).toBeInTheDocument();
   });
 });
