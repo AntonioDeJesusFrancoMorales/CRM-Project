@@ -5,7 +5,6 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Empresa } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import { ListPagination } from '@/components/shared/ListPagination';
 import { useListPageState } from '@/components/shared/useListPageState';
@@ -266,29 +264,16 @@ export function EmpresasListPage() {
         </div>
       )}
 
-      {/* Empty state rico: no hay empresas registradas */}
-      {!isLoading && !isError && empresasPage && empresasPage.totalItems === 0 && (
-        <EmptyState
-          icon={Building2}
-          title="Aún no hay empresas"
-          description="Agregá tu primera empresa para comenzar a gestionar tu cartera de clientes y prospectos."
-          action={
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Nueva empresa
-            </Button>
-          }
-        />
-      )}
-
       {/* Tabla */}
-      {!isLoading && !isError && empresasPage && empresasPage.totalItems > 0 && (
-        <div className="rounded-md border">
+      {!isLoading && !isError && empresasPage && (
+        <div className="mx-auto w-full max-w-[1400px] overflow-hidden rounded-lg border border-border bg-card">
           <EmpresasTable
             empresas={filteredEmpresas}
             onView={(empresa) => navigate(`/empresas/${empresa.id}`)}
             onEdit={(empresa) => setEditing(empresa)}
             onDelete={(empresa) => setDeleting(empresa)}
+            onCreate={() => setCreateOpen(true)}
+            isEmptyDataset={empresasPage.totalItems === 0}
             sort={paging.sort}
             onSort={paging.setSort}
           />
