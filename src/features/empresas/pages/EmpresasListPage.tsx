@@ -54,9 +54,7 @@ const PRESETS_STORAGE_KEY = 'crm:list-presets:empresas';
 function computeKpis(empresas: Empresa[]) {
   const total = empresas.length;
   const activas = empresas.filter((e) => e.estadoRelacion === 'ACTIVO').length;
-  const prospectos = empresas.filter(
-    (e) => e.estadoRelacion === 'PROSPECTO',
-  ).length;
+  const prospectos = empresas.filter((e) => e.estadoRelacion === 'PROSPECTO').length;
   return { total, activas, prospectos };
 }
 
@@ -139,10 +137,7 @@ export function EmpresasListPage() {
 
   return (
     <div className="flex flex-col gap-5 p-4 sm:p-6">
-      <EmpresasHeader
-        onRefresh={() => void refetch()}
-        onCreate={() => setCreateOpen(true)}
-      />
+      <EmpresasHeader onRefresh={() => void refetch()} onCreate={() => setCreateOpen(true)} />
 
       {!isError && (
         <EmpresasKpis
@@ -296,11 +291,7 @@ export function EmpresasListPage() {
       )}
 
       {/* Dialog crear empresa */}
-      <EmpresaFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
+      <EmpresaFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
 
       {/* Dialog editar empresa */}
       {editing && (
