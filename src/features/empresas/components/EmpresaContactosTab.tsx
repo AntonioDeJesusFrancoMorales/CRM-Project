@@ -1,8 +1,10 @@
+import { ContactRound, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import {
   Table,
   TableBody,
@@ -11,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { useEmpresaContactos } from '@/features/contactos/hooks/useEmpresaContactos';
 import {
   estadoRelacionBadgeClass,
@@ -22,72 +25,105 @@ interface EmpresaContactosTabProps {
 }
 
 export function EmpresaContactosTab({ empresaId }: EmpresaContactosTabProps) {
-  const { data, isLoading, isError } = useEmpresaContactos(empresaId);
+  const { data, isLoading, isError, refetch } = useEmpresaContactos(empresaId);
 
   if (isLoading) {
     return (
-      <div className="space-y-2" aria-busy="true" aria-label="Cargando contactos">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
+      <Card aria-busy="true" aria-label="Cargando contactos">
+        <TableSkeleton columns={5} rows={4} />
+      </Card>
     );
   }
 
   if (isError) {
     return (
-      <p className="py-8 text-center text-sm text-destructive">
-        Error al cargar contactos
-      </p>
+      <Card>
+        <CardContent className="space-y-3 py-12 text-center">
+          <p className="text-sm text-destructive">No fue posible cargar los contactos.</p>
+          <Button variant="outline" onClick={() => void refetch()}>
+            <RefreshCw data-icon="inline-start" aria-hidden="true" />
+            Reintentar
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
   if (!data?.length) {
     return (
       <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            Esta empresa no tiene contactos vinculados
-          </p>
+        <CardContent className="p-0">
+          <EmptyState
+            icon={ContactRound}
+            title="Esta empresa no tiene contactos vinculados"
+            description="Los contactos vinculados a esta empresa aparecerán aquí."
+            className="rounded-none border-0 py-16"
+          />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nombre</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead>Correo</TableHead>
-          <TableHead>Teléfono</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.map((contacto) => (
-          <TableRow key={contacto.id}>
-            <TableCell className="font-medium">
-              <Link
-                to={`/contactos/${contacto.id}`}
-                className="text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
-              >
-                {contacto.nombre}
-              </Link>
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant="outline"
-                className={cn(estadoRelacionBadgeClass[contacto.estadoRelacion])}
-              >
-                {estadoRelacionLabels[contacto.estadoRelacion]}
-              </Badge>
-            </TableCell>
-            <TableCell>{contacto.correo ?? '—'}</TableCell>
-            <TableCell>{contacto.telefono ?? '—'}</TableCell>
+    <Card className="overflow-hidden rounded-lg shadow-none">
+      <Table className="min-w-[760px]">
+        <TableHeader className="bg-muted/50">
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Contacto</TableHead>
+            <TableHead>Cargo</TableHead>
+            <TableHead>Correo</TableHead>
+            <TableHead>Teléfono</TableHead>
+            <TableHead>Estado</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {data.map((contacto) => (
+            <TableRow key={contacto.id} className="group/row">
+              <TableCell>
+                <Link
+                  to={`/contactos/${contacto.id}`}
+                  className="font-medium underline-offset-4 transition-colors hover:text-primary hover:underline focus:text-primary focus:underline focus:outline-none"
+                >
+                  {contacto.nombre}
+                </Link>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{contacto.cargo ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {contacto.correo ? (
+                  <a
+                    href={`mailto:${contacto.correo}`}
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {contacto.correo}
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {contacto.telefono ? (
+                  <a
+                    href={`tel:${contacto.telefono}`}
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {contacto.telefono}
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={cn('rounded-full', estadoRelacionBadgeClass[contacto.estadoRelacion])}
+                >
+                  {estadoRelacionLabels[contacto.estadoRelacion]}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }
