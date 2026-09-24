@@ -25,20 +25,14 @@ import {
   UserCheck,
   UserPlus,
   Wallet,
+  type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -59,7 +53,11 @@ interface CsatResumen {
 export function DashboardPage() {
   const now = useMemo(() => new Date(), []);
   const { data: tratos = [], isLoading: tratosLoading, isError: tratosError } = useTratos();
-  const { data: contactos = [], isLoading: contactosLoading, isError: contactosError } = useContactos();
+  const {
+    data: contactos = [],
+    isLoading: contactosLoading,
+    isError: contactosError,
+  } = useContactos();
   const { data: tareas = [], isLoading: tareasLoading, isError: tareasError } = useTareas();
   const { data: empresas = [], isLoading: empresasLoading, isError: empresasError } = useEmpresas();
   const { data: usuarios = [], isLoading: usuariosLoading, isError: usuariosError } = useUsuarios();
@@ -68,8 +66,10 @@ export function DashboardPage() {
     queryFn: () => apiClient.get<CsatResumen>(endpoints.wa.conversaciones.csatResumen()),
   });
 
-  const loading = tratosLoading || contactosLoading || tareasLoading || empresasLoading || usuariosLoading;
-  const hasPartialError = tratosError || contactosError || tareasError || empresasError || usuariosError || csatError;
+  const loading =
+    tratosLoading || contactosLoading || tareasLoading || empresasLoading || usuariosLoading;
+  const hasPartialError =
+    tratosError || contactosError || tareasError || empresasError || usuariosError || csatError;
   const insights = useMemo(
     () => computeDashboardInsights({ tratos, tareas, contactos, empresas, usuarios, now }),
     [tratos, tareas, contactos, empresas, usuarios, now],
@@ -77,40 +77,52 @@ export function DashboardPage() {
   const maxRanking = insights.ranking[0]?.valor ?? 0;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Inicio"
-        description="Resumen ejecutivo del negocio y próximas acciones."
-        actions={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={tratos.length === 0 ? 0 : undefined}>
-                <Button
-                  variant="outline"
-                  disabled={tratos.length === 0}
-                  onClick={() => downloadTratosCsv(tratos, contactos, usuarios)}
-                  className={tratos.length === 0 ? 'pointer-events-none' : undefined}
-                >
-                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Exportar tratos (CSV)
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {tratos.length === 0 && (
-              <TooltipContent>Crea tratos primero para poder exportarlos</TooltipContent>
-            )}
-          </Tooltip>
-        }
-      />
+    <div className="mx-auto flex w-full max-w-[1480px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <header className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Resumen ejecutivo
+          </p>
+          <h2 className="text-3xl font-semibold tracking-tight">Inicio</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Una vista clara de tu operación comercial, cartera y próximas acciones.
+          </p>
+        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              tabIndex={tratos.length === 0 ? 0 : undefined}
+              className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Button
+                variant="outline"
+                disabled={tratos.length === 0}
+                onClick={() => downloadTratosCsv(tratos, contactos, usuarios)}
+                className={cn(
+                  'w-fit max-w-full gap-2',
+                  tratos.length === 0 && 'pointer-events-none',
+                )}
+              >
+                <Download aria-hidden="true" />
+                Exportar tratos (CSV)
+              </Button>
+            </span>
+          </TooltipTrigger>
+          {tratos.length === 0 && (
+            <TooltipContent>Crea tratos primero para poder exportarlos</TooltipContent>
+          )}
+        </Tooltip>
+      </header>
 
       {hasPartialError && (
         <Card className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
           <CardContent className="flex items-start gap-3 p-4">
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <p className="text-sm font-medium">Algunas métricas pueden estar incompletas</p>
               <p className="text-sm opacity-80">
-                Mostramos lo que pudo cargarse. Revisá conexión o reintentá desde el módulo afectado.
+                Mostramos lo que pudo cargarse. Revisá conexión o reintentá desde el módulo
+                afectado.
               </p>
             </div>
           </CardContent>
@@ -121,32 +133,171 @@ export function DashboardPage() {
         <PrimerosPasos />
       )}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="KPIs ejecutivos">
-        <StatCard label="Pipeline abierto" value={formatCurrency(insights.kpis.pipelineAbierto)} hint="Oportunidades abiertas" icon={Wallet} loading={loading} />
-        <StatCard label="Pipeline ponderado" value={formatCurrency(insights.kpis.pipelinePonderado)} hint="Estimado × probabilidad" icon={TrendingUp} loading={loading} />
-        <StatCard label="Tareas vencidas" value={String(insights.kpis.tareasVencidas)} hint="Sin completar" icon={AlertCircle} loading={loading} />
-        <StatCard label="Cierres próximos" value={String(insights.kpis.cierresProximos30)} hint="Próximos 30 días" icon={CalendarClock} loading={loading} />
-        <StatCard label="Oportunidades abiertas" value={String(insights.kpis.oportunidadesAbiertas)} icon={Layers} loading={loading} />
-        <StatCard label="Ticket promedio" value={formatCurrency(insights.kpis.ticketPromedio)} icon={Receipt} loading={loading} />
-        <StatCard label="Ganado este mes" value={formatCurrency(insights.kpis.valorGanadoMes)} hint={`${insights.kpis.ganadosMes} oportunidades`} icon={Target} loading={loading} />
-        <StatCard label="Conversión" value={`${insights.kpis.conversion}%`} hint="Ganados / cerrados" icon={Activity} loading={loading} />
-        <StatCard label="Clientes" value={String(insights.kpis.clientesActivos)} hint="Contactos activos" icon={UserCheck} loading={loading} />
-        <StatCard label="Prospectos" value={String(insights.kpis.prospectos)} icon={Contact2} loading={loading} />
-        <StatCard label="Leads del mes" value={String(insights.kpis.leadsMes)} hint="Contactos nuevos este mes" icon={UserPlus} loading={loading} />
-        <StatCard label="CSAT promedio" value={csat?.promedio != null ? `${csat.promedio.toFixed(1)}/5` : '—'} hint={`${csat?.total ?? 0} respuestas`} icon={Star} loading={false} />
+      <section className="space-y-3" aria-labelledby="resumen-comercial">
+        <h2 id="resumen-comercial" className="text-sm font-semibold text-muted-foreground">
+          Resumen comercial
+        </h2>
+        <div
+          className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+          aria-label="KPIs ejecutivos"
+        >
+          <PrimaryKpiCard
+            label="Pipeline abierto"
+            value={formatCurrency(insights.kpis.pipelineAbierto)}
+            hint="Oportunidades abiertas"
+            icon={Wallet}
+            tone="blue"
+            loading={loading}
+          />
+          <PrimaryKpiCard
+            label="Pipeline ponderado"
+            value={formatCurrency(insights.kpis.pipelinePonderado)}
+            hint="Estimado × probabilidad"
+            icon={TrendingUp}
+            tone="violet"
+            loading={loading}
+          />
+          <PrimaryKpiCard
+            label="Ganado este mes"
+            value={formatCurrency(insights.kpis.valorGanadoMes)}
+            hint={`${insights.kpis.ganadosMes} oportunidades`}
+            icon={Target}
+            tone="emerald"
+            loading={loading}
+          />
+          <PrimaryKpiCard
+            label="Conversión"
+            value={`${insights.kpis.conversion}%`}
+            hint="Ganados / cerrados"
+            icon={Activity}
+            tone="amber"
+            loading={loading}
+          />
+        </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <ActionAlerts alerts={insights.alerts} />
-        <UpcomingActions items={insights.upcomingActions} />
-        <UpcomingCloses items={insights.upcomingCloses} />
-      </div>
+      <section className="space-y-3" aria-labelledby="indicadores-operativos">
+        <h2 id="indicadores-operativos" className="text-sm font-semibold text-muted-foreground">
+          Indicadores operativos
+        </h2>
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Tareas vencidas"
+            value={String(insights.kpis.tareasVencidas)}
+            hint="Sin completar"
+            icon={AlertCircle}
+            loading={loading}
+          />
+          <StatCard
+            label="Cierres próximos"
+            value={String(insights.kpis.cierresProximos30)}
+            hint="Próximos 30 días"
+            icon={CalendarClock}
+            loading={loading}
+          />
+          <StatCard
+            label="Oportunidades abiertas"
+            value={String(insights.kpis.oportunidadesAbiertas)}
+            icon={Layers}
+            loading={loading}
+          />
+          <StatCard
+            label="Ticket promedio"
+            value={formatCurrency(insights.kpis.ticketPromedio)}
+            icon={Receipt}
+            loading={loading}
+          />
+          <StatCard
+            label="Clientes"
+            value={String(insights.kpis.clientesActivos)}
+            hint="Contactos activos"
+            icon={UserCheck}
+            loading={loading}
+          />
+          <StatCard
+            label="Prospectos"
+            value={String(insights.kpis.prospectos)}
+            icon={Contact2}
+            loading={loading}
+          />
+          <StatCard
+            label="Leads del mes"
+            value={String(insights.kpis.leadsMes)}
+            hint="Contactos nuevos este mes"
+            icon={UserPlus}
+            loading={loading}
+          />
+          <StatCard
+            label="CSAT promedio"
+            value={csat?.promedio != null ? `${csat.promedio.toFixed(1)}/5` : '—'}
+            hint={`${csat?.total ?? 0} respuestas`}
+            icon={Star}
+            loading={false}
+          />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <CrmHealth items={insights.health} />
-        <AgentRanking ranking={insights.ranking} maxValor={maxRanking} />
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <UpcomingActions items={insights.upcomingActions} />
+          <UpcomingCloses items={insights.upcomingCloses} />
+          <CrmHealth items={insights.health} />
+        </div>
+        <div className="min-w-0 space-y-4">
+          <ActionAlerts alerts={insights.alerts} />
+          <AgentRanking ranking={insights.ranking} maxValor={maxRanking} />
+        </div>
       </div>
     </div>
+  );
+}
+
+type MetricTone = 'blue' | 'violet' | 'emerald' | 'amber';
+
+const metricToneClasses: Record<MetricTone, string> = {
+  blue: 'bg-blue-500/10 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300',
+  violet: 'bg-violet-500/10 text-violet-600 dark:bg-violet-400/15 dark:text-violet-300',
+  emerald: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300',
+  amber: 'bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300',
+};
+
+function PrimaryKpiCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+  loading,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  icon: LucideIcon;
+  tone: MetricTone;
+  loading: boolean;
+}) {
+  return (
+    <Card className="min-w-0">
+      <CardContent className="p-4">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="mt-2 truncate text-2xl font-semibold tracking-tight tabular-nums">
+              {loading ? '—' : value}
+            </p>
+          </div>
+          <div
+            className={cn(
+              'flex size-9 shrink-0 items-center justify-center rounded-lg',
+              metricToneClasses[tone],
+            )}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -160,9 +311,24 @@ function PrimerosPasos() {
         <CardDescription>Configurá la base comercial mínima para empezar a operar.</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <QuickStartLink to="/empresas" icon={Building2} title="1. Crea una empresa" description="Registra a tu primer cliente o prospecto." />
-        <QuickStartLink to="/contactos" icon={Contact2} title="2. Agrega contactos" description="Suma a las personas con las que hablas." />
-        <QuickStartLink to="/tratos" icon={Handshake} title="3. Crea una oportunidad" description="Da seguimiento a tu primer trato." />
+        <QuickStartLink
+          to="/empresas"
+          icon={Building2}
+          title="1. Crea una empresa"
+          description="Registra a tu primer cliente o prospecto."
+        />
+        <QuickStartLink
+          to="/contactos"
+          icon={Contact2}
+          title="2. Agrega contactos"
+          description="Suma a las personas con las que hablas."
+        />
+        <QuickStartLink
+          to="/tratos"
+          icon={Handshake}
+          title="3. Crea una oportunidad"
+          description="Da seguimiento a tu primer trato."
+        />
       </CardContent>
     </Card>
   );
@@ -180,7 +346,10 @@ function QuickStartLink({
   description: string;
 }) {
   return (
-    <Link to={to} className="flex flex-col gap-2 rounded-lg border p-4 text-sm transition-colors hover:bg-accent">
+    <Link
+      to={to}
+      className="flex min-w-0 flex-col gap-2 rounded-lg border p-4 text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
       <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
       <span className="font-medium">{title}</span>
       <span className="text-muted-foreground">{description}</span>
