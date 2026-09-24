@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { server } from '@/test/server';
-import { DashboardPage } from '../pages/DashboardPage';
+import { DashboardPage, normalizeProgress } from '../pages/DashboardPage';
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -50,18 +50,27 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Salud del CRM')).toBeInTheDocument();
   });
 
-  it('organiza el resumen comercial en KPIs, cartera y acciones con CTA', async () => {
+  it('organiza el resumen comercial en KPIs, cartera, acciones, cierres, alertas y ranking', async () => {
     renderPage();
 
     await screen.findByRole('link', { name: /demo presencial con cto/i });
 
     expect(screen.getByText('Resumen ejecutivo')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Resumen comercial' })).toBeInTheDocument();
+    expect(screen.getByText('Ganado este mes')).toBeInTheDocument();
+    expect(screen.getByText('Conversión')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Cartera comercial' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Próximas acciones' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /ver tareas/i })).toHaveAttribute(
       'href',
       '/tareas?tab=lista',
+    );
+    expect(screen.getByRole('heading', { name: 'Próximos cierres' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Alertas accionables' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Salud del CRM' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ranking de agentes' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /exportar tratos/i })).toBeEnabled(),
     );
   });
 
@@ -81,6 +90,68 @@ describe('DashboardPage', () => {
     ).toBe(true);
   });
 
+  it('conserva el orden y los campos reales de los cierres y acciones', async () => {
+    renderPage();
+
+    const close = (
+      await screen.findAllByRole('link', { name: /implementación crm innovatech/i })
+    ).find((link) => link.getAttribute('href') === '/tratos/d1111111-dddd-1111-dddd-111111111111');
+    expect(close).toBeDefined();
+    if (!close) throw new Error('Expected the upcoming-close link');
+    await waitFor(() => {
+      expect(close).toHaveTextContent('Carlos');
+      expect(close).toHaveTextContent('María González');
+    });
+    expect(close).toHaveAttribute('href', '/tratos/d1111111-dddd-1111-dddd-111111111111');
+    expect(close).toHaveTextContent('Carlos');
+    expect(close).toHaveTextContent('María González');
+    expect(close).toHaveTextContent('70%');
+    expect(close).toHaveTextContent('$250,000');
+
+    const actionLinks = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.startsWith('/tareas/'));
+    expect(actionLinks.map((link) => link.getAttribute('href'))).toEqual([
+      '/tareas/e1111111-eeee-1111-eeee-111111111111',
+      '/tareas/e6666666-eeee-6666-eeee-666666666666',
+      '/tareas/e2222222-eeee-2222-eeee-222222222222',
+      '/tareas/e4444444-eeee-4444-eeee-444444444444',
+      '/tareas/e5555555-eeee-5555-eeee-555555555555',
+    ]);
+  });
+
+  it('expone ratios de progreso finitos y acotados sin tendencias', async () => {
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('progressbar').length).toBeGreaterThanOrEqual(4),
+    );
+    const progressbars = screen.getAllByRole('progressbar');
+    for (const progressbar of progressbars) {
+      const value = Number(progressbar.getAttribute('aria-valuenow'));
+      expect(Number.isFinite(value)).toBe(true);
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(100);
+      const width = Number(
+        progressbar.firstElementChild?.getAttribute('style')?.match(/[\d.]+/)?.[0],
+      );
+      expect(Number.isFinite(width)).toBe(true);
+      expect(width).toBeGreaterThanOrEqual(0);
+      expect(width).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it.each([
+    [-1, 100, 0],
+    [120, 100, 100],
+    [10, 0, 0],
+    [Number.NaN, 100, 0],
+    [Number.POSITIVE_INFINITY, 100, 0],
+    [10, Number.NEGATIVE_INFINITY, 0],
+  ])('normaliza %s/%s como %s', (numerator, denominator, expected) => {
+    expect(normalizeProgress(numerator, denominator)).toBe(expected);
+  });
+
   it('retiene controles con nombre y orden de lectura al navegar con teclado', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderPage();
@@ -96,7 +167,8 @@ describe('DashboardPage', () => {
       expect.arrayContaining([
         'Resumen comercial',
         'Próximas acciones',
-        'Cartera comercial',
+        'Próximos cierres',
+        'Alertas accionables',
       ]),
     );
   });
