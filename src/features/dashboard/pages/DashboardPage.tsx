@@ -7,23 +7,21 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   AlertCircle,
+  ArrowRight,
+  BarChart3,
   Building2,
-  CalendarClock,
+  CalendarDays,
   Contact2,
   Download,
   Handshake,
   HeartPulse,
-  Layers,
-  ListTodo,
-  Receipt,
   Rocket,
   ShieldAlert,
   Star,
   Target,
   Trophy,
   TrendingUp,
-  UserCheck,
-  UserPlus,
+  Users,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
@@ -33,7 +31,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { StatCard } from '@/components/shared/StatCard';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
@@ -176,76 +173,28 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="space-y-3" aria-labelledby="indicadores-operativos">
-        <h2 id="indicadores-operativos" className="text-sm font-semibold text-muted-foreground">
-          Indicadores operativos
-        </h2>
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Tareas vencidas"
-            value={String(insights.kpis.tareasVencidas)}
-            hint="Sin completar"
-            icon={AlertCircle}
-            loading={loading}
-          />
-          <StatCard
-            label="Cierres próximos"
-            value={String(insights.kpis.cierresProximos30)}
-            hint="Próximos 30 días"
-            icon={CalendarClock}
-            loading={loading}
-          />
-          <StatCard
-            label="Oportunidades abiertas"
-            value={String(insights.kpis.oportunidadesAbiertas)}
-            icon={Layers}
-            loading={loading}
-          />
-          <StatCard
-            label="Ticket promedio"
-            value={formatCurrency(insights.kpis.ticketPromedio)}
-            icon={Receipt}
-            loading={loading}
-          />
-          <StatCard
-            label="Clientes"
-            value={String(insights.kpis.clientesActivos)}
-            hint="Contactos activos"
-            icon={UserCheck}
-            loading={loading}
-          />
-          <StatCard
-            label="Prospectos"
-            value={String(insights.kpis.prospectos)}
-            icon={Contact2}
-            loading={loading}
-          />
-          <StatCard
-            label="Leads del mes"
-            value={String(insights.kpis.leadsMes)}
-            hint="Contactos nuevos este mes"
-            icon={UserPlus}
-            loading={loading}
-          />
-          <StatCard
-            label="CSAT promedio"
-            value={csat?.promedio != null ? `${csat.promedio.toFixed(1)}/5` : '—'}
-            hint={`${csat?.total ?? 0} respuestas`}
-            icon={Star}
-            loading={false}
-          />
-        </div>
-      </section>
-
       <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
-        <div className="min-w-0 space-y-4">
-          <UpcomingActions items={insights.upcomingActions} />
-          <UpcomingCloses items={insights.upcomingCloses} />
-          <CrmHealth items={insights.health} />
+        <div className="contents lg:block lg:space-y-4">
+          <div className="order-1 min-w-0">
+            <UpcomingActions items={insights.upcomingActions} />
+          </div>
+          <div className="order-3 min-w-0">
+            <UpcomingCloses items={insights.upcomingCloses} />
+          </div>
+          <div className="order-5 min-w-0">
+            <CrmHealth items={insights.health} />
+          </div>
         </div>
-        <div className="min-w-0 space-y-4">
-          <ActionAlerts alerts={insights.alerts} />
-          <AgentRanking ranking={insights.ranking} maxValor={maxRanking} />
+        <div className="contents lg:block lg:space-y-4">
+          <div className="order-2 min-w-0">
+            <PortfolioPanel insights={insights} csat={csat} loading={loading} />
+          </div>
+          <div className="order-4 min-w-0">
+            <ActionAlerts alerts={insights.alerts} />
+          </div>
+          <div className="order-6 min-w-0">
+            <AgentRanking ranking={insights.ranking} maxValor={maxRanking} />
+          </div>
         </div>
       </div>
     </div>
@@ -296,6 +245,103 @@ function PrimaryKpiCard({
           </div>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PortfolioPanel({
+  insights,
+  csat,
+  loading,
+}: {
+  insights: ReturnType<typeof computeDashboardInsights>;
+  csat: CsatResumen | undefined;
+  loading: boolean;
+}) {
+  const metrics: Array<{
+    label: string;
+    value: string;
+    icon: LucideIcon;
+    tone: MetricTone;
+    hint?: string;
+  }> = [
+    {
+      label: 'Tareas vencidas',
+      value: String(insights.kpis.tareasVencidas),
+      icon: AlertCircle,
+      tone: 'amber',
+    },
+    {
+      label: 'Cierres próximos',
+      value: String(insights.kpis.cierresProximos30),
+      icon: Target,
+      tone: 'emerald',
+    },
+    {
+      label: 'Oportunidades abiertas',
+      value: String(insights.kpis.oportunidadesAbiertas),
+      icon: Handshake,
+      tone: 'blue',
+    },
+    {
+      label: 'Ticket promedio',
+      value: formatCurrency(insights.kpis.ticketPromedio),
+      icon: Wallet,
+      tone: 'violet',
+    },
+    { label: 'Clientes', value: String(insights.kpis.clientesActivos), icon: Users, tone: 'blue' },
+    { label: 'Prospectos', value: String(insights.kpis.prospectos), icon: Contact2, tone: 'amber' },
+    {
+      label: 'Leads del mes',
+      value: String(insights.kpis.leadsMes),
+      icon: TrendingUp,
+      tone: 'violet',
+    },
+    {
+      label: 'CSAT promedio',
+      value: csat?.promedio != null ? `${csat.promedio.toFixed(1)}/5` : '—',
+      icon: Star,
+      tone: 'amber',
+      hint: `${csat?.total ?? 0} respuestas`,
+    },
+  ];
+  return (
+    <Card className="min-w-0" role="region" aria-labelledby="cartera-comercial">
+      <CardHeader className="border-b bg-muted/20">
+        <h2 id="cartera-comercial" className="flex items-center gap-2 text-base font-medium">
+          <BarChart3 className="size-4 text-primary" aria-hidden="true" />
+          Cartera comercial
+        </h2>
+        <CardDescription>Indicadores operativos del portafolio actual.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid min-w-0 grid-cols-2 gap-3 p-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <div key={metric.label} className="min-w-0 rounded-lg border bg-muted/20 p-3">
+              <div className="flex min-w-0 items-start gap-2">
+                <p className="min-h-8 min-w-0 flex-1 break-words text-xs leading-4 text-muted-foreground">
+                  {metric.label}
+                </p>
+                <span
+                  className={cn(
+                    'flex size-7 shrink-0 items-center justify-center rounded-md',
+                    metricToneClasses[metric.tone],
+                  )}
+                >
+                  <Icon className="size-3.5" aria-hidden="true" />
+                </span>
+              </div>
+              <p className="mt-2 break-words text-lg font-semibold tabular-nums">
+                {loading ? '—' : metric.value}
+              </p>
+              {metric.hint && (
+                <p className="mt-1 break-words text-[11px] text-muted-foreground">{metric.hint}</p>
+              )}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
@@ -387,35 +433,80 @@ function ActionAlerts({ alerts }: { alerts: DashboardAlert[] }) {
   );
 }
 
-function UpcomingActions({ items }: { items: ReturnType<typeof computeDashboardInsights>['upcomingActions'] }) {
+function UpcomingActions({
+  items,
+}: {
+  items: ReturnType<typeof computeDashboardInsights>['upcomingActions'];
+}) {
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ListTodo className="h-4 w-4 text-primary" aria-hidden="true" /> Próximas acciones
-        </CardTitle>
-        <CardDescription>Vencidas primero; después tareas próximas por prioridad.</CardDescription>
+    <Card className="min-w-0 overflow-hidden">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 border-b bg-muted/20">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-base font-medium">
+            <CalendarDays className="size-4 text-primary" aria-hidden="true" />
+            Próximas acciones
+          </h2>
+          <CardDescription className="mt-1">
+            Vencidas primero; después tareas próximas por prioridad.
+          </CardDescription>
+        </div>
+        <Link
+          to="/tareas?tab=lista"
+          className="inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Ver tareas
+          <ArrowRight className="ml-1 size-3.5" aria-hidden="true" />
+        </Link>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="pt-5">
         {items.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No hay tareas vencidas ni próximas.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No hay tareas vencidas ni próximas.
+          </p>
         ) : (
-          items.map((item) => (
-            <Link key={item.tarea.id} to={`/tareas/${item.tarea.id}`} className="block rounded-lg border p-3 transition-colors hover:bg-accent">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 space-y-1">
-                  <p className="truncate text-sm font-medium">{item.tarea.titulo}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {item.trato?.nombre ?? 'Sin trato'} · {item.responsable?.nombre ?? 'Sin responsable'}
+          <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-border">
+            {items.map((item) => (
+              <Link
+                key={item.tarea.id}
+                to={`/tareas/${item.tarea.id}`}
+                className="group relative flex min-w-0 gap-4 rounded-lg p-1 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span
+                  className="z-10 mt-1 size-3.5 shrink-0 rounded-full border-2 border-background bg-primary ring-1 ring-primary/30"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 flex-1 pb-1">
+                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      {item.tarea.titulo}
+                    </p>
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                      {formatDueLabel(item.daysUntilDue)}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    {item.trato?.nombre ?? 'Sin trato'} ·{' '}
+                    {item.responsable?.nombre ?? 'Sin responsable'}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatDueLabel(item.daysUntilDue)}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className={prioridadBadgeClass[item.tarea.prioridad]}>
+                      {prioridadLabels[item.tarea.prioridad]}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={
+                        item.status === 'vencida'
+                          ? 'border-red-500/20 bg-red-500/10 text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300'
+                          : 'border-primary/20 bg-primary/10 text-primary'
+                      }
+                    >
+                      {item.status === 'vencida' ? 'Vencida' : 'Próxima'}
+                    </Badge>
+                  </div>
                 </div>
-                <Badge variant="outline" className={prioridadBadgeClass[item.tarea.prioridad]}>
-                  {prioridadLabels[item.tarea.prioridad]}
-                </Badge>
-              </div>
-            </Link>
-          ))
+              </Link>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
