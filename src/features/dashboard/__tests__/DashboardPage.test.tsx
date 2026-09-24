@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { server } from '@/test/server';
@@ -49,14 +50,55 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Salud del CRM')).toBeInTheDocument();
   });
 
+  it('organiza el resumen comercial en KPIs, cartera y acciones con CTA', async () => {
+    renderPage();
+
+    await screen.findByRole('link', { name: /demo presencial con cto/i });
+
+    expect(screen.getByText('Resumen ejecutivo')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Resumen comercial' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Cartera comercial' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Próximas acciones' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /ver tareas/i })).toHaveAttribute(
+      'href',
+      '/tareas?tab=lista',
+    );
+  });
+
   it('incluye links accionables a tareas y tratos', async () => {
     renderPage();
 
     const taskLink = await screen.findByRole('link', { name: /demo presencial con cto/i });
     expect(taskLink).toHaveAttribute('href', '/tareas/e1111111-eeee-1111-eeee-111111111111');
 
-    const matchingLinks = await screen.findAllByRole('link', { name: /implementación crm innovatech/i });
-    expect(matchingLinks.some((link) => link.getAttribute('href') === '/tratos/d1111111-dddd-1111-dddd-111111111111')).toBe(true);
+    const matchingLinks = await screen.findAllByRole('link', {
+      name: /implementación crm innovatech/i,
+    });
+    expect(
+      matchingLinks.some(
+        (link) => link.getAttribute('href') === '/tratos/d1111111-dddd-1111-dddd-111111111111',
+      ),
+    ).toBe(true);
+  });
+
+  it('retiene controles con nombre y orden de lectura al navegar con teclado', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderPage();
+
+    await screen.findByRole('link', { name: /demo presencial con cto/i });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /exportar tratos/i })).toBeEnabled(),
+    );
+    const exportButton = screen.getByRole('button', { name: /exportar tratos/i });
+    await user.tab();
+    expect(exportButton).toHaveFocus();
+    expect(screen.getAllByRole('heading').map((heading) => heading.textContent?.trim())).toEqual(
+      expect.arrayContaining([
+        'Resumen comercial',
+        'Próximas acciones',
+        'Cartera comercial',
+      ]),
+    );
   });
 
   it('preserva el aviso parcial, el primer uso y la explicación del CSV deshabilitado', async () => {
