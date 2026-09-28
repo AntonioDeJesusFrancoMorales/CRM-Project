@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { Empresa } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -20,6 +21,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { nullsToStrings } from '@/lib/form-utils';
+import { normalizeEmpresaValues } from '../lib/empresaValues';
+import {
+  DUPLICATE_EMPRESA_NAME_MESSAGE,
+  hasDuplicateEmpresaName,
+  mapEmpresaServerError,
+} from '../lib/empresaValidation';
 import { empresaCreateSchema, type EmpresaCreateInput } from '../schemas/empresa.schema';
 
 interface EmpresaFormProps {
@@ -29,6 +36,8 @@ interface EmpresaFormProps {
   onCancel?: () => void;
   isSubmitting?: boolean;
   serverErrors?: Array<{ field: string; message: string }>;
+  existingEmpresas?: Empresa[];
+  currentEmpresaId?: string;
 }
 
 const EMPTY_DEFAULTS: EmpresaCreateInput = {
@@ -50,7 +59,11 @@ export function EmpresaForm({
   onCancel,
   isSubmitting = false,
   serverErrors,
+  existingEmpresas,
+  currentEmpresaId,
 }: EmpresaFormProps) {
+  const submitLock = useRef(false);
+  const previousIsSubmitting = useRef(isSubmitting);
   const resolvedDefaults =
     mode === 'edit' && defaultValues
       ? (nullsToStrings(defaultValues as Record<string, unknown>) as Partial<EmpresaCreateInput>)
@@ -63,19 +76,59 @@ export function EmpresaForm({
 
   useEffect(() => {
     if (!serverErrors?.length) return;
-    for (const { field, message } of serverErrors) {
-      form.setError(field as keyof EmpresaCreateInput, { message });
+    for (const serverError of serverErrors) {
+      const mappedError = mapEmpresaServerError(serverError);
+      if (mappedError.field) {
+        form.setError(mappedError.field, { type: 'server', message: mappedError.message });
+      }
     }
   }, [serverErrors, form]);
+
+  useEffect(() => {
+    if (previousIsSubmitting.current && !isSubmitting) {
+      submitLock.current = false;
+    }
+    previousIsSubmitting.current = isSubmitting;
+  }, [isSubmitting]);
+
+  function handleValidSubmit(values: EmpresaCreateInput) {
+    if (submitLock.current || isSubmitting) return;
+
+    const normalizedValues = normalizeEmpresaValues(values) as EmpresaCreateInput;
+    if (hasDuplicateEmpresaName(existingEmpresas, normalizedValues.nombre, currentEmpresaId)) {
+      form.setError('nombre', {
+        type: 'validate',
+        message: DUPLICATE_EMPRESA_NAME_MESSAGE,
+      });
+      return;
+    }
+
+    submitLock.current = true;
+    onSubmit(normalizedValues);
+  }
+
+  const unmappedServerErrors = (serverErrors ?? [])
+    .map(mapEmpresaServerError)
+    .filter((serverError) => !serverError.field);
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(handleValidSubmit)}
         className="space-y-5"
         noValidate
         autoComplete="off"
       >
+        {unmappedServerErrors.map((serverError, index) => (
+          <p
+            key={`${serverError.message}-${index}`}
+            role="alert"
+            className="text-sm text-destructive"
+          >
+            {serverError.message}
+          </p>
+        ))}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -149,13 +202,13 @@ export function EmpresaForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel htmlFor="empresa-pagina-web">
-                  Sitio web <span className="font-normal text-muted-foreground">(opcional)</span>
+                  Página web <span className="font-normal text-muted-foreground">(opcional)</span>
                 </FormLabel>
                 <FormControl>
                   <Input
                     id="empresa-pagina-web"
                     type="url"
-                    placeholder="https://ejemplo.com"
+                    placeholder="www.ejemplo.com o https://ejemplo.com"
                     {...field}
                   />
                 </FormControl>
@@ -175,7 +228,7 @@ export function EmpresaForm({
                 <FormControl>
                   <Input
                     id="empresa-facebook"
-                    placeholder="https://facebook.com/empresa"
+                    placeholder="https://facebook.com/empresa o @empresa"
                     maxLength={150}
                     {...field}
                   />
@@ -196,7 +249,7 @@ export function EmpresaForm({
                 <FormControl>
                   <Input
                     id="empresa-instagram"
-                    placeholder="https://instagram.com/empresa"
+                    placeholder="https://instagram.com/empresa o @empresa"
                     maxLength={150}
                     {...field}
                   />
@@ -217,7 +270,7 @@ export function EmpresaForm({
                 <FormControl>
                   <Input
                     id="empresa-twitter"
-                    placeholder="https://twitter.com/empresa"
+                    placeholder="https://x.com/empresa o @empresa"
                     maxLength={150}
                     {...field}
                   />

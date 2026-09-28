@@ -22,9 +22,12 @@ describe('empresaCreateSchema — paginaWeb camelCase (REQ-2)', () => {
     expect(result.success).toBe(true);
   });
 
-  it('paginaWeb acepta URL válida', () => {
+  it('paginaWeb acepta una URL completa y un dominio sin esquema', () => {
     const result = empresaCreateSchema.safeParse({ nombre: 'X', paginaWeb: 'https://ejemplo.com' });
     expect(result.success).toBe(true);
+
+    const bareDomain = empresaCreateSchema.safeParse({ nombre: 'X', paginaWeb: 'www.ejemplo.com' });
+    expect(bareDomain.success).toBe(true);
   });
 
   it('paginaWeb acepta string vacío', () => {
@@ -35,6 +38,35 @@ describe('empresaCreateSchema — paginaWeb camelCase (REQ-2)', () => {
   it('paginaWeb rechaza URL inválida (sin http)', () => {
     const result = empresaCreateSchema.safeParse({ nombre: 'X', paginaWeb: 'no-es-url' });
     expect(result.success).toBe(false);
+  });
+
+  it('paginaWeb rechaza esquemas no web con un mensaje en español', () => {
+    const result = empresaCreateSchema.safeParse({ nombre: 'X', paginaWeb: 'ftp://ejemplo.com' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('La página web debe ser una URL válida.');
+    }
+  });
+
+  it('rejects a whitespace-only required name and trims optional text', () => {
+    expect(empresaCreateSchema.safeParse({ nombre: '   ' }).success).toBe(false);
+
+    const result = empresaCreateSchema.safeParse({ nombre: '  Acme  ', sector: '   ' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.nombre).toBe('Acme');
+      expect(result.data.sector).toBe('');
+    }
+  });
+
+  it('accepts social profile URLs and handles', () => {
+    const result = empresaCreateSchema.safeParse({
+      nombre: 'X',
+      facebook: 'https://facebook.com/empresa',
+      instagram: '@qa_example_01',
+      twitter: '@qa_example_01',
+    });
+    expect(result.success).toBe(true);
   });
 });
 
