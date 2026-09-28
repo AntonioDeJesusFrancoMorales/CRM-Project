@@ -56,6 +56,25 @@ describe('EmpresaDetailPage', () => {
     expect(screen.getByText('Sofía')).toBeInTheDocument();
   });
 
+  it('renders website and social values as safe external links', async () => {
+    const user = userEvent.setup();
+    renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
+
+    await waitFor(() => expect(screen.getByText('Innovatech Solutions')).toBeInTheDocument());
+    await user.click(screen.getByRole('tab', { name: /información/i }));
+
+    expect(screen.getByRole('link', { name: /innovatech\.example\.com/i })).toHaveAttribute(
+      'href',
+      'https://innovatech.example.com/',
+    );
+    const socialLinks = screen.getAllByRole('link', { name: '@innovatech' });
+    expect(socialLinks).toHaveLength(2);
+    expect(socialLinks.map((link) => link.getAttribute('href'))).toContain(
+      'https://instagram.com/innovatech',
+    );
+    expect(socialLinks[0]).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
   it('el tab Resumen 360 muestra relaciones de la empresa', async () => {
     renderWithRouter('/empresas/a1111111-aaaa-1111-aaaa-111111111111');
 
@@ -94,5 +113,36 @@ describe('EmpresaDetailPage', () => {
       expect(screen.getByText('No fue posible cargar la empresa.')).toBeInTheDocument(),
     );
     expect(screen.getByRole('button', { name: /volver al listado/i })).toBeInTheDocument();
+  });
+
+  it('wraps a very long company name in the detail header', async () => {
+    const longName = 'Empresa con un nombre extraordinariamente largo para validar el detalle';
+    server.use(
+      http.get('/api/empresas/get-all', () =>
+        HttpResponse.json([
+          {
+            id: 'empresa-larga',
+            nombre: longName,
+            sector: null,
+            telefono: null,
+            paginaWeb: null,
+            facebook: null,
+            instagram: null,
+            twitter: null,
+            estadoRelacion: 'ACTIVO',
+            responsableId: null,
+            creadoPor: null,
+            notas: null,
+            creadoEn: '2026-01-20T11:00:00.000Z',
+            actualizadoEn: '2026-04-12T15:22:00.000Z',
+          },
+        ]),
+      ),
+    );
+
+    renderWithRouter('/empresas/empresa-larga');
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: longName })).toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: longName })).toHaveClass('[overflow-wrap:anywhere]');
   });
 });

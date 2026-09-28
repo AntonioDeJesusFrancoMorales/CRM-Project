@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { isHttpError } from '@/api/http-error';
 import type { Empresa } from '@/api/types';
 import {
@@ -17,6 +18,7 @@ type CreateProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   empresa?: never;
+  existingEmpresas?: Empresa[];
 };
 
 type EditProps = {
@@ -24,25 +26,50 @@ type EditProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   empresa: Empresa;
+  existingEmpresas?: Empresa[];
 };
 
 type EmpresaFormDialogProps = CreateProps | EditProps;
 
-function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpenChange'>) {
-  const mutation = useCreateEmpresa();
+function getServerErrors(error: unknown): Array<{ field: string; message: string }> | undefined {
+  if (!isHttpError(error) || error.status !== 422) return undefined;
+  if (error.details?.length) return error.details;
+  return [{ field: '', message: error.message }];
+}
 
-  const serverErrors =
-    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
-      ? mutation.error.details
-      : undefined;
+function CreateDialog({
+  open,
+  onOpenChange,
+  existingEmpresas,
+}: Pick<CreateProps, 'open' | 'onOpenChange' | 'existingEmpresas'>) {
+  const mutation = useCreateEmpresa();
+  const submissionLock = useRef(false);
+  const [isSubmitLocked, setIsSubmitLocked] = useState(false);
+
+  const serverErrors = getServerErrors(mutation.error);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
 
   function handleSubmit(values: EmpresaCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (submissionLock.current) return;
+
+    submissionLock.current = true;
+    setIsSubmitLocked(true);
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        submissionLock.current = false;
+        setIsSubmitLocked(false);
+        if (!error) handleOpenChange(false);
+      },
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Nueva empresa</DialogTitle>
           <DialogDescription>
@@ -53,9 +80,10 @@ function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpen
         <EmpresaForm
           mode="create"
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isSubmitLocked}
           serverErrors={serverErrors}
+          existingEmpresas={existingEmpresas}
         />
       </DialogContent>
     </Dialog>
@@ -66,13 +94,13 @@ function EditDialog({
   open,
   onOpenChange,
   empresa,
-}: Pick<EditProps, 'open' | 'onOpenChange' | 'empresa'>) {
+  existingEmpresas,
+}: Pick<EditProps, 'open' | 'onOpenChange' | 'empresa' | 'existingEmpresas'>) {
   const mutation = useUpdateEmpresa(empresa.id);
+  const submissionLock = useRef(false);
+  const [isSubmitLocked, setIsSubmitLocked] = useState(false);
 
-  const serverErrors =
-    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
-      ? mutation.error.details
-      : undefined;
+  const serverErrors = getServerErrors(mutation.error);
 
   const defaultValues: Partial<EmpresaCreateInput> = {
     nombre: empresa.nombre,
@@ -86,13 +114,28 @@ function EditDialog({
     notas: empresa.notas ?? '',
   };
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   function handleSubmit(values: EmpresaCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (submissionLock.current) return;
+
+    submissionLock.current = true;
+    setIsSubmitLocked(true);
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        submissionLock.current = false;
+        setIsSubmitLocked(false);
+        if (!error) handleOpenChange(false);
+      },
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Editar empresa</DialogTitle>
           <DialogDescription>
@@ -103,9 +146,11 @@ function EditDialog({
           mode="edit"
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isSubmitLocked}
           serverErrors={serverErrors}
+          existingEmpresas={existingEmpresas}
+          currentEmpresaId={empresa.id}
         />
       </DialogContent>
     </Dialog>
@@ -114,7 +159,20 @@ function EditDialog({
 
 export function EmpresaFormDialog(props: EmpresaFormDialogProps) {
   if (props.mode === 'create') {
-    return <CreateDialog open={props.open} onOpenChange={props.onOpenChange} />;
+    return (
+      <CreateDialog
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        existingEmpresas={props.existingEmpresas}
+      />
+    );
   }
-  return <EditDialog open={props.open} onOpenChange={props.onOpenChange} empresa={props.empresa} />;
+  return (
+    <EditDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      empresa={props.empresa}
+      existingEmpresas={props.existingEmpresas}
+    />
+  );
 }

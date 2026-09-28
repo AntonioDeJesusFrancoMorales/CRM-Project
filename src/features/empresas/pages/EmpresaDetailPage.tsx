@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { estadoRelacionBadgeClass, estadoRelacionLabels } from '../lib/estadoRelacion';
 import { useEmpresa } from '../hooks/useEmpresa';
+import { useEmpresas } from '../hooks/useEmpresas';
 import { EmpresaInfoTab } from '../components/EmpresaInfoTab';
 import { EmpresaContactosTab } from '../components/EmpresaContactosTab';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
@@ -23,6 +24,7 @@ export function EmpresaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: empresa, isLoading, error } = useEmpresa(id);
+  const { data: empresas } = useEmpresas();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
@@ -115,7 +117,9 @@ export function EmpresaDetailPage() {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight">{empresa.nombre}</h1>
+                <h1 className="break-words text-2xl font-bold tracking-tight [overflow-wrap:anywhere]">
+                  {empresa.nombre}
+                </h1>
                 <Badge
                   variant="outline"
                   className={cn('rounded-full', estadoRelacionBadgeClass[empresa.estadoRelacion])}
@@ -180,7 +184,13 @@ export function EmpresaDetailPage() {
         </TabsContent>
       </Tabs>
 
-      <EmpresaFormDialog mode="edit" empresa={empresa} open={editOpen} onOpenChange={setEditOpen} />
+      <EmpresaFormDialog
+        mode="edit"
+        empresa={empresa}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        existingEmpresas={empresas}
+      />
 
       <EmpresaDeleteDialog
         empresa={deleteTarget}
