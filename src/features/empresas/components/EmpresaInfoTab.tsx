@@ -4,6 +4,12 @@ import type { Empresa } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate } from '@/lib/format';
+import {
+  displayWebsiteUrl,
+  normalizeSocialUrl,
+  normalizeWebsiteUrl,
+  type EmpresaSocialNetwork,
+} from '../lib/empresaLinks';
 import { estadoRelacionBadgeClass, estadoRelacionLabels } from '../lib/estadoRelacion';
 
 interface EmpresaInfoTabProps {
@@ -11,6 +17,8 @@ interface EmpresaInfoTabProps {
 }
 
 export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
+  const websiteHref = empresa.paginaWeb ? normalizeWebsiteUrl(empresa.paginaWeb) : null;
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card className="rounded-lg shadow-none">
@@ -33,20 +41,21 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
             }
           />
           <InfoField
-            label="Sitio web"
+            label="Página web"
             value={
-              empresa.paginaWeb ? (
+              empresa.paginaWeb && websiteHref ? (
                 <a
-                  href={empresa.paginaWeb}
+                  href={websiteHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  title={empresa.paginaWeb ?? undefined}
                   className="inline-flex max-w-full items-center gap-1 text-primary hover:underline"
                 >
-                  <span className="truncate">
-                    {empresa.paginaWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                  </span>
+                  <span className="block truncate">{displayWebsiteUrl(empresa.paginaWeb)}</span>
                   <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 </a>
+              ) : empresa.paginaWeb ? (
+                <span title={empresa.paginaWeb}>{empresa.paginaWeb}</span>
               ) : null
             }
           />
@@ -72,9 +81,24 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SocialField icon={Facebook} label="Facebook" value={empresa.facebook} />
-          <SocialField icon={Instagram} label="Instagram" value={empresa.instagram} />
-          <SocialField icon={Twitter} label="Twitter / X" value={empresa.twitter} />
+          <SocialField
+            icon={Facebook}
+            label="Facebook"
+            value={empresa.facebook}
+            network="facebook"
+          />
+          <SocialField
+            icon={Instagram}
+            label="Instagram"
+            value={empresa.instagram}
+            network="instagram"
+          />
+          <SocialField
+            icon={Twitter}
+            label="Twitter / X"
+            value={empresa.twitter}
+            network="twitter"
+          />
         </CardContent>
       </Card>
 
@@ -117,26 +141,29 @@ function SocialField({
   icon: Icon,
   label,
   value,
+  network,
 }: {
   icon: LucideIcon;
   label: string;
   value: string | null;
+  network: EmpresaSocialNetwork;
 }) {
-  const isExternalUrl = value?.startsWith('http://') || value?.startsWith('https://');
+  const externalUrl = value ? normalizeSocialUrl(value, network) : null;
 
   return (
     <div className="flex items-start gap-3">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        {value && isExternalUrl ? (
+        {value && externalUrl ? (
           <a
-            href={value}
+            href={externalUrl}
             target="_blank"
             rel="noopener noreferrer"
+            title={value}
             className="mt-1 inline-flex max-w-full items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
-            <span className="truncate">{value}</span>
+            <span className="block truncate">{value}</span>
             <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           </a>
         ) : (
