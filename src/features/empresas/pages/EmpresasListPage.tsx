@@ -72,14 +72,20 @@ export function EmpresasListPage() {
   const [deleting, setDeleting] = useState<Empresa | null>(null);
   const paging = useListPageState({ initialSortBy: 'creadoEn' });
 
-  const { data: empresasPage, isLoading, isError, refetch } = useEmpresasPage(paging.query);
+  const {
+    data: empresasPage,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useEmpresasPage(paging.query);
   const { data: todasLasEmpresas } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
-  const empresas = empresasPage?.items ?? [];
+  const empresas = empresasPage?.items;
 
   const kpis = useMemo(() => computeKpis(todasLasEmpresas ?? []), [todasLasEmpresas]);
   const filteredEmpresas = useMemo(
-    () => applyEmpresaFilters(empresas, filters),
+    () => applyEmpresaFilters(empresas ?? [], filters),
     [empresas, filters],
   );
   const hasFilters = hasActiveEmpresaFilters(filters);
@@ -137,7 +143,11 @@ export function EmpresasListPage() {
 
   return (
     <div className="flex flex-col gap-5 p-4 sm:p-6">
-      <EmpresasHeader onRefresh={() => void refetch()} onCreate={() => setCreateOpen(true)} />
+      <EmpresasHeader
+        onRefresh={() => void refetch()}
+        onCreate={() => setCreateOpen(true)}
+        isRefreshing={isFetching}
+      />
 
       {!isError && (
         <EmpresasKpis
@@ -232,8 +242,8 @@ export function EmpresasListPage() {
                 })
               }
             >
-              <SelectTrigger className="w-44" aria-label="Sitio web">
-                <SelectValue placeholder="Sitio web" />
+              <SelectTrigger className="w-44" aria-label="Página web">
+                <SelectValue placeholder="Página web" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas las webs</SelectItem>
@@ -258,8 +268,13 @@ export function EmpresasListPage() {
           <p className="text-sm text-destructive">
             No fue posible cargar las empresas. Intenta de nuevo.
           </p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}
@@ -291,7 +306,12 @@ export function EmpresasListPage() {
       )}
 
       {/* Dialog crear empresa */}
-      <EmpresaFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
+      <EmpresaFormDialog
+        mode="create"
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        existingEmpresas={todasLasEmpresas}
+      />
 
       {/* Dialog editar empresa */}
       {editing && (
@@ -299,6 +319,7 @@ export function EmpresasListPage() {
           mode="edit"
           empresa={editing}
           open={true}
+          existingEmpresas={todasLasEmpresas}
           onOpenChange={(open) => {
             if (!open) setEditing(null);
           }}
