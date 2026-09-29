@@ -2,6 +2,7 @@
 // NO la crea para evitar duplicados. useCreateTrato invalida ['fichas'] tras crear.
 
 import { isHttpError } from '@/api/http-error';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ export function TratoCreateDialog({
   defaultValues,
 }: TratoCreateDialogProps) {
   const mutation = useCreateTrato();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) &&
@@ -38,6 +40,7 @@ export function TratoCreateDialog({
       : undefined;
 
   function handleSubmit(values: TratoCreateInput) {
+    if (!acquire()) return;
     // Normaliza opcionales del form (undefined/'' ) a null para el contrato del back.
     const payload: TratoCreatePayload = {
       contactoId: values.contactoId,
@@ -50,7 +53,17 @@ export function TratoCreateDialog({
         ? values.fechaCierreEsperada
         : null,
     };
-    mutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
+    mutation.mutate(payload, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   const initial: Partial<TratoCreateInput> = {
@@ -59,7 +72,7 @@ export function TratoCreateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Nuevo trato</DialogTitle>
@@ -71,8 +84,8 @@ export function TratoCreateDialog({
           mode="create"
           defaultValues={initial}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>

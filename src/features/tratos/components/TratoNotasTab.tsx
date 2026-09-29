@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { StickyNote, Activity, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ export function TratoNotasTab({ tratoId }: { tratoId: string }) {
   const { data: notas = [], isLoading } = useNotasTrato(tratoId);
   const { data: usuarios = [] } = useUsuarios();
   const crearMut = useCrearNotaTrato(tratoId);
+  const { acquire, release, isLocked } = useSynchronousMutationLock();
   const [texto, setTexto] = useState('');
 
   const autorNombre = (id: string | null) =>
@@ -30,8 +32,11 @@ export function TratoNotasTab({ tratoId }: { tratoId: string }) {
 
   function handleGuardar() {
     const contenido = texto.trim();
-    if (!contenido) return;
-    crearMut.mutate(contenido, { onSuccess: () => setTexto('') });
+    if (!contenido || !acquire()) return;
+    crearMut.mutate(contenido, {
+      onSuccess: () => setTexto(''),
+      onSettled: () => release(),
+    });
   }
 
   return (
@@ -45,7 +50,7 @@ export function TratoNotasTab({ tratoId }: { tratoId: string }) {
             rows={3}
           />
           <div className="flex justify-end">
-            <Button size="sm" disabled={!texto.trim() || crearMut.isPending} onClick={handleGuardar}>
+            <Button size="sm" disabled={!texto.trim() || crearMut.isPending || isLocked} onClick={handleGuardar}>
               {crearMut.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <StickyNote className="h-4 w-4 mr-1" />}
               Agregar nota
             </Button>

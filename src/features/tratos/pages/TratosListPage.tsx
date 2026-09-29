@@ -16,7 +16,6 @@ import {
   PanelTopOpen,
   Plus,
   Receipt,
-  RefreshCw,
   Scale,
   Search,
   SlidersHorizontal,
@@ -27,6 +26,8 @@ import { toast } from 'sonner';
 import type { EstadoTrato, TipoContrato, Trato } from '@/api/types';
 import { isHttpError } from '@/api/http-error';
 import { Button } from '@/components/ui/button';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -135,11 +136,12 @@ export function TratosListPage() {
 
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
-  const { data: tratosPage, isLoading, isError, refetch } = useTratosPage(paging.query);
+  const { data: tratosPage, isLoading, isError, isFetching, refetch } = useTratosPage(paging.query);
   const { data: tratos } = useTratos();
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
   const deleteMutation = useDeleteTrato();
+  const { acquire, release, isLocked } = useSynchronousMutationLock();
 
   const kpis = useMemo(() => computeKpis(tratos ?? []), [tratos]);
   const filteredTratos = useMemo(
@@ -206,15 +208,18 @@ export function TratosListPage() {
   }
 
   function handleConfirmDelete() {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !acquire()) return;
     deleteMutation.mutate(deleteTarget.id, {
-      onSuccess: () => setDeleteTarget(null),
       onError: (err) => {
         // 409: el trato tiene tareas asociadas; mostramos el mensaje del back.
         if (isHttpError(err) && err.status === 409) {
           toast.error(err.message);
         }
         setDeleteTarget(null);
+      },
+      onSettled: (_data, error) => {
+        release();
+        if (!error) setDeleteTarget(null);
       },
     });
   }
@@ -240,9 +245,9 @@ export function TratosListPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => void refetch()}>
-                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Recargar
+                <DropdownMenuItem disabled={isFetching} onClick={() => void refetch()}>
+                  <RefreshIcon isRefreshing={isFetching} className="mr-2" />
+                  {isFetching ? 'Recargando...' : 'Recargar'}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -543,8 +548,14 @@ export function TratosListPage() {
               <p className="text-sm text-destructive">
                 No fue posible cargar los tratos. Intenta de nuevo.
               </p>
-              <Button variant="outline" onClick={() => void refetch()}>
-                Reintentar
+              <Button
+                variant="outline"
+                onClick={() => void refetch()}
+                disabled={isFetching}
+                aria-busy={isFetching}
+              >
+                <RefreshIcon isRefreshing={isFetching} />
+                {isFetching ? 'Cargando...' : 'Reintentar'}
               </Button>
             </div>
           )}
@@ -654,7 +665,7 @@ export function TratosListPage() {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         nombre={deleteTarget?.nombre ?? ''}
         onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending}
+        isDeleting={deleteMutation.isPending || isLocked}
       />
     </div>
   );

@@ -9,6 +9,10 @@ import type { TratoFilters } from '../lib/tratoFilters';
 
 type TratoListQuery = Partial<TratoFilters> & ListQueryOptions;
 
+interface UseTratosOptions {
+  enabled?: boolean;
+}
+
 export const tratosKeys = {
   all: ['tratos'] as const,
   list: (filters?: TratoListQuery) =>
@@ -16,10 +20,14 @@ export const tratosKeys = {
   detail: (id: string) => ['tratos', id] as const,
 };
 
-export function useTratos(filters?: TratoListQuery): UseQueryResult<Trato[]> {
+export function useTratos(
+  filters?: TratoListQuery,
+  options?: UseTratosOptions,
+): UseQueryResult<Trato[]> {
   return useQuery<Trato[]>({
     queryKey: tratosKeys.list(filters),
     queryFn: async () => listItems(await apiClient.get<ListResponse<Trato>>(endpoints.tratos.getAll(filters))),
+    enabled: options?.enabled ?? true,
   });
 }
 

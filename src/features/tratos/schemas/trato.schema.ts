@@ -3,14 +3,12 @@
 // tratoEditSchema es tratoSchema sin contactoId (contactoId es inmutable en el back).
 
 import { z } from 'zod';
+import { requiredTrimmedName } from '@/lib/validation';
 
 export const tratoSchema = z.object({
   contactoId: z.string().min(1, { message: 'El contacto es requerido' }),
   responsableId: z.string().min(1, { message: 'El responsable es requerido' }),
-  nombre: z
-    .string()
-    .min(1, { message: 'El nombre es requerido' })
-    .max(200, { message: 'El nombre no puede superar 200 caracteres' }),
+  nombre: requiredTrimmedName(200),
   tipoContrato: z.enum(['SERVICIO', 'LICENCIA', 'SUSCRIPCION', 'PERMANENTE', 'OTRO'], {
     message: 'Selecciona un tipo de contrato válido',
   }),

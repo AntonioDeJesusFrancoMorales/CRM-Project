@@ -10,6 +10,7 @@ import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { ArrowLeft, Pencil, Trash2, Trophy, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -56,6 +57,7 @@ export function TratoDetailPage() {
     });
 
   const deleteMutation = useDeleteTrato();
+  const { acquire, release, isLocked } = useSynchronousMutationLock();
   const ganarMutation = useGanarTrato();
   const perderMutation = usePerderTrato();
 
@@ -87,7 +89,7 @@ export function TratoDetailPage() {
   }, [is404, navigate]);
 
   function handleConfirmDelete() {
-    if (!id) return;
+    if (!id || !acquire()) return;
     deleteMutation.mutate(id, {
       onSuccess: () => {
         setDeleteOpen(false);
@@ -99,6 +101,7 @@ export function TratoDetailPage() {
         }
         setDeleteOpen(false);
       },
+      onSettled: () => release(),
     });
   }
 
@@ -264,7 +267,7 @@ export function TratoDetailPage() {
         onOpenChange={setDeleteOpen}
         nombre={trato.nombre}
         onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending}
+         isDeleting={deleteMutation.isPending || isLocked}
       />
 
       <Dialog open={perderOpen} onOpenChange={(o) => { setPerderOpen(o); if (!o) setMotivo(''); }}>

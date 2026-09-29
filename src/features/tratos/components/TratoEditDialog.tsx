@@ -1,5 +1,6 @@
 import { isHttpError } from '@/api/http-error';
 import type { Trato, TratoUpdatePayload } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ interface TratoEditDialogProps {
 
 export function TratoEditDialog({ open, onOpenChange, trato }: TratoEditDialogProps) {
   const mutation = useUpdateTrato();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) &&
@@ -39,6 +41,7 @@ export function TratoEditDialog({ open, onOpenChange, trato }: TratoEditDialogPr
   };
 
   function handleSubmit(values: TratoCreateInput) {
+    if (!acquire()) return;
     // contactoId es inmutable — se omite del payload de edición (TratoUpdatePayload)
     const { contactoId: _contactoId, ...editData }: TratoCreateInput = values;
     const data: TratoUpdatePayload = {
@@ -53,12 +56,22 @@ export function TratoEditDialog({ open, onOpenChange, trato }: TratoEditDialogPr
     };
     mutation.mutate(
       { id: trato.id, data },
-      { onSuccess: () => onOpenChange(false) },
+      {
+        onSettled: (_data, error) => {
+          release();
+          if (!error) onOpenChange(false);
+        },
+      },
     );
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar trato</DialogTitle>
@@ -70,8 +83,8 @@ export function TratoEditDialog({ open, onOpenChange, trato }: TratoEditDialogPr
           mode="edit"
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>
