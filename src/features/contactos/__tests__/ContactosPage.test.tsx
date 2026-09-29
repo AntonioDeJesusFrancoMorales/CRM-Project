@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -230,5 +230,133 @@ describe('ContactosPage', () => {
 
     // Hacer click no debe lanzar excepción (aunque el endpoint siga fallando)
     await user.click(reintentarBtn);
+  });
+
+  it('muestra el estado real de recarga en el botón de Contactos', async () => {
+    const user = userEvent.setup();
+    let requestCount = 0;
+    let releaseRefresh!: () => void;
+    const refreshPending = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+
+    server.use(
+      http.get('/api/contactos/get-all', async () => {
+        requestCount += 1;
+        if (requestCount > 2) await refreshPending;
+        return HttpResponse.json(contactosFixture);
+      }),
+    );
+
+    renderWithRouter('/contactos');
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /recargar contactos/i }));
+
+    const refreshingButton = await screen.findByRole('button', { name: /recargando contactos/i });
+    expect(refreshingButton).toBeDisabled();
+    expect(refreshingButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Recargando contactos...');
+
+    releaseRefresh();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /recargar contactos/i })).toBeEnabled(),
+    );
+  });
+
+  it('envía una sola creación ante dos submits síncronos', async () => {
+    const user = userEvent.setup();
+    const rows = [...contactosFixture];
+    const createdContact = {
+      ...rows[0]!,
+      id: 'contacto-race',
+      nombre: 'Contacto de carrera',
+      correo: 'carrera@example.com',
+    };
+    let postCount = 0;
+    let releasePost!: () => void;
+    const postPending = new Promise<void>((resolve) => {
+      releasePost = resolve;
+    });
+
+    server.use(
+      http.get('/api/contactos/get-all', () => HttpResponse.json(rows)),
+      http.post('/api/contactos/create', async () => {
+        postCount += 1;
+        rows.push(createdContact);
+        await postPending;
+        return HttpResponse.json(createdContact, { status: 201 });
+      }),
+    );
+
+    renderWithRouter('/contactos');
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /nuevo contacto/i }));
+
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/^nombre/i), createdContact.nombre);
+    await user.click(within(dialog).getByRole('combobox', { name: 'Empresa' }));
+    await user.click(await screen.findByRole('option', { name: /innovatech solutions/i }));
+
+    const form = within(dialog)
+      .getByRole('button', { name: /crear contacto/i })
+      .closest('form');
+    if (!form) throw new Error('Expected the submit button to belong to a form');
+
+    act(() => {
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+    });
+
+    await waitFor(() => expect(postCount).toBe(1));
+    expect(within(dialog).getByRole('button', { name: /guardando/i })).toBeDisabled();
+
+    await user.click(within(dialog).getByRole('button', { name: /close/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    releasePost();
+    await waitFor(() => expect(screen.getByText(createdContact.nombre)).toBeInTheDocument());
+    expect(postCount).toBe(1);
+  });
+
+  it('bloquea un nombre duplicado usando el caché actualizado después de crear', async () => {
+    const user = userEvent.setup();
+    const rows = [...contactosFixture];
+    const createdContact = {
+      ...rows[0]!,
+      id: 'contacto-cache-guard',
+      nombre: 'Contacto protegido por cache',
+      correo: 'cache@example.com',
+    };
+    let postCount = 0;
+
+    server.use(
+      http.get('/api/contactos/get-all', () => HttpResponse.json(rows)),
+      http.post('/api/contactos/create', () => {
+        postCount += 1;
+        rows.push(createdContact);
+        return HttpResponse.json(createdContact, { status: 201 });
+      }),
+    );
+
+    renderWithRouter('/contactos');
+    await waitFor(() => expect(screen.getByText('Lucía')).toBeInTheDocument());
+
+    async function submitContact(nombre: string) {
+      await user.click(screen.getByRole('button', { name: /nuevo contacto/i }));
+      const dialog = await screen.findByRole('dialog');
+      await user.type(within(dialog).getByLabelText(/^nombre/i), nombre);
+      await user.click(within(dialog).getByRole('combobox', { name: 'Empresa' }));
+      await user.click(await screen.findByRole('option', { name: /innovatech solutions/i }));
+      await user.click(within(dialog).getByRole('button', { name: /crear contacto/i }));
+      return dialog;
+    }
+
+    await submitContact(createdContact.nombre);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    const dialog = await submitContact(` ${createdContact.nombre.toUpperCase()} `);
+    expect(await within(dialog).findByText('Ya existe un contacto con este nombre.')).toBeInTheDocument();
+    expect(postCount).toBe(1);
   });
 });

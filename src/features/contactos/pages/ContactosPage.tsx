@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import {
   Dialog,
   DialogContent,
@@ -79,12 +80,14 @@ export function ContactosPage() {
     data: contactosPage,
     isLoading: pageLoading,
     isError: pageError,
+    isFetching: pageFetching,
     refetch: refetchPage,
   } = useContactosPage(paging.query);
   const {
     data: todosLosContactos,
     isLoading: allLoading,
     isError: allError,
+    isFetching: allFetching,
     refetch: refetchAll,
   } = useContactos();
   const { data: empresas = [] } = useEmpresas();
@@ -92,6 +95,7 @@ export function ContactosPage() {
 
   const isLoading = pageLoading || allLoading;
   const isError = pageError || allError;
+  const isRefreshing = pageFetching || allFetching;
   const contactos = contactosPage?.items ?? EMPTY_CONTACTOS;
   const kpis = useMemo(() => computeKpis(todosLosContactos ?? []), [todosLosContactos]);
   const filteredContactos = useMemo(
@@ -165,6 +169,7 @@ export function ContactosPage() {
         importExport={<ContactosImportExport contactos={todosLosContactos ?? []} />}
         onRefresh={handleRefresh}
         onCreate={() => setCreateOpen(true)}
+        isRefreshing={isRefreshing}
       />
 
       {!isError && (
@@ -275,19 +280,31 @@ export function ContactosPage() {
           <p className="mb-3 text-sm text-destructive">
             No fue posible cargar los contactos. Intenta de nuevo.
           </p>
-          <Button variant="outline" onClick={handleRefresh}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-busy={isRefreshing}
+          >
+            <RefreshIcon isRefreshing={isRefreshing} />
+            {isRefreshing ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}
 
-      <ContactoFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
+      <ContactoFormDialog
+        mode="create"
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        existingContactos={todosLosContactos}
+      />
 
       {editing && (
         <ContactoFormDialog
           mode="edit"
           contacto={editing}
           open={true}
+          existingContactos={todosLosContactos}
           onOpenChange={(open) => {
             if (!open) setEditing(null);
           }}

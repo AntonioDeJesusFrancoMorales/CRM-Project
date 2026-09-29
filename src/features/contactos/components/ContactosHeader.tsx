@@ -1,14 +1,21 @@
 import type { ReactNode } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshButton } from '@/components/shared/RefreshButton';
 
 interface ContactosHeaderProps {
   importExport: ReactNode;
   onRefresh: () => void;
   onCreate: () => void;
+  isRefreshing?: boolean;
 }
 
-export function ContactosHeader({ importExport, onRefresh, onCreate }: ContactosHeaderProps) {
+export function ContactosHeader({
+  importExport,
+  onRefresh,
+  onCreate,
+  isRefreshing = false,
+}: ContactosHeaderProps) {
   return (
     <header className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex flex-col gap-1">
@@ -20,9 +27,11 @@ export function ContactosHeader({ importExport, onRefresh, onCreate }: Contactos
 
       <div className="flex flex-wrap gap-2">
         {importExport}
-        <Button variant="outline" size="icon" onClick={onRefresh} aria-label="Recargar contactos">
-          <RefreshCw aria-hidden="true" />
-        </Button>
+        <RefreshButton
+          resourceLabel="contactos"
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
+        />
         <Button size="sm" onClick={onCreate}>
           <Plus data-icon="inline-start" aria-hidden="true" />
           Nuevo contacto

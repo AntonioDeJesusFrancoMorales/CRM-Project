@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 
@@ -42,12 +42,12 @@ const contactos: Contacto[] = [
 function renderTable(items: Contacto[] = contactos) {
   const onEdit = vi.fn();
   const onDelete = vi.fn();
-  render(
+  const view = render(
     <MemoryRouter>
       <ContactosTable contactos={items} onEdit={onEdit} onDelete={onDelete} />
     </MemoryRouter>,
   );
-  return { onEdit, onDelete };
+  return { onEdit, onDelete, ...view };
 }
 
 describe('ContactosTable', () => {
@@ -93,5 +93,47 @@ describe('ContactosTable', () => {
   it('muestra comoNosConocio cuando está disponible', () => {
     renderTable();
     expect(screen.getByText('Conferencia de tecnología 2025')).toBeInTheDocument();
+  });
+
+  it('usa la rueda para desplazarse horizontalmente solo cuando hay overflow', () => {
+    const { container } = renderTable();
+    const scrollContainer = container.querySelector('.table-scroll-container');
+    if (!(scrollContainer instanceof HTMLDivElement)) {
+      throw new Error('Expected the table scroll container');
+    }
+
+    Object.defineProperty(scrollContainer, 'clientWidth', { configurable: true, value: 100 });
+    Object.defineProperty(scrollContainer, 'scrollWidth', { configurable: true, value: 300 });
+
+    const overflowingWheel = new WheelEvent('wheel', { deltaY: 60, cancelable: true });
+    scrollContainer.dispatchEvent(overflowingWheel);
+
+    expect(scrollContainer.scrollLeft).toBe(60);
+    expect(overflowingWheel.defaultPrevented).toBe(true);
+
+    Object.defineProperty(scrollContainer, 'clientWidth', { configurable: true, value: 300 });
+    scrollContainer.scrollLeft = 0;
+    const verticalWheel = new WheelEvent('wheel', { deltaY: 60, cancelable: true });
+    scrollContainer.dispatchEvent(verticalWheel);
+
+    expect(scrollContainer.scrollLeft).toBe(0);
+    expect(verticalWheel.defaultPrevented).toBe(false);
+  });
+
+  it('removes the wheel listener when the table unmounts', () => {
+    const { container, unmount } = renderTable();
+    const scrollContainer = container.querySelector('.table-scroll-container');
+    if (!(scrollContainer instanceof HTMLDivElement)) {
+      throw new Error('Expected the table scroll container');
+    }
+
+    Object.defineProperty(scrollContainer, 'clientWidth', { configurable: true, value: 100 });
+    Object.defineProperty(scrollContainer, 'scrollWidth', { configurable: true, value: 300 });
+    unmount();
+
+    const wheel = new WheelEvent('wheel', { deltaY: 60, cancelable: true });
+    fireEvent(scrollContainer, wheel);
+    expect(scrollContainer.scrollLeft).toBe(0);
+    expect(wheel.defaultPrevented).toBe(false);
   });
 });

@@ -2,10 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 import { ContactoForm } from '../components/ContactoForm';
 import { CONTACTO_EMPTY_DEFAULTS } from '../schemas/contacto.schema';
 import type { ContactoCreateInput } from '../schemas/contacto.schema';
+import { contactosFixture } from '@/mocks/fixtures/contactos';
 
 function renderForm(props: Partial<Parameters<typeof ContactoForm>[0]> = {}) {
   const queryClient = new QueryClient({
@@ -21,7 +23,9 @@ function renderForm(props: Partial<Parameters<typeof ContactoForm>[0]> = {}) {
   };
   return render(
     <QueryClientProvider client={queryClient}>
-      <ContactoForm {...defaults} />
+      <TooltipProvider>
+        <ContactoForm {...defaults} />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
@@ -60,6 +64,18 @@ describe('ContactoForm', () => {
     await waitFor(() => {
       expect(screen.getByText(/el nombre es requerido/i)).toBeInTheDocument();
     });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un nombre compuesto solo por espacios antes de enviar', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderForm({ onSubmit });
+
+    await user.type(screen.getByLabelText(/^nombre/i), '   ');
+    await user.click(screen.getByRole('button', { name: /crear contacto/i }));
+
+    await waitFor(() => expect(screen.getByText('El nombre es requerido')).toBeInTheDocument());
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -144,5 +160,31 @@ describe('ContactoForm', () => {
     const estadoTrigger = screen.getByRole('combobox', { name: /estado/i });
     expect(estadoTrigger).toBeInTheDocument();
     expect(estadoTrigger).toBeDisabled();
+  });
+
+  it('bloquea un nombre duplicado al editar otro contacto', async () => {
+    const user = userEvent.setup();
+    const existing = contactosFixture[1]!;
+    const onSubmit = vi.fn();
+    renderForm({
+      mode: 'edit',
+      onSubmit,
+      defaultValues: {
+        nombre: 'Otro contacto',
+        empresaId: existing.empresaId,
+        estadoRelacion: 'PROSPECTO',
+      },
+      existingContactos: [existing],
+      currentContactoId: 'otro-contacto',
+      estadoActual: 'PROSPECTO',
+    });
+
+    const nameInput = await screen.findByLabelText(/^nombre/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, ` ${existing.nombre.toUpperCase()} `);
+    await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
+
+    expect(await screen.findByText('Ya existe un contacto con este nombre.')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });
