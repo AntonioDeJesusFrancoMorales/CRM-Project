@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
@@ -25,7 +26,7 @@ function computeKpis(roles: Rol[]) {
 }
 
 export function RolesListPage() {
-  const { data: roles, isPending, isError, refetch } = useRoles();
+  const { data: roles, isPending, isError, isFetching, refetch } = useRoles();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Rol | null>(null);
@@ -79,8 +80,14 @@ export function RolesListPage() {
           <p className="text-sm text-destructive">
             No fue posible cargar los roles.
           </p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            <RefreshIcon isRefreshing={isFetching} />
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}

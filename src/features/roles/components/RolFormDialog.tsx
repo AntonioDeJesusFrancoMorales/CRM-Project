@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isHttpError } from '@/api/http-error';
 import type { Rol } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -139,13 +140,25 @@ function serverErrorsFromMutation(error: unknown): Array<{ field: string; messag
 
 function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpenChange'>) {
   const mutation = useCreateRol();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   function handleSubmit(values: RolCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nuevo rol</DialogTitle>
@@ -155,8 +168,8 @@ function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpen
         </DialogHeader>
         <RolForm
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrorsFromMutation(mutation.error)}
           submitLabel="Crear rol"
         />
@@ -169,13 +182,25 @@ function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpen
 
 function EditDialog({ open, onOpenChange, rol }: Pick<EditProps, 'open' | 'onOpenChange' | 'rol'>) {
   const mutation = useEditRol(rol.id);
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   function handleSubmit(values: RolCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar rol</DialogTitle>
@@ -186,8 +211,8 @@ function EditDialog({ open, onOpenChange, rol }: Pick<EditProps, 'open' | 'onOpe
         <RolForm
           defaultValues={{ nombre: rol.nombre, descripcion: rol.descripcion ?? '' }}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrorsFromMutation(mutation.error)}
           submitLabel="Guardar cambios"
         />

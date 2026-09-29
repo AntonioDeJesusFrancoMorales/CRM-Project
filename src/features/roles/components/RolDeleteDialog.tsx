@@ -1,4 +1,5 @@
 import type { Rol } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,19 +20,28 @@ interface RolDeleteDialogProps {
 
 export function RolDeleteDialog({ open, onOpenChange, rol }: RolDeleteDialogProps) {
   const mutation = useDeleteRol();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   function handleDelete() {
-    if (!rol) return;
+    if (!rol || !acquire()) return;
     // El cierre ocurre SOLO en éxito. Si el back responde 409 (rol con usuarios
     // asignados), el hook muestra el toast y el diálogo queda abierto a propósito,
     // para que el usuario entienda por qué no se eliminó.
     mutation.mutate(rol.id, {
-      onSuccess: () => onOpenChange(false),
+      onSettled: (_data, error) => {
+        release();
+        if (!error) handleOpenChange(false);
+      },
     });
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar rol?</AlertDialogTitle>
@@ -44,7 +54,7 @@ export function RolDeleteDialog({ open, onOpenChange, rol }: RolDeleteDialogProp
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending || isLocked}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               // Evitamos el cierre automático del AlertDialog para controlarlo
@@ -52,7 +62,7 @@ export function RolDeleteDialog({ open, onOpenChange, rol }: RolDeleteDialogProp
               e.preventDefault();
               handleDelete();
             }}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || isLocked}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {mutation.isPending ? 'Eliminando...' : 'Eliminar'}
