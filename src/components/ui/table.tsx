@@ -1,19 +1,25 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { useHorizontalWheelScroll } from "@/components/shared/useHorizontalWheelScroll"
 
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-x-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
+>(({ className, ...props }, ref) => {
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+  useHorizontalWheelScroll(scrollContainerRef)
+
+  return (
+    <div ref={scrollContainerRef} className="table-scroll-container relative w-full overflow-x-auto">
+      <table
+        ref={ref}
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    </div>
+  )
+})
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<

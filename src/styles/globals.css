@@ -101,6 +101,30 @@
   .dialog-centered {
     transform: translate(-50%, -50%);
   }
+
+  .table-scroll-container {
+    scrollbar-color: var(--border) var(--muted);
+    scrollbar-width: thin;
+  }
+
+  .table-scroll-container::-webkit-scrollbar {
+    height: 0.5rem;
+  }
+
+  .table-scroll-container::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: 9999px;
+  }
+
+  .table-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 2px solid var(--muted);
+    border-radius: 9999px;
+  }
+
+  .table-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
 }
 
 @layer base {

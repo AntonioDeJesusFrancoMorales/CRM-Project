@@ -2,6 +2,7 @@
 // Usa un handler MSW ad-hoc (server.use) para interceptar la petición.
 
 import { describe, it, expect } from 'vitest';
+import { waitFor } from '@testing-library/react';
 import { server } from '@/test/server';
 import { http, HttpResponse } from 'msw';
 import { apiClient } from '@/api/client';
@@ -44,6 +45,36 @@ describe('apiClient.get', () => {
 
     await expect(apiClient.get('/empresas/get-all')).resolves.toEqual([]);
     expect(capturedCache).toBe('no-store');
+  });
+});
+
+describe('apiClient — mutaciones explícitas', () => {
+  it('no deduplica dos mutaciones idénticas mientras la primera está pendiente', async () => {
+    let calls = 0;
+    let releaseRequest!: () => void;
+    const pendingResponse = new Promise<void>((resolve) => {
+      releaseRequest = resolve;
+    });
+
+    server.use(
+      http.post('/api/contactos/create', async () => {
+        calls += 1;
+        await pendingResponse;
+        return HttpResponse.json({ id: 'c1' }, { status: 201 });
+      }),
+    );
+
+    const firstRequest = apiClient.post('/contactos/create', { nombre: 'Ana' });
+    const secondRequest = apiClient.post('/contactos/create', { nombre: 'Ana' });
+
+    expect(secondRequest).not.toBe(firstRequest);
+    await waitFor(() => expect(calls).toBe(2));
+
+    releaseRequest();
+    await expect(Promise.all([firstRequest, secondRequest])).resolves.toEqual([
+      { id: 'c1' },
+      { id: 'c1' },
+    ]);
   });
 });
 

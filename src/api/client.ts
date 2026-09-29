@@ -2,6 +2,7 @@ import { useAuthStore } from '@/store/authStore';
 import { HttpError } from './http-error';
 import type { ApiError } from './types';
 import { isKeycloakAuthenticated, MIN_VALIDITY } from '@/lib/keycloak';
+import { localizeApiErrorMessage } from '@/lib/api-error';
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
@@ -38,7 +39,10 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
     const payload: ApiError = {
       status: res.status,
       error: raw.error ?? 'UNKNOWN_ERROR',
-      message: raw.message ?? raw.error ?? `Request failed with ${res.status}`,
+      message: localizeApiErrorMessage(
+        raw.message ?? raw.error ?? `Request failed with ${res.status}`,
+        raw.details?.[0]?.field,
+      ),
       details: raw.details,
     };
 
