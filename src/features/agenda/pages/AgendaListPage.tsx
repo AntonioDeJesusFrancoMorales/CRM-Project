@@ -5,10 +5,11 @@ import {
   CalendarDays,
   List,
   Plus,
-  RefreshCw,
   Sun,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshButton, RefreshIcon } from '@/components/shared/RefreshButton';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -64,8 +65,9 @@ function computeKpis(agendas: Agenda[]) {
 }
 
 export function AgendaListPage() {
-  const { data: agendas = [], isLoading, isError, refetch } = useAgendas();
+  const { data: agendas = [], isLoading, isError, isFetching, refetch } = useAgendas();
   const deleteMutation = useDeleteAgenda();
+  const { acquire, release, isLocked, lockRef: deletionLock } = useSynchronousMutationLock();
   const [view, setView] = useState('calendario');
   const [createOpen, setCreateOpen] = useState(false);
   const [createDate, setCreateDate] = useState<string>();
@@ -99,8 +101,18 @@ export function AgendaListPage() {
   }
 
   function handleConfirmDelete() {
-    if (!deleting) return;
-    deleteMutation.mutate(deleting.id, { onSuccess: () => setDeleting(null) });
+    if (!deleting || !acquire()) return;
+    deleteMutation.mutate(deleting.id, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) setDeleting(null);
+      },
+    });
+  }
+
+  function handleDeleteOpenChange(open: boolean) {
+    if (!open && deletionLock.current) return;
+    if (!open) setDeleting(null);
   }
 
   return (
@@ -115,9 +127,11 @@ export function AgendaListPage() {
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nuevo evento
           </Button>
-          <Button variant="outline" size="icon" onClick={() => void refetch()} aria-label="Recargar agenda">
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          </Button>
+          <RefreshButton
+            resourceLabel="agenda"
+            onRefresh={() => void refetch()}
+            isRefreshing={isFetching}
+          />
         </div>
       </header>
 
@@ -153,7 +167,15 @@ export function AgendaListPage() {
         {isError && (
           <div className="mx-auto w-full max-w-[1400px] space-y-3 py-12 text-center">
             <p className="text-sm text-destructive">No fue posible cargar la agenda. Intenta de nuevo.</p>
-            <Button variant="outline" onClick={() => void refetch()}>Reintentar</Button>
+            <Button
+              variant="outline"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+              aria-busy={isFetching}
+            >
+              <RefreshIcon isRefreshing={isFetching} />
+              {isFetching ? 'Cargando...' : 'Reintentar'}
+            </Button>
           </div>
         )}
 
@@ -194,7 +216,7 @@ export function AgendaListPage() {
 
       <AgendaCreateDialog open={createOpen} onOpenChange={handleCreateOpenChange} defaultValues={createDate ? { fecha: createDate } : undefined} />
       {editing && <AgendaEditDialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)} agenda={editing} />}
-      <AgendaDeleteDialog open={Boolean(deleting)} onOpenChange={(open) => !open && setDeleting(null)} asunto={deleting?.asunto ?? ''} onConfirm={handleConfirmDelete} isDeleting={deleteMutation.isPending} />
+      <AgendaDeleteDialog open={Boolean(deleting)} onOpenChange={handleDeleteOpenChange} asunto={deleting?.asunto ?? ''} onConfirm={handleConfirmDelete} isDeleting={deleteMutation.isPending || isLocked} />
     </div>
   );
 }

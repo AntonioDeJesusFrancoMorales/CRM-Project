@@ -4,6 +4,7 @@
 // Homologa AgendaCreateDialog.
 
 import { isHttpError } from '@/api/http-error';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ function toInputTime(hora: string | null): string | null {
 
 export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialogProps) {
   const mutation = useUpdateAgenda();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
@@ -35,7 +37,21 @@ export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialo
       : undefined;
 
   function handleSubmit(values: AgendaEditInput) {
-    mutation.mutate({ id: agenda.id, data: values }, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(
+      { id: agenda.id, data: values },
+      {
+        onSettled: (_data, error) => {
+          release();
+          if (!error) onOpenChange(false);
+        },
+      },
+    );
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   const initial: Partial<AgendaEditInput> = {
@@ -54,7 +70,7 @@ export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialo
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Editar evento</DialogTitle>
@@ -64,8 +80,8 @@ export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialo
           mode="edit"
           defaultValues={initial}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>

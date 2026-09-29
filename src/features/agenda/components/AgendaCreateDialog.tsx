@@ -3,6 +3,7 @@
 // Homologa TareaCreateDialog.
 
 import { isHttpError } from '@/api/http-error';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ interface AgendaCreateDialogProps {
 
 export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: AgendaCreateDialogProps) {
   const mutation = useCreateAgenda();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
@@ -29,7 +31,18 @@ export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: Agenda
       : undefined;
 
   function handleSubmit(values: AgendaCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   const initial: Partial<AgendaCreateInput> = {
@@ -38,7 +51,7 @@ export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: Agenda
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Nuevo evento</DialogTitle>
@@ -50,8 +63,8 @@ export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: Agenda
           mode="create"
           defaultValues={initial}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>
