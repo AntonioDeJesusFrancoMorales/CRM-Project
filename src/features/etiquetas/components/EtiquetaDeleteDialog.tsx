@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { Etiqueta } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { isHttpError } from '@/api/http-error';
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ interface EtiquetaDeleteDialogProps {
 
 export function EtiquetaDeleteDialog({ open, onOpenChange, etiqueta }: EtiquetaDeleteDialogProps) {
   const mutation = useDeleteEtiqueta();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   // Cuando el back responde 409 (etiqueta en uso), pasamos a modo confirmación:
   // el segundo intento manda confirm=true y la desasocia de todas las fichas.
   const [requiresConfirm, setRequiresConfirm] = useState(false);
@@ -35,22 +37,30 @@ export function EtiquetaDeleteDialog({ open, onOpenChange, etiqueta }: EtiquetaD
   }, [open]);
 
   function handleDelete() {
-    if (!etiqueta) return;
+    if (!etiqueta || !acquire()) return;
     mutation.mutate(
       { id: etiqueta.id, confirm: requiresConfirm },
       {
-        onSuccess: () => onOpenChange(false),
         onError: (error) => {
           if (isHttpError(error) && error.status === ETIQUETA_EN_USO_STATUS) {
             setRequiresConfirm(true);
           }
         },
+        onSettled: (_data, error) => {
+          release();
+          if (!error) handleOpenChange(false);
+        },
       },
     );
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -74,14 +84,14 @@ export function EtiquetaDeleteDialog({ open, onOpenChange, etiqueta }: EtiquetaD
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending || isLocked}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               // Controlamos el cierre manualmente según el resultado (éxito / 409 / error).
               e.preventDefault();
               handleDelete();
             }}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || isLocked}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {mutation.isPending

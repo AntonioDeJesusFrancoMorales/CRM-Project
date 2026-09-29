@@ -5,6 +5,7 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isHttpError } from '@/api/http-error';
 import type { Etiqueta, TipoEtiqueta } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -144,6 +145,7 @@ function CreateDialog({
   defaultTipo,
 }: Pick<CreateProps, 'open' | 'onOpenChange' | 'defaultTipo'>) {
   const mutation = useCreateEtiqueta();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   const form = useForm<EtiquetaCreateInput>({
     resolver: zodResolver(etiquetaCreateSchema),
     defaultValues: { nombre: '', tipoEtiqueta: defaultTipo, color: DEFAULT_COLOR },
@@ -165,11 +167,22 @@ function CreateDialog({
   }, [serverErrors]);
 
   function handleSubmit(values: EtiquetaCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nueva etiqueta</DialogTitle>
@@ -236,10 +249,10 @@ function CreateDialog({
             />
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending || isLocked}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || isLocked}>
                 {mutation.isPending ? 'Guardando...' : 'Crear etiqueta'}
               </Button>
             </div>
@@ -255,6 +268,7 @@ function CreateDialog({
 
 function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | 'onOpenChange' | 'etiqueta'>) {
   const mutation = useEditEtiqueta(etiqueta.id);
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   // El edit solo manda nombre + color; reutilizamos el create schema sin el tipo.
   const form = useForm<{ nombre: string; color: string }>({
     resolver: zodResolver(etiquetaCreateSchema.pick({ nombre: true, color: true })),
@@ -276,11 +290,22 @@ function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | '
   }, [serverErrors]);
 
   function handleSubmit(values: { nombre: string; color: string }) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar etiqueta</DialogTitle>
@@ -333,10 +358,10 @@ function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | '
             />
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending || isLocked}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || isLocked}>
                 {mutation.isPending ? 'Guardando...' : 'Guardar cambios'}
               </Button>
             </div>

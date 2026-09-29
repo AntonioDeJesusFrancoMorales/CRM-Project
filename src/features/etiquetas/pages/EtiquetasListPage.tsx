@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Tag, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
@@ -24,7 +25,7 @@ const TIPOS: { value: TipoEtiqueta; label: string }[] = [
 
 export function EtiquetasListPage() {
   const [tipo, setTipo] = useState<TipoEtiqueta>('TRATO');
-  const { data: etiquetas, isPending, isError, refetch } = useEtiquetas(tipo);
+  const { data: etiquetas, isPending, isError, isFetching, refetch } = useEtiquetas(tipo);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Etiqueta | null>(null);
@@ -84,8 +85,14 @@ export function EtiquetasListPage() {
       {isError && (
         <div className="py-12 text-center space-y-3">
           <p className="text-sm text-destructive">No fue posible cargar las etiquetas.</p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            <RefreshIcon isRefreshing={isFetching} />
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}

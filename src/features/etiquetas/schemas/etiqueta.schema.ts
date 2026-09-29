@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { requiredTrimmedName } from '@/lib/validation';
 
 // Schemas de Etiqueta — alineados al contrato del back (EtiquetaController + CreateEtiquetaRequest).
 // nombre: 1-50 chars. color: hex #RRGGBB. tipoEtiqueta: TAREA|TRATO (INMUTABLE tras crear).
@@ -6,7 +7,7 @@ import { z } from 'zod';
 export const tipoEtiqueta = z.enum(['TAREA', 'TRATO']);
 export type TipoEtiquetaInput = z.infer<typeof tipoEtiqueta>;
 
-const nombre = z.string().min(1, 'El nombre es requerido').max(50, 'Máximo 50 caracteres');
+const nombre = requiredTrimmedName(50, 'Máximo 50 caracteres');
 const color = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, 'El color debe ser hex #RRGGBB');

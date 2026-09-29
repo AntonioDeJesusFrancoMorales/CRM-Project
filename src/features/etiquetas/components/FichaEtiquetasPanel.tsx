@@ -8,6 +8,7 @@ import { Check, Tags } from 'lucide-react';
 import type { TipoEtiqueta } from '@/api/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -34,6 +35,7 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
   const { data: fichas = [], isPending: loadingFichas } = useFichas();
   const { data: catalogo = [] } = useEtiquetas(tipo);
   const updateFicha = useUpdateFicha();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   // Resolución de la (única) ficha de esta entidad. Defensivo: tomamos la primera si hubiera varias.
   const ficha = useMemo(
@@ -66,7 +68,7 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
   }
 
   function handleGuardar() {
-    if (!ficha) return;
+    if (!ficha || !acquire()) return;
     updateFicha.mutate(
       {
         id: ficha.id,
@@ -79,8 +81,16 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
           etiquetaIds: seleccion,
         },
       },
-      { onSuccess: () => setEditOpen(false) },
+      {
+        onSuccess: () => setEditOpen(false),
+        onSettled: () => release(),
+      },
     );
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    setEditOpen(nextOpen);
   }
 
   return (
@@ -130,7 +140,7 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
       </CardContent>
 
       {/* Editor: lista del catálogo del tipo, toggle por click */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar etiquetas</DialogTitle>
@@ -171,10 +181,10 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={updateFicha.isPending}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={updateFicha.isPending || isLocked}>
               Cancelar
             </Button>
-            <Button onClick={handleGuardar} disabled={updateFicha.isPending}>
+            <Button onClick={handleGuardar} disabled={updateFicha.isPending || isLocked}>
               {updateFicha.isPending ? 'Guardando...' : 'Guardar'}
             </Button>
           </DialogFooter>
