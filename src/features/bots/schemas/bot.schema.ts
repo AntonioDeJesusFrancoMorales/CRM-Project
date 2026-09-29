@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { requiredTrimmedName } from '@/lib/validation';
 
 // Schemas de Bot — alineados al contrato del back (BotController + CreateBotRequest/EditBotRequest).
 // nombre: requerido. webhookUrl: URL completa del nodo Webhook de n8n. canalId: opcional
 // (vacío/undefined = aplica a todos los canales).
 
-const nombre = z.string().min(1, 'El nombre es requerido').max(100, 'Máximo 100 caracteres');
+const nombre = requiredTrimmedName(100, 'Máximo 100 caracteres');
 const webhookUrl = z
   .string()
   .min(1, 'La URL del webhook es requerida')

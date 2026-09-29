@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isHttpError } from '@/api/http-error';
 import type { Bot } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { useAllCanales } from '@/features/whatsapp/hooks/useCanales';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,6 +96,7 @@ function CreateDialog({
   onCreated,
 }: Pick<CreateProps, 'open' | 'onOpenChange' | 'onCreated'>) {
   const mutation = useCreateBot();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   const form = useForm<BotCreateInput>({
     resolver: zodResolver(botCreateSchema),
     defaultValues: { nombre: '', canalId: '', webhookUrl: '' },
@@ -115,16 +117,25 @@ function CreateDialog({
   }, [serverErrors]);
 
   function handleSubmit(values: BotCreateInput) {
+    if (!acquire()) return;
     mutation.mutate(values, {
-      onSuccess: (created) => {
-        onOpenChange(false);
-        onCreated(created);
+      onSettled: (created, error) => {
+        release();
+        if (!error && created) {
+          onOpenChange(false);
+          onCreated(created);
+        }
       },
     });
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nuevo bot</DialogTitle>
@@ -184,10 +195,10 @@ function CreateDialog({
             />
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending || isLocked}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || isLocked}>
                 {mutation.isPending ? 'Guardando...' : 'Crear bot'}
               </Button>
             </div>
@@ -200,6 +211,7 @@ function CreateDialog({
 
 function EditDialog({ open, onOpenChange, bot }: Pick<EditProps, 'open' | 'onOpenChange' | 'bot'>) {
   const mutation = useEditBot(bot.id);
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   const form = useForm<BotCreateInput>({
     resolver: zodResolver(botCreateSchema),
     defaultValues: { nombre: bot.nombre, canalId: bot.canalId ?? '', webhookUrl: bot.webhookUrl },
@@ -220,11 +232,22 @@ function EditDialog({ open, onOpenChange, bot }: Pick<EditProps, 'open' | 'onOpe
   }, [serverErrors]);
 
   function handleSubmit(values: BotCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar bot</DialogTitle>
@@ -280,10 +303,10 @@ function EditDialog({ open, onOpenChange, bot }: Pick<EditProps, 'open' | 'onOpe
             />
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending || isLocked}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || isLocked}>
                 {mutation.isPending ? 'Guardando...' : 'Guardar cambios'}
               </Button>
             </div>

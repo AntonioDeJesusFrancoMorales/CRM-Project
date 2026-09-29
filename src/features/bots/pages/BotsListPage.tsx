@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bot as BotIcon, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
 import type { Bot } from '@/api/types';
@@ -11,7 +12,7 @@ import { BotFormDialog } from '../components/BotFormDialog';
 import { BotTokenDialog } from '../components/BotTokenDialog';
 
 export function BotsListPage() {
-  const { data: bots, isPending, isError, refetch } = useBots();
+  const { data: bots, isPending, isError, isFetching, refetch } = useBots();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Bot | null>(null);
@@ -39,8 +40,14 @@ export function BotsListPage() {
       {isError && (
         <div className="py-12 text-center space-y-3">
           <p className="text-sm text-destructive">No fue posible cargar los bots.</p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            <RefreshIcon isRefreshing={isFetching} />
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}

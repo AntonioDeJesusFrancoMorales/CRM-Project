@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useDeleteBot } from '../hooks/useDeleteBot';
 import { useToggleBotActivo } from '../hooks/useToggleBotActivo';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 
 interface Props {
   bots: Bot[];
@@ -41,12 +42,41 @@ export function BotsTable({ bots, onEdit }: Props) {
   const deleteMut = useDeleteBot();
   const toggleMut = useToggleBotActivo();
   const [deleteTarget, setDeleteTarget] = useState<Bot | null>(null);
+  const {
+    acquire: acquireDelete,
+    release: releaseDelete,
+    isLocked: isDeleteLocked,
+    lockRef: deleteLock,
+  } = useSynchronousMutationLock();
+  const { acquire: acquireToggle, release: releaseToggle, isLocked: isToggleLocked } =
+    useSynchronousMutationLock();
 
   const canalMap = Object.fromEntries((canales ?? []).map((c) => [c.id, c.nombre]));
 
   async function handleCopyToken(bot: Bot) {
     await navigator.clipboard.writeText(bot.apiAccessToken);
     toast.success('Token copiado');
+  }
+
+  function handleToggle(bot: Bot) {
+    if (!acquireToggle()) return;
+    toggleMut.mutate(
+      { id: bot.id, activar: !bot.activo },
+      { onSettled: () => releaseToggle() },
+    );
+  }
+
+  function handleDelete() {
+    if (!deleteTarget || !acquireDelete()) return;
+    deleteMut.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+      onSettled: () => releaseDelete(),
+    });
+  }
+
+  function handleDeleteOpenChange(nextOpen: boolean) {
+    if (!nextOpen && deleteLock.current) return;
+    if (!nextOpen) setDeleteTarget(null);
   }
 
   return (
@@ -95,8 +125,9 @@ export function BotsTable({ bots, onEdit }: Props) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        disabled={toggleMut.isPending}
-                        onClick={() => toggleMut.mutate({ id: bot.id, activar: !bot.activo })}
+                        aria-label={bot.activo ? 'Desactivar bot' : 'Activar bot'}
+                        disabled={toggleMut.isPending || isToggleLocked}
+                        onClick={() => handleToggle(bot)}
                       >
                         {bot.activo ? (
                           <PowerOff className="h-4 w-4 text-muted-foreground" />
@@ -120,7 +151,7 @@ export function BotsTable({ bots, onEdit }: Props) {
         </TableBody>
       </Table>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={handleDeleteOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar bot?</AlertDialogTitle>
@@ -134,13 +165,13 @@ export function BotsTable({ bots, onEdit }: Props) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMut.isPending || isDeleteLocked}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteMut.isPending}
+              disabled={deleteMut.isPending || isDeleteLocked}
               onClick={(e) => {
                 e.preventDefault();
-                if (deleteTarget) deleteMut.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
+                handleDelete();
               }}
             >
               {deleteMut.isPending ? 'Eliminando...' : 'Eliminar'}
