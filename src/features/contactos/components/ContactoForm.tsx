@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
+import type { Contacto, EstadoRelacion } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   contactoCreateSchema,
   contactoUpdateSchema,
@@ -26,6 +28,13 @@ import {
   type ContactoCreateInput,
 } from '../schemas/contacto.schema';
 import { ComoNosConocioInput } from './ComoNosConocioInput';
+import { EstadoRelacionSelect } from './EstadoRelacionSelect';
+import {
+  DUPLICATE_CONTACTO_NAME_MESSAGE,
+  hasDuplicateContactoName,
+  mapContactoServerError,
+} from '../lib/contactoValidation';
+import { normalizeContactoValues } from '../lib/contactoValues';
 
 interface ContactoFormProps {
   mode: 'create' | 'edit';
@@ -34,6 +43,9 @@ interface ContactoFormProps {
   onCancel?: () => void;
   isSubmitting?: boolean;
   serverErrors?: Array<{ field: string; message: string }>;
+  existingContactos?: Contacto[];
+  currentContactoId?: string;
+  estadoActual?: EstadoRelacion;
 }
 
 export function ContactoForm({
@@ -43,8 +55,13 @@ export function ContactoForm({
   onCancel,
   isSubmitting = false,
   serverErrors,
+  existingContactos,
+  currentContactoId,
+  estadoActual,
 }: ContactoFormProps) {
   const { data: empresas, isLoading: empresasLoading } = useEmpresas();
+  const { acquire, release } = useSynchronousMutationLock();
+  const previousIsSubmitting = useRef(isSubmitting);
 
   const resolvedDefaults =
     mode === 'edit' && defaultValues ? defaultValues : CONTACTO_EMPTY_DEFAULTS;
@@ -60,19 +77,57 @@ export function ContactoForm({
 
   useEffect(() => {
     if (!serverErrors?.length) return;
-    for (const { field, message } of serverErrors) {
-      form.setError(field as keyof ContactoCreateInput, { message });
+    for (const serverError of serverErrors) {
+      const mappedError = mapContactoServerError(serverError);
+      if (mappedError.field) {
+        form.setError(mappedError.field, { type: 'server', message: mappedError.message });
+      }
     }
   }, [serverErrors, form]);
+
+  useEffect(() => {
+    if (previousIsSubmitting.current && !isSubmitting) release();
+    previousIsSubmitting.current = isSubmitting;
+  }, [isSubmitting, release]);
+
+  function handleValidSubmit(values: ContactoCreateInput) {
+    if (isSubmitting || !acquire()) return;
+
+    const normalizedValues = normalizeContactoValues(values) as ContactoCreateInput;
+    if (hasDuplicateContactoName(existingContactos, normalizedValues.nombre, currentContactoId)) {
+      release();
+      form.setError('nombre', {
+        type: 'validate',
+        message: DUPLICATE_CONTACTO_NAME_MESSAGE,
+      });
+      return;
+    }
+
+    onSubmit(normalizedValues);
+  }
+
+  const unmappedServerErrors = (serverErrors ?? [])
+    .map(mapContactoServerError)
+    .filter((serverError) => !serverError.field);
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(handleValidSubmit)}
         className="space-y-4"
         noValidate
         autoComplete="off"
       >
+        {unmappedServerErrors.map((serverError, index) => (
+          <p
+            key={`${serverError.message}-${index}`}
+            role="alert"
+            className="text-sm text-destructive"
+          >
+            {serverError.message}
+          </p>
+        ))}
+
         {/* nombre */}
         <FormField
           control={form.control}
@@ -200,29 +255,21 @@ export function ContactoForm({
           )}
         />
 
-        {/* estadoRelacion — select básico en modo create (siempre PROSPECTO por defecto) */}
+        {/* estadoRelacion — comparte las mismas reglas de transición que el detalle */}
         <FormField
           control={form.control}
           name="estadoRelacion"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Estado</FormLabel>
-              <Select
+              <EstadoRelacionSelect
+                actual={estadoActual ?? field.value}
+                tieneTratosActivos={false}
                 value={field.value}
-                onValueChange={field.onChange}
-                disabled={mode === 'create'}
-              >
-                <FormControl>
-                  <SelectTrigger aria-label="Estado de relación">
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="PROSPECTO">Prospecto</SelectItem>
-                  <SelectItem value="ACTIVO">Activo</SelectItem>
-                  <SelectItem value="INACTIVO">Inactivo</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={field.onChange}
+                disabled={mode === 'create' || isSubmitting}
+                aria-label="Estado de relación"
+              />
               <FormMessage />
             </FormItem>
           )}

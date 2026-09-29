@@ -25,6 +25,14 @@ describe('contactoCreateSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rechaza nombre compuesto solo por espacios y recorta el nombre válido', () => {
+    expect(contactoCreateSchema.safeParse({ ...base, nombre: '   ' }).success).toBe(false);
+
+    const result = contactoCreateSchema.safeParse({ ...base, nombre: '  Ana  ' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.nombre).toBe('Ana');
+  });
+
   it('estadoRelacion acepta PROSPECTO', () => {
     const result = contactoCreateSchema.safeParse({ ...base, estadoRelacion: 'PROSPECTO' });
     expect(result.success).toBe(true);

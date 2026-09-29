@@ -1,3 +1,4 @@
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { isHttpError } from '@/api/http-error';
 import type { Contacto } from '@/api/types';
 import {
@@ -17,6 +18,7 @@ type CreateProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contacto?: never;
+  existingContactos?: Contacto[];
 };
 
 type EditProps = {
@@ -24,24 +26,44 @@ type EditProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contacto: Contacto;
+  existingContactos?: Contacto[];
 };
 
 type ContactoFormDialogProps = CreateProps | EditProps;
 
-function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpenChange'>) {
-  const mutation = useCreateContacto();
+function getServerErrors(error: unknown): Array<{ field: string; message: string }> | undefined {
+  if (!isHttpError(error) || error.status !== 422) return undefined;
+  if (error.details?.length) return error.details;
+  return [{ field: '', message: error.message }];
+}
 
-  const serverErrors =
-    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
-      ? mutation.error.details
-      : undefined;
+function CreateDialog({
+  open,
+  onOpenChange,
+  existingContactos,
+}: Pick<CreateProps, 'open' | 'onOpenChange' | 'existingContactos'>) {
+  const mutation = useCreateContacto();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
+
+  const serverErrors = getServerErrors(mutation.error);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
 
   function handleSubmit(values: ContactoCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) handleOpenChange(false);
+      },
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nuevo contacto</DialogTitle>
@@ -52,9 +74,10 @@ function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpen
         <ContactoForm
           mode="create"
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
+          existingContactos={existingContactos}
         />
       </DialogContent>
     </Dialog>
@@ -65,13 +88,12 @@ function EditDialog({
   open,
   onOpenChange,
   contacto,
-}: Pick<EditProps, 'open' | 'onOpenChange' | 'contacto'>) {
+  existingContactos,
+}: Pick<EditProps, 'open' | 'onOpenChange' | 'contacto' | 'existingContactos'>) {
   const mutation = useUpdateContacto();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
-  const serverErrors =
-    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
-      ? mutation.error.details
-      : undefined;
+  const serverErrors = getServerErrors(mutation.error);
 
   const defaultValues: Partial<ContactoCreateInput> = {
     nombre: contacto.nombre,
@@ -83,13 +105,24 @@ function EditDialog({
     empresaId: contacto.empresaId,
   };
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   function handleSubmit(values: ContactoCreateInput) {
+    if (!acquire()) return;
     const { empresaId: _empresaId, ...data } = values;
-    mutation.mutate({ id: contacto.id, data }, { onSuccess: () => onOpenChange(false) });
+    mutation.mutate({ id: contacto.id, data }, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) handleOpenChange(false);
+      },
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar contacto</DialogTitle>
@@ -101,9 +134,12 @@ function EditDialog({
           mode="edit"
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+          onCancel={() => handleOpenChange(false)}
+          isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
+          existingContactos={existingContactos}
+          currentContactoId={contacto.id}
+          estadoActual={contacto.estadoRelacion}
         />
       </DialogContent>
     </Dialog>
@@ -112,9 +148,20 @@ function EditDialog({
 
 export function ContactoFormDialog(props: ContactoFormDialogProps) {
   if (props.mode === 'create') {
-    return <CreateDialog open={props.open} onOpenChange={props.onOpenChange} />;
+    return (
+      <CreateDialog
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        existingContactos={props.existingContactos}
+      />
+    );
   }
   return (
-    <EditDialog open={props.open} onOpenChange={props.onOpenChange} contacto={props.contacto} />
+    <EditDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      contacto={props.contacto}
+      existingContactos={props.existingContactos}
+    />
   );
 }

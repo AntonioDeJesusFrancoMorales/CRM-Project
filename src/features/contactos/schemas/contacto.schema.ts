@@ -1,22 +1,24 @@
 import { z } from 'zod';
+import { requiredTrimmedName } from '@/lib/validation';
 
 // Validador laxo de teléfono LATAM: dígitos, espacios, +, (), -, mínimo 7 caracteres.
 const phoneRegex = /^[\d\s+()-]{7,20}$/;
 
-const emptyStringToNull = (value: unknown) => (value === '' ? null : value);
-
 const optionalEmail = z.preprocess(
-  emptyStringToNull,
-  z.string().email({ message: 'Correo inválido' }).nullable().optional(),
+  (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+  z.string().trim().email({ message: 'Correo inválido' }).nullable().optional(),
 );
 
 const optionalPhone = z.preprocess(
-  emptyStringToNull,
-  z.string().regex(phoneRegex, { message: 'Teléfono inválido' }).nullable().optional(),
+  (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+  z.string().trim().regex(phoneRegex, { message: 'Teléfono inválido' }).nullable().optional(),
 );
 
 const optionalText = (max: number) =>
-  z.preprocess(emptyStringToNull, z.string().max(max).nullable().optional());
+  z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+    z.string().trim().max(max).nullable().optional(),
+  );
 
 // Sugerencias para el campo comoNosConocio (combobox + texto libre).
 // El campo acepta cualquier string — estas son sugerencias, no un enum.
@@ -29,7 +31,7 @@ export const COMO_NOS_CONOCIO_SUGERENCIAS = [
 ] as const satisfies readonly string[];
 
 export const contactoCreateSchema = z.object({
-  nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(150),
+  nombre: requiredTrimmedName(150),
   correo: optionalEmail,
   telefono: optionalPhone,
   // empresaId requerido — @NotNull en el back (CreateContactoRequest).
@@ -45,7 +47,7 @@ export const contactoCreateSchema = z.object({
 // @NotBlank/@NotNull y el PUT /edit es reemplazo total. Para cambiar solo el
 // estado usar useCambiarEstadoContacto (endpoint dedicado).
 export const contactoUpdateSchema = z.object({
-  nombre: z.string().min(1, { message: 'El nombre es requerido' }).max(150),
+  nombre: requiredTrimmedName(150),
   correo: optionalEmail,
   telefono: optionalPhone,
   estadoRelacion: z.enum(['PROSPECTO', 'ACTIVO', 'INACTIVO']),
