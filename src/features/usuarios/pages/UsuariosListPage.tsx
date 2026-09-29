@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Plus, UserCheck, Users, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
@@ -25,7 +26,7 @@ function computeKpis(usuarios: Usuario[]) {
 }
 
 export function UsuariosListPage() {
-  const { data: usuarios, isPending, isError, refetch } = useUsuarios();
+  const { data: usuarios, isPending, isError, isFetching, refetch } = useUsuarios();
   const { data: roles = [] } = useRoles();
   const sessionUserId = useAuthStore((s) => s.usuario?.usuario_id ?? '');
 
@@ -81,8 +82,14 @@ export function UsuariosListPage() {
           <p className="text-sm text-destructive">
             No fue posible cargar los usuarios.
           </p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            <RefreshIcon isRefreshing={isFetching} />
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}

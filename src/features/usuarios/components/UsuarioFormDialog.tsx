@@ -1,5 +1,6 @@
 import { isHttpError } from '@/api/http-error';
 import type { Usuario } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ function CreateDialog({
   onOpenChange,
 }: Pick<CreateProps, 'open' | 'onOpenChange'>) {
   const mutation = useCreateUsuario();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) &&
@@ -44,11 +46,22 @@ function CreateDialog({
       : undefined;
 
   function handleSubmit(values: UsuarioCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nuevo usuario</DialogTitle>
@@ -59,8 +72,8 @@ function CreateDialog({
         <UsuarioForm
           mode="create"
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>
@@ -76,6 +89,7 @@ function EditDialog({
   usuario,
 }: Pick<EditProps, 'open' | 'onOpenChange' | 'usuario'>) {
   const mutation = useEditUsuario(usuario.id);
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) &&
@@ -91,11 +105,22 @@ function EditDialog({
   };
 
   function handleSubmit(values: UsuarioUpdateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar usuario</DialogTitle>
@@ -107,8 +132,8 @@ function EditDialog({
           mode="edit"
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>

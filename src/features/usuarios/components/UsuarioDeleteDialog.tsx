@@ -1,4 +1,5 @@
 import type { Usuario } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,16 +27,25 @@ export function UsuarioDeleteDialog({
   isOwnAccount,
 }: UsuarioDeleteDialogProps) {
   const mutation = useDeleteUsuario();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   function handleDelete() {
-    if (!usuario) return;
+    if (!usuario || !acquire()) return;
     mutation.mutate(usuario.id, {
-      onSuccess: () => onOpenChange(false),
+      onSettled: (_data, error) => {
+        release();
+        if (!error) handleOpenChange(false);
+      },
     });
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
@@ -49,7 +59,7 @@ export function UsuarioDeleteDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>
+          <AlertDialogCancel disabled={mutation.isPending || isLocked}>
             Cancelar
           </AlertDialogCancel>
           {/* Defensa en profundidad (ADR-017): el botón Eliminar también está bloqueado
@@ -71,7 +81,7 @@ export function UsuarioDeleteDialog({
           ) : (
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || isLocked}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {mutation.isPending ? 'Eliminando...' : 'Eliminar'}
