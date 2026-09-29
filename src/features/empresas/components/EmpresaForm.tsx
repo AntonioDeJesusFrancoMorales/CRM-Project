@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { nullsToStrings } from '@/lib/form-utils';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { normalizeEmpresaValues } from '../lib/empresaValues';
 import {
   DUPLICATE_EMPRESA_NAME_MESSAGE,
@@ -62,7 +63,7 @@ export function EmpresaForm({
   existingEmpresas,
   currentEmpresaId,
 }: EmpresaFormProps) {
-  const submitLock = useRef(false);
+  const { acquire, release } = useSynchronousMutationLock();
   const previousIsSubmitting = useRef(isSubmitting);
   const resolvedDefaults =
     mode === 'edit' && defaultValues
@@ -86,16 +87,17 @@ export function EmpresaForm({
 
   useEffect(() => {
     if (previousIsSubmitting.current && !isSubmitting) {
-      submitLock.current = false;
+      release();
     }
     previousIsSubmitting.current = isSubmitting;
-  }, [isSubmitting]);
+  }, [isSubmitting, release]);
 
   function handleValidSubmit(values: EmpresaCreateInput) {
-    if (submitLock.current || isSubmitting) return;
+    if (isSubmitting || !acquire()) return;
 
     const normalizedValues = normalizeEmpresaValues(values) as EmpresaCreateInput;
     if (hasDuplicateEmpresaName(existingEmpresas, normalizedValues.nombre, currentEmpresaId)) {
+      release();
       form.setError('nombre', {
         type: 'validate',
         message: DUPLICATE_EMPRESA_NAME_MESSAGE,
@@ -103,7 +105,6 @@ export function EmpresaForm({
       return;
     }
 
-    submitLock.current = true;
     onSubmit(normalizedValues);
   }
 

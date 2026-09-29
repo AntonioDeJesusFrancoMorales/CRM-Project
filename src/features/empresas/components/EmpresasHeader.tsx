@@ -1,5 +1,6 @@
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshButton } from '@/components/shared/RefreshButton';
 
 interface EmpresasHeaderProps {
   onRefresh: () => void;
@@ -16,19 +17,11 @@ export function EmpresasHeader({ onRefresh, onCreate, isRefreshing = false }: Em
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          aria-label={isRefreshing ? 'Recargando empresas' : 'Recargar empresas'}
-          aria-busy={isRefreshing}
-        >
-          <RefreshCw className={isRefreshing ? 'animate-spin' : undefined} aria-hidden="true" />
-        </Button>
-        <span role="status" aria-live="polite" className="sr-only">
-          {isRefreshing ? 'Recargando empresas...' : ''}
-        </span>
+        <RefreshButton
+          resourceLabel="empresas"
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
+        />
         <Button size="sm" onClick={onCreate}>
           <Plus data-icon="inline-start" aria-hidden="true" />
           Nueva empresa

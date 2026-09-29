@@ -1,15 +1,12 @@
 import { z } from 'zod';
 import { isValidOptionalSocialUrl, isValidOptionalWebsiteUrl } from '../lib/empresaLinks';
+import { requiredTrimmedName } from '@/lib/validation';
 
 // Validador laxo de teléfono LATAM: dígitos, espacios, +, (), -, mínimo 7 caracteres.
 const phoneRegex = /^[\d\s+()-]{7,20}$/;
 
 export const empresaCreateSchema = z.object({
-  nombre: z
-    .string()
-    .trim()
-    .min(1, { message: 'El nombre es requerido' })
-    .max(150, { message: 'El nombre no puede superar 150 caracteres' }),
+  nombre: requiredTrimmedName(150),
   sector: z
     .string()
     .trim()

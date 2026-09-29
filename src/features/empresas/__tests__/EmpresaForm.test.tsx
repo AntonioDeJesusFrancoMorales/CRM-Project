@@ -75,6 +75,22 @@ describe('EmpresaForm', () => {
     expect(screen.getByText('Ya existe una empresa con este nombre.')).toBeInTheDocument();
   });
 
+  it('releases the lock after a duplicate so a later valid submit can proceed', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderForm({ existingEmpresas: [duplicateEmpresa] });
+    const nameInput = screen.getByLabelText(/nombre/i);
+
+    await user.type(nameInput, '  innovatech solutions ');
+    await user.click(screen.getByRole('button', { name: /crear empresa/i }));
+
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Empresa válida');
+    await user.click(screen.getByRole('button', { name: /crear empresa/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Empresa válida' }));
+  });
+
   it('allows the current name when editing the same company', async () => {
     const user = userEvent.setup();
     const { onSubmit } = renderForm({

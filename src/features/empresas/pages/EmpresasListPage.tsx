@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import type { Empresa } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import {
   Dialog,
   DialogContent,
@@ -274,6 +275,7 @@ export function EmpresasListPage() {
             disabled={isFetching}
             aria-busy={isFetching}
           >
+            <RefreshIcon isRefreshing={isFetching} />
             {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>

@@ -1,5 +1,6 @@
 import type { Empresa } from '@/api/types';
 import type { EmpresaCreateInput } from '../schemas/empresa.schema';
+import { localizeApiErrorMessage } from '@/lib/api-error';
 
 export const DUPLICATE_EMPRESA_NAME_MESSAGE = 'Ya existe una empresa con este nombre.';
 
@@ -72,15 +73,6 @@ function resolveField(field: string, message: string): EmpresaServerField | unde
   return undefined;
 }
 
-function isRequiredNameMessage(field: EmpresaServerField | undefined, message: string): boolean {
-  const normalizedMessage = message.toLowerCase();
-  const refersToName = field === 'nombre' || /\b(name|nombre)\b/.test(normalizedMessage);
-  const refersToRequired = /required|requerid|not[ _-]?blank|blank|obligatorio/.test(
-    normalizedMessage,
-  );
-  return refersToName && refersToRequired;
-}
-
 function isInvalidWebsiteMessage(field: EmpresaServerField | undefined, message: string): boolean {
   const normalizedMessage = message.toLowerCase();
   const refersToWebsite =
@@ -89,7 +81,8 @@ function isInvalidWebsiteMessage(field: EmpresaServerField | undefined, message:
 }
 
 function localizeServerMessage(field: EmpresaServerField | undefined, message: string): string {
-  if (isRequiredNameMessage(field, message)) return 'El nombre es requerido';
+  const localizedMessage = localizeApiErrorMessage(message, field ?? '');
+  if (localizedMessage !== message) return localizedMessage;
   if (isInvalidWebsiteMessage(field, message)) {
     return 'La página web debe ser una URL válida.';
   }

@@ -1,3 +1,4 @@
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import type { Empresa } from '@/api/types';
 import { isHttpError } from '@/api/http-error';
 import {
@@ -25,19 +26,28 @@ export function EmpresaDeleteDialog({
 }: EmpresaDeleteDialogProps) {
   const mutation = useDeleteEmpresa();
   const mutationError = mutation.error;
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
 
   function handleDelete() {
-    if (!empresa) return;
+    if (!empresa || !acquire()) return;
     mutation.mutate(empresa.id, {
-      onSuccess: () => {
-        onOpenChange(false);
-        onSuccess?.();
+      onSettled: (_data, error) => {
+        release();
+        if (!error) {
+          handleOpenChange(false);
+          onSuccess?.();
+        }
       },
     });
   }
 
   return (
-    <AlertDialog open={!!empresa} onOpenChange={onOpenChange}>
+    <AlertDialog open={!!empresa} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar empresa?</AlertDialogTitle>
@@ -58,10 +68,10 @@ export function EmpresaDeleteDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending || isLocked}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || isLocked}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {mutation.isPending ? 'Eliminando...' : 'Eliminar'}

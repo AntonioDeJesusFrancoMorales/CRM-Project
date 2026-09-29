@@ -1,4 +1,3 @@
-import { useRef, useState } from 'react';
 import { isHttpError } from '@/api/http-error';
 import type { Empresa } from '@/api/types';
 import {
@@ -11,6 +10,7 @@ import {
 import type { EmpresaCreateInput } from '../schemas/empresa.schema';
 import { useCreateEmpresa } from '../hooks/useCreateEmpresa';
 import { useUpdateEmpresa } from '../hooks/useUpdateEmpresa';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { EmpresaForm } from './EmpresaForm';
 
 type CreateProps = {
@@ -43,8 +43,8 @@ function CreateDialog({
   existingEmpresas,
 }: Pick<CreateProps, 'open' | 'onOpenChange' | 'existingEmpresas'>) {
   const mutation = useCreateEmpresa();
-  const submissionLock = useRef(false);
-  const [isSubmitLocked, setIsSubmitLocked] = useState(false);
+  const { acquire, release, isLocked: isSubmitLocked, lockRef: submissionLock } =
+    useSynchronousMutationLock();
 
   const serverErrors = getServerErrors(mutation.error);
 
@@ -54,14 +54,11 @@ function CreateDialog({
   }
 
   function handleSubmit(values: EmpresaCreateInput) {
-    if (submissionLock.current) return;
+    if (!acquire()) return;
 
-    submissionLock.current = true;
-    setIsSubmitLocked(true);
     mutation.mutate(values, {
       onSettled: (_data, error) => {
-        submissionLock.current = false;
-        setIsSubmitLocked(false);
+        release();
         if (!error) handleOpenChange(false);
       },
     });
@@ -97,8 +94,8 @@ function EditDialog({
   existingEmpresas,
 }: Pick<EditProps, 'open' | 'onOpenChange' | 'empresa' | 'existingEmpresas'>) {
   const mutation = useUpdateEmpresa(empresa.id);
-  const submissionLock = useRef(false);
-  const [isSubmitLocked, setIsSubmitLocked] = useState(false);
+  const { acquire, release, isLocked: isSubmitLocked, lockRef: submissionLock } =
+    useSynchronousMutationLock();
 
   const serverErrors = getServerErrors(mutation.error);
 
@@ -120,14 +117,11 @@ function EditDialog({
   }
 
   function handleSubmit(values: EmpresaCreateInput) {
-    if (submissionLock.current) return;
+    if (!acquire()) return;
 
-    submissionLock.current = true;
-    setIsSubmitLocked(true);
     mutation.mutate(values, {
       onSettled: (_data, error) => {
-        submissionLock.current = false;
-        setIsSubmitLocked(false);
+        release();
         if (!error) handleOpenChange(false);
       },
     });

@@ -1,10 +1,11 @@
-import { ContactRound, RefreshCw } from 'lucide-react';
+import { ContactRound } from 'lucide-react';
 import { Link } from 'react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import {
   Table,
   TableBody,
@@ -25,7 +26,7 @@ interface EmpresaContactosTabProps {
 }
 
 export function EmpresaContactosTab({ empresaId }: EmpresaContactosTabProps) {
-  const { data, isLoading, isError, refetch } = useEmpresaContactos(empresaId);
+  const { data, isLoading, isError, isFetching, refetch } = useEmpresaContactos(empresaId);
 
   if (isLoading) {
     return (
@@ -40,9 +41,14 @@ export function EmpresaContactosTab({ empresaId }: EmpresaContactosTabProps) {
       <Card>
         <CardContent className="space-y-3 py-12 text-center">
           <p className="text-sm text-destructive">No fue posible cargar los contactos.</p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            <RefreshCw data-icon="inline-start" aria-hidden="true" />
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            <RefreshIcon isRefreshing={isFetching} />
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </CardContent>
       </Card>
