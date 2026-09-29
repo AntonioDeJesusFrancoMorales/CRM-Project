@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,29 +9,34 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ContactoDetailPage } from '../pages/ContactoDetailPage';
 import { server } from '@/test/server';
 import { tableroTratosFixture } from '@/mocks/fixtures/tableros';
+import { tratosFixture } from '@/mocks/fixtures/tratos';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
 
-function renderWithRouter(initialPath: string) {
-  const queryClient = new QueryClient({
+function renderWithRouter(
+  initialPath: string,
+  queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
-  });
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <MemoryRouter initialEntries={[initialPath]}>
-          <Routes>
-            <Route path="/contactos" element={<div>Listado de contactos</div>} />
-            <Route path="/contactos/:id" element={<ContactoDetailPage />} />
-            <Route path="/tratos/:id" element={<div>Detalle de trato</div>} />
-          </Routes>
-        </MemoryRouter>
-      </TooltipProvider>
-    </QueryClientProvider>,
-  );
+  }),
+) {
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <MemoryRouter initialEntries={[initialPath]}>
+            <Routes>
+              <Route path="/contactos" element={<div>Listado de contactos</div>} />
+              <Route path="/contactos/:id" element={<ContactoDetailPage />} />
+              <Route path="/tratos/:id" element={<div>Detalle de trato</div>} />
+            </Routes>
+          </MemoryRouter>
+        </TooltipProvider>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 describe('ContactoDetailPage', () => {
@@ -46,6 +51,46 @@ describe('ContactoDetailPage', () => {
     expect(screen.getByRole('tab', { name: /resumen 360/i })).toBeInTheDocument();
     // Tab Info debe existir
     expect(screen.getByRole('tab', { name: /info/i })).toBeInTheDocument();
+  });
+
+  it('mantiene bloqueada la eliminación mientras se actualizan tratos cacheados', async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(['tratos'], tratosFixture);
+
+    let tratosRequestCount = 0;
+    let releaseTratos!: () => void;
+    const tratosPending = new Promise<void>((resolve) => {
+      releaseTratos = resolve;
+    });
+
+    server.use(
+      http.get('/api/tratos/get-all', async () => {
+        tratosRequestCount += 1;
+        await tratosPending;
+        return HttpResponse.json(tratosFixture);
+      }),
+    );
+
+    renderWithRouter('/contactos/c1111111-cccc-1111-cccc-111111111111', queryClient);
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: /ana/i })).toBeInTheDocument());
+    await waitFor(() => expect(tratosRequestCount).toBe(1));
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+
+    const loadingButton = await screen.findByRole('button', { name: /cargando/i });
+    expect(loadingButton).toBeDisabled();
+
+    await act(async () => {
+      releaseTratos();
+    });
+    await waitFor(() => expect(queryClient.isFetching({ queryKey: ['tratos'] })).toBe(0));
+    expect(screen.getByRole('button', { name: /^eliminar$/i })).not.toBeDisabled();
   });
 
   it('el tab Info renderiza los campos del contacto', async () => {

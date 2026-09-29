@@ -16,6 +16,7 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { tipoContratoBadgeClass, tipoContratoLabels } from '@/features/tratos/lib/tipoContrato';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useContacto } from '../hooks/useContacto';
+import { useContactos } from '../hooks/useContactos';
 import { useCambiarEstadoContacto } from '../hooks/useCambiarEstadoContacto';
 import { ContactoDeleteDialog } from '../components/ContactoDeleteDialog';
 import { ContactoFormDialog } from '../components/ContactoFormDialog';
@@ -45,7 +46,8 @@ export function ContactoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: contacto, isLoading, error } = useContacto(id);
-  const { data: tratos } = useTratos();
+  const { data: tratos, isFetching: tratosIsFetching } = useTratos();
+  const { data: todosLosContactos } = useContactos();
   const { data: empresas = [] } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
   const cambiarEstadoMutation = useCambiarEstadoContacto();
@@ -264,6 +266,7 @@ export function ContactoDetailPage() {
         contacto={contacto}
         open={editOpen}
         onOpenChange={setEditOpen}
+        existingContactos={todosLosContactos}
       />
 
       <ContactoDeleteDialog
@@ -272,6 +275,8 @@ export function ContactoDetailPage() {
           if (!open) setDeleteTarget(null);
         }}
         onSuccess={() => navigate('/contactos', { replace: true })}
+        tratos={tratos}
+        tratosIsFetching={tratosIsFetching}
       />
     </div>
   );

@@ -116,12 +116,15 @@ export const contactosHandlers = [
     if (idx === -1) return errors.notFound();
 
     // Guard 409: el contacto tiene tratos si aparece como contactoId en algún trato.
-    const tieneTratosAbiertos = tratosFixture.some(
-      (t) => t.contactoId === id,
-    );
-    if (tieneTratosAbiertos) {
+    const tratosRelacionados = tratosFixture.filter((t) => t.contactoId === id);
+    if (tratosRelacionados.length > 0) {
       return HttpResponse.json(
-        { status: 409, error: 'CONFLICT', message: 'El contacto tiene tratos activos' },
+        {
+          status: 409,
+          error: 'CONFLICT',
+          message: 'El contacto tiene tratos activos',
+          details: [{ field: 'trato_id', message: tratosRelacionados[0]!.id }],
+        },
         { status: 409 },
       );
     }

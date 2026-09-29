@@ -27,6 +27,7 @@ interface EstadoRelacionSelectProps {
   value: EstadoRelacion;
   onChange: (value: EstadoRelacion) => void;
   disabled?: boolean;
+  'aria-label'?: string;
 }
 
 export function EstadoRelacionSelect({
@@ -35,14 +36,15 @@ export function EstadoRelacionSelect({
   value,
   onChange,
   disabled,
+  'aria-label': ariaLabel = 'Estado de relación',
 }: EstadoRelacionSelectProps) {
   return (
     <Select
       value={value}
       onValueChange={(v) => onChange(v as EstadoRelacion)}
       disabled={disabled}
-    >
-      <SelectTrigger>
+      >
+      <SelectTrigger aria-label={ariaLabel}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
