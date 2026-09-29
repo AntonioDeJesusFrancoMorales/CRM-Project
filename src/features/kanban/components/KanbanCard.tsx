@@ -18,6 +18,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { CalendarClock, GripVertical, MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +79,7 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { eliminar, isPending, bloqueado, cantidadTareas } = useEliminarTarjeta(ficha);
+  const { acquire, release, isLocked } = useSynchronousMutationLock();
 
   // Bandera compartida por el board: si recién terminó un arrastre, el click posterior al
   // drop no debe navegar al detalle. Ver arrastreReciente.ts.
@@ -88,8 +90,13 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
     : undefined;
 
   async function handleConfirmDelete() {
-    await eliminar();
-    setDeleteOpen(false);
+    if (!acquire()) return;
+    try {
+      await eliminar();
+      setDeleteOpen(false);
+    } finally {
+      release();
+    }
   }
 
   return (
@@ -229,7 +236,7 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
         open={deleteOpen}
         onConfirm={() => { void handleConfirmDelete(); }}
         onCancel={() => setDeleteOpen(false)}
-        isDeleting={isPending}
+        isDeleting={isPending || isLocked}
         tipoFicha={ficha.tipoFicha}
         bloqueado={bloqueado}
         cantidadTareas={cantidadTareas}

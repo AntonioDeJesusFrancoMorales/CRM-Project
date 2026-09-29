@@ -7,10 +7,11 @@
 import { Link } from 'react-router';
 import { KanbanSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import { useTableros } from '../hooks/useTableros';
 
 export function KanbanListPage() {
-  const { data: tableros, isLoading, isError, refetch } = useTableros();
+  const { data: tableros, isLoading, isError, isFetching, refetch } = useTableros();
 
   // Lista unificada — todos los tableros (TRATOS + TAREAS)
   const todosLosTableros = tableros ?? [];
@@ -38,8 +39,14 @@ export function KanbanListPage() {
           <p className="text-sm text-destructive">
             No fue posible cargar los tableros. Intenta de nuevo.
           </p>
-          <Button variant="outline" onClick={() => void refetch()}>
-            Reintentar
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
+            <RefreshIcon isRefreshing={isFetching} />
+            {isFetching ? 'Cargando...' : 'Reintentar'}
           </Button>
         </div>
       )}

@@ -2,6 +2,7 @@
 // Es la entidad del catálogo (independiente del tablero); distinta de ColumnaTableroDto.
 
 import { z } from 'zod';
+import { requiredTrimmedName } from '@/lib/validation';
 import { tipoTablero, tipoColumna } from './tablero.schema';
 import { COLUMN_PALETTE } from '../lib/columnPalette';
 
@@ -31,10 +32,11 @@ export type Columna = z.infer<typeof columnaSchema>;
 const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
 
 export const columnaCreateSchema = z.object({
-  nombre: z
-    .string()
-    .min(1, 'El nombre es obligatorio')
-    .max(80, 'El nombre no puede superar los 80 caracteres'),
+  nombre: requiredTrimmedName(
+    80,
+    'El nombre no puede superar los 80 caracteres',
+    'El nombre es obligatorio',
+  ),
   color: z
     .string()
     .regex(HEX_REGEX, 'El color debe ser un valor hexadecimal válido (#RRGGBB)')
@@ -55,7 +57,11 @@ export type ColumnaCreateInput = z.infer<typeof columnaCreateSchema>;
 // ---------------------------------------------------------------------------
 
 export const columnaEditSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio').max(80, 'El nombre no puede superar los 80 caracteres').optional(),
+  nombre: requiredTrimmedName(
+    80,
+    'El nombre no puede superar los 80 caracteres',
+    'El nombre es obligatorio',
+  ).optional(),
   // color acepta cualquier hex #RRGGBB válido — NO restringe a la paleta.
   // Columnas existentes pueden tener colores legacy fuera de la paleta;
   // la restricción de paleta se aplica solo en la UI (ColorPaletteField), no en el schema.
@@ -93,10 +99,11 @@ export type AsignarColumnaFormValues = z.infer<typeof asignarColumnaSchema>;
 
 export const columnaNuevaSchema = z.object({
   tipoTablero,
-  nombre: z
-    .string()
-    .min(1, 'El nombre es obligatorio')
-    .max(80, 'El nombre no puede superar los 80 caracteres'),
+  nombre: requiredTrimmedName(
+    80,
+    'El nombre no puede superar los 80 caracteres',
+    'El nombre es obligatorio',
+  ),
   color: z
     .string()
     .regex(

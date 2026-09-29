@@ -2,6 +2,7 @@
 // Fuente de verdad: TableroResponse.java, ColumnaTableroDto.java, enums Java confirmados.
 
 import { z } from 'zod';
+import { requiredTrimmedName } from '@/lib/validation';
 
 // ---------------------------------------------------------------------------
 // Enums confirmados contra Java (fuente de verdad)
@@ -61,7 +62,7 @@ export type Tablero = z.infer<typeof tableroSchema>;
 // ---------------------------------------------------------------------------
 
 export const tableroCreateSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
+  nombre: requiredTrimmedName(100, 'Máximo 100 caracteres', 'El nombre es obligatorio'),
   descripcion: z.string().min(1, 'La descripción es obligatoria'),
   tipoTablero,
   columnasPredeterminadas: z.boolean().optional(),
@@ -76,7 +77,7 @@ export type TableroCreateInput = z.infer<typeof tableroCreateSchema>;
 // ---------------------------------------------------------------------------
 
 export const tableroEditSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres'),
+  nombre: requiredTrimmedName(100, 'Máximo 100 caracteres', 'El nombre es obligatorio'),
   descripcion: z.string().nullable().optional(),
 });
 

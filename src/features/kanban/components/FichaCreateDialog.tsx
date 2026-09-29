@@ -11,6 +11,7 @@
 // Tras éxito: useCreateFicha invalida ['fichas'] (en el hook) y cerramos el dialog.
 
 import { isHttpError } from '@/api/http-error';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export function FichaCreateDialog({
   tipoFicha = 'TRATO',
 }: FichaCreateDialogProps) {
   const mutation = useCreateFicha();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   // Resolver items según tipoFicha
   const tratos = useTratosSinFicha();
@@ -66,6 +68,7 @@ export function FichaCreateDialog({
   }));
 
   function handleSubmit(values: FichaFormValues) {
+    if (!acquire()) return;
     // Mapear entidadId → tratoId/tareaId según tipo
     const tratoId = tipoFicha === 'TRATO' ? values.entidadId : null;
     const tareaId = tipoFicha === 'TAREA' ? values.entidadId : null;
@@ -78,9 +81,17 @@ export function FichaCreateDialog({
         tareaId,
       },
       {
-        onSuccess: () => onOpenChange(false),
+        onSettled: (_data, error) => {
+          release();
+          if (!error) onOpenChange(false);
+        },
       },
     );
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   const dialogTitle = tipoFicha === 'TAREA' ? 'Nueva ficha de tarea' : 'Nueva ficha';
@@ -90,7 +101,7 @@ export function FichaCreateDialog({
       : 'Crea una ficha de trato para esta columna.';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -102,8 +113,8 @@ export function FichaCreateDialog({
           items={items}
           itemsLoading={itemsLoading}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
         />
       </DialogContent>

@@ -8,6 +8,7 @@
 // Se envía siempre 0 al back (@NotNull); el back lo persiste pero el front lo ignora al leer.
 
 import { useEffect } from 'react';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ export function ColumnaCreateDialog({
   nombresExistentes,
 }: ColumnaCreateDialogProps) {
   const crearMutation = useCrearColumnaEnTablero();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const form = useForm<ColumnaNuevaFormValues>({
     resolver: zodResolver(columnaNuevaSchema),
@@ -105,6 +107,8 @@ export function ColumnaCreateDialog({
       return;
     }
 
+    if (!acquire()) return;
+
     // El discriminador tipoTablero NO se envía al back — construimos el payload.
     // totalValorEstimado se envía siempre 0: la columna nueva no tiene fichas y el valor
     // real es DERIVADO en runtime desde las fichas; el back lo requiere @NotNull.
@@ -127,16 +131,24 @@ export function ColumnaCreateDialog({
         },
       },
       {
-        onSuccess: () => {
-          onOpenChange(false);
+        onSettled: (_data, error) => {
+          release();
+          if (!error) {
+            onOpenChange(false);
+          }
         },
         // onError: el hook ya emite el toast de error — el dialog queda abierto
       },
     );
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nueva columna</DialogTitle>
@@ -184,7 +196,7 @@ export function ColumnaCreateDialog({
                       id="columna-color"
                       value={field.value}
                       onChange={field.onChange}
-                      disabled={crearMutation.isPending}
+                       disabled={crearMutation.isPending || isLocked}
                     />
                   </FormControl>
                   <FormMessage />
@@ -221,13 +233,14 @@ export function ColumnaCreateDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
+                disabled={crearMutation.isPending || isLocked}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                disabled={crearMutation.isPending}
+                disabled={crearMutation.isPending || isLocked}
               >
                 {crearMutation.isPending ? 'Creando...' : 'Crear columna'}
               </Button>

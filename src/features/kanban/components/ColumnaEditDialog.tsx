@@ -11,6 +11,7 @@
 // onSuccess → cierra el dialog. onError → queda abierto (el hook emite el toast).
 
 import { useEffect } from 'react';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -81,6 +82,7 @@ export function ColumnaEditDialog({
   nombresExistentes,
 }: ColumnaEditDialogProps) {
   const updateMutation = useUpdateColumna();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   // El board (ColumnaTableroDto) no expone tipoTablero/tipoColumna, pero el back los EXIGE
   // en el edit. Se resuelven cruzando el id contra el catálogo (mismo id que la columna del board).
@@ -132,6 +134,8 @@ export function ColumnaEditDialog({
       return;
     }
 
+    if (!acquire()) return;
+
     updateMutation.mutate(
       {
         id: columna.id,
@@ -143,16 +147,24 @@ export function ColumnaEditDialog({
         },
       },
       {
-        onSuccess: () => {
-          onOpenChange(false);
+        onSettled: (_data, error) => {
+          release();
+          if (!error) {
+            onOpenChange(false);
+          }
         },
         // onError: el hook ya emite el toast de error — el dialog queda abierto
       },
     );
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar columna</DialogTitle>
@@ -202,7 +214,7 @@ export function ColumnaEditDialog({
                       id="columna-edit-color"
                       value={field.value}
                       onChange={field.onChange}
-                      disabled={updateMutation.isPending}
+                       disabled={updateMutation.isPending || isLocked}
                       legacyColor={colorInicial}
                     />
                   </FormControl>
@@ -215,14 +227,14 @@ export function ColumnaEditDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={updateMutation.isPending}
+                onClick={() => handleOpenChange(false)}
+                disabled={updateMutation.isPending || isLocked}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                disabled={updateMutation.isPending}
+                disabled={updateMutation.isPending || isLocked}
               >
                 {updateMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
               </Button>
