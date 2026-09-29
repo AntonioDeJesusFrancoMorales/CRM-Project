@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -57,6 +58,7 @@ export function TareaDetailPage() {
   } = useTareaWorkflowStates(tarea ? [tarea] : []);
 
   const deleteMutation = useDeleteTarea();
+  const { acquire, release, isLocked } = useSynchronousMutationLock();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -73,7 +75,7 @@ export function TareaDetailPage() {
   }, [is404, navigate]);
 
   function handleConfirmDelete() {
-    if (!id) return;
+    if (!id || !acquire()) return;
     deleteMutation.mutate(id, {
       onSuccess: () => {
         setDeleteOpen(false);
@@ -82,6 +84,7 @@ export function TareaDetailPage() {
       onError: () => {
         setDeleteOpen(false);
       },
+      onSettled: () => release(),
     });
   }
 
@@ -238,7 +241,7 @@ export function TareaDetailPage() {
         onOpenChange={setDeleteOpen}
         titulo={tarea.titulo}
         onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending}
+         isDeleting={deleteMutation.isPending || isLocked}
       />
     </div>
   );

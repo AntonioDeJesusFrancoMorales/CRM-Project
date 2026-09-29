@@ -5,6 +5,7 @@
 // NO la crea para evitar duplicados. useCreateTarea invalida ['fichas'] tras crear.
 
 import { isHttpError } from '@/api/http-error';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ export function TareaCreateDialog({
   defaultValues,
 }: TareaCreateDialogProps) {
   const mutation = useCreateTarea();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
@@ -40,7 +42,18 @@ export function TareaCreateDialog({
       : undefined;
 
   function handleSubmit(values: TareaCreateInput) {
-    mutation.mutate(values, { onSuccess: () => onOpenChange(false) });
+    if (!acquire()) return;
+    mutation.mutate(values, {
+      onSettled: (_data, error) => {
+        release();
+        if (!error) onOpenChange(false);
+      },
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
   }
 
   const initial: Partial<TareaCreateInput> = {
@@ -50,7 +63,7 @@ export function TareaCreateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Nueva tarea</DialogTitle>
@@ -62,8 +75,8 @@ export function TareaCreateDialog({
           mode="create"
           defaultValues={initial}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
           tratoIdFijo={tratoIdFijo}
         />

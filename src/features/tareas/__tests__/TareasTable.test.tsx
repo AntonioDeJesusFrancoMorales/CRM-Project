@@ -2,13 +2,15 @@
 // Cubre: render de filas, título clickeable navega, estado inline con TareaEstadoMenu.
 
 import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router';
+import { http, HttpResponse } from 'msw';
 
 import { TareasTable } from '../components/TareasTable';
 import type { Tarea } from '@/api/types';
+import { server } from '@/test/server';
 
 const TAREA_PENDIENTE: Tarea = {
   id: 'e1111111-eeee-1111-eeee-111111111111',
@@ -73,7 +75,7 @@ describe('TareasTable', () => {
     const user = userEvent.setup();
     renderTable([TAREA_PENDIENTE]);
 
-    const tituloBtn = screen.getByRole('button', { name: /demo presencial con cto/i });
+    const tituloBtn = screen.getByRole('button', { name: 'Demo presencial con CTO' });
     await user.click(tituloBtn);
 
     await waitFor(() => {
@@ -100,5 +102,39 @@ describe('TareasTable', () => {
 
     expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
     expect(screen.getByText('Análisis de requerimientos inicial')).toBeInTheDocument();
+  });
+
+  it('(f) envía una sola eliminación ante dos clics síncronos', async () => {
+    const user = userEvent.setup();
+    let deleteCount = 0;
+    let releaseDelete!: () => void;
+    const deletePending = new Promise<void>((resolve) => {
+      releaseDelete = resolve;
+    });
+
+    server.use(
+      http.delete('/api/tareas/delete', async () => {
+        deleteCount += 1;
+        await deletePending;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderTable([TAREA_PENDIENTE]);
+    await user.click(screen.getByRole('button', { name: `Acciones para ${TAREA_PENDIENTE.titulo}` }));
+    await user.click(await screen.findByRole('menuitem', { name: /eliminar/i }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    const confirmButton = within(dialog).getByRole('button', { name: /^eliminar$/i });
+    act(() => {
+      fireEvent.click(confirmButton);
+      fireEvent.click(confirmButton);
+    });
+
+    await waitFor(() => expect(deleteCount).toBe(1));
+    expect(confirmButton).toBeDisabled();
+
+    releaseDelete();
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
   });
 });

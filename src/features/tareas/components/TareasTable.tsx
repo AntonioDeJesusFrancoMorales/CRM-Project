@@ -36,6 +36,7 @@ import { useDeleteTarea } from '../hooks/useDeleteTarea';
 import { prioridadBadgeClass, prioridadLabels, tareaBadgeBaseClass, tipoLabels } from '../lib/tareaBadges';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { TareaWorkflowById } from '../lib/tareaWorkflow';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 
 /** Una tarea está vencida si su fecha límite ya pasó y aún no fue completada. */
 function estaVencida(tarea: Tarea): boolean {
@@ -67,14 +68,21 @@ export function TareasTable({
   const [editTarea, setEditTarea] = useState<Tarea | null>(null);
   const [deleteTarea, setDeleteTarea] = useState<Tarea | null>(null);
   const deleteMutation = useDeleteTarea();
+  const { acquire, release, isLocked, lockRef: deleteLock } = useSynchronousMutationLock();
   const sortable = Boolean(sort && onSort);
 
   function handleConfirmDelete() {
-    if (!deleteTarea) return;
+    if (!deleteTarea || !acquire()) return;
     deleteMutation.mutate(deleteTarea.id, {
       onSuccess: () => setDeleteTarea(null),
       onError: () => setDeleteTarea(null),
+      onSettled: () => release(),
     });
+  }
+
+  function handleDeleteOpenChange(open: boolean) {
+    if (!open && deleteLock.current) return;
+    if (!open) setDeleteTarea(null);
   }
 
   return (
@@ -207,10 +215,10 @@ export function TareasTable({
       {deleteTarea && (
         <TareaDeleteDialog
           open={true}
-          onOpenChange={(open) => { if (!open) setDeleteTarea(null); }}
+          onOpenChange={handleDeleteOpenChange}
           titulo={deleteTarea.titulo}
           onConfirm={handleConfirmDelete}
-          isDeleting={deleteMutation.isPending}
+          isDeleting={deleteMutation.isPending || isLocked}
         />
       )}
     </>

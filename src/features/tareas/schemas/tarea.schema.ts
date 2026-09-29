@@ -4,14 +4,12 @@
 
 import { z } from 'zod';
 import type { TipoTarea, PrioridadTarea } from '@/api/types';
+import { requiredTrimmedName } from '@/lib/validation';
 
 export const tareaCreateSchema = z.object({
   tratoId: z.string().min(1, { message: 'El trato es requerido' }),
   responsableId: z.string().min(1, { message: 'El responsable es requerido' }),
-  titulo: z
-    .string()
-    .min(1, { message: 'El título es requerido' })
-    .max(200, { message: 'El título no puede superar 200 caracteres' }),
+  titulo: requiredTrimmedName(200, 'El título no puede superar 200 caracteres', 'El título es requerido'),
   descripcion: z.string().nullable().optional(),
   tipo: z.enum(['GENERAL', 'SEGUIMIENTO', 'NEGOCIACION', 'CIERRE']),
   prioridad: z.enum(['BAJA', 'MEDIA', 'ALTA', 'URGENTE']),
@@ -26,10 +24,7 @@ export const tareaCreateSchema = z.object({
 // NO incluye fechaCompletada (no existe en EditTareaRequest.java — el back no lo acepta).
 export const tareaUpdateSchema = z.object({
   responsableId: z.string().min(1, { message: 'El responsable es requerido' }),
-  titulo: z
-    .string()
-    .min(1, { message: 'El título es requerido' })
-    .max(200, { message: 'El título no puede superar 200 caracteres' }),
+  titulo: requiredTrimmedName(200, 'El título no puede superar 200 caracteres', 'El título es requerido'),
   descripcion: z.string().nullable().optional(),
   tipo: z.enum(['GENERAL', 'SEGUIMIENTO', 'NEGOCIACION', 'CIERRE']),
   prioridad: z.enum(['BAJA', 'MEDIA', 'ALTA', 'URGENTE']),

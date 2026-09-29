@@ -17,13 +17,13 @@ import {
   PanelTopClose,
   PanelTopOpen,
   Plus,
-  RefreshCw,
   Search,
   SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { RefreshIcon } from '@/components/shared/RefreshButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,7 +116,7 @@ export function TareasListPage() {
   // Kanban es el tab por defecto — URL limpia cuando activo = "kanban"; ?tab=lista cuando activo = "lista".
   const [tab, setTab] = useTabSync(['lista', 'kanban'], 'kanban');
 
-  const { data: tareasPage, isLoading, isError, refetch } = useTareasPage(paging.query);
+  const { data: tareasPage, isLoading, isError, isFetching, refetch } = useTareasPage(paging.query);
   const { data: todasLasTareas } = useTareas();
   const { data: usuarios = [] } = useUsuarios();
   const { data: tratos = [] } = useTratos();
@@ -220,9 +220,9 @@ export function TareasListPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => void refetch()}>
-                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Recargar
+                <DropdownMenuItem disabled={isFetching} onClick={() => void refetch()}>
+                  <RefreshIcon isRefreshing={isFetching} className="mr-2" />
+                  {isFetching ? 'Recargando...' : 'Recargar'}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -495,8 +495,14 @@ export function TareasListPage() {
               <p className="text-sm text-destructive">
                 No fue posible cargar las tareas. Intenta de nuevo.
               </p>
-              <Button variant="outline" onClick={() => void refetch()}>
-                Reintentar
+              <Button
+                variant="outline"
+                onClick={() => void refetch()}
+                disabled={isFetching}
+                aria-busy={isFetching}
+              >
+                <RefreshIcon isRefreshing={isFetching} />
+                {isFetching ? 'Cargando...' : 'Reintentar'}
               </Button>
             </div>
           )}

@@ -4,6 +4,7 @@
 
 import { isHttpError } from '@/api/http-error';
 import type { Tarea } from '@/api/types';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ interface TareaEditDialogProps {
 
 export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogProps) {
   const mutation = useUpdateTarea();
+  const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
     isHttpError(mutation.error) &&
@@ -44,6 +46,7 @@ export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogPr
   };
 
   function handleSubmit(values: TareaCreateInput) {
+    if (!acquire()) return;
     // EditTareaRequest requiere responsableId, titulo, tipo, prioridad, fechaLimite.
     // tratoId es inmutable — se pasa como prop fijo pero no se incluye en el update.
     const updateData: TareaUpdateInput = {
@@ -56,12 +59,22 @@ export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogPr
     };
     mutation.mutate(
       { id: tarea.id, data: updateData },
-      { onSuccess: () => onOpenChange(false) },
+      {
+        onSettled: (_data, error) => {
+          release();
+          if (!error) onOpenChange(false);
+        },
+      },
     );
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && submissionLock.current) return;
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar tarea</DialogTitle>
@@ -73,8 +86,8 @@ export function TareaEditDialog({ open, onOpenChange, tarea }: TareaEditDialogPr
           mode="edit"
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={mutation.isPending}
+           onCancel={() => handleOpenChange(false)}
+           isSubmitting={mutation.isPending || isLocked}
           serverErrors={serverErrors}
           tratoIdFijo={tarea.tratoId}
         />
