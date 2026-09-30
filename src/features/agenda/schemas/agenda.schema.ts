@@ -21,6 +21,57 @@ export type TipoAgenda = z.infer<typeof tipoAgenda>;
 export const recordatorioEstado = z.enum(['PENDIENTE', 'ENVIADO', 'FALLIDO']);
 export type RecordatorioEstado = z.infer<typeof recordatorioEstado>;
 
+const MEXICO_CITY_TIME_ZONE = 'America/Mexico_City';
+
+function isValidAgendaDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const [, year, month, day] = match;
+  const parsed = new Date(0);
+  parsed.setUTCFullYear(Number(year), Number(month) - 1, Number(day));
+  parsed.setUTCHours(0, 0, 0, 0);
+
+  return (
+    parsed.getUTCFullYear() === Number(year) &&
+    parsed.getUTCMonth() === Number(month) - 1 &&
+    parsed.getUTCDate() === Number(day)
+  );
+}
+
+function isValidAgendaTime(value: string): boolean {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function getMexicoCityCurrentDateTime(): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: MEXICO_CITY_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+
+  return {
+    date: `${values.year}-${values.month}-${values.day}`,
+    time: `${values.hour}:${values.minute}`,
+  };
+}
+
+function isHttpUrl(value: string): boolean {
+  if (!/^https?:\/\//i.test(value)) return false;
+
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // AgendaResponse — shape del back para un evento de agenda.
 // fecha: LocalDate ISO (YYYY-MM-DD). horaInicio/horaFin: LocalTime (HH:mm[:ss]).
@@ -63,6 +114,7 @@ const agendaFormShape = {
   tipo: tipoAgenda,
   asunto: z
     .string()
+    .trim()
     .min(1, 'El asunto es obligatorio')
     .max(200, 'El asunto no puede superar los 200 caracteres'),
   descripcion: z
@@ -70,9 +122,19 @@ const agendaFormShape = {
     .max(1000, 'La descripción no puede superar los 1000 caracteres')
     .nullable()
     .optional(),
-  fecha: z.string().min(1, 'La fecha es obligatoria'),
-  horaInicio: z.string().min(1, 'La hora de inicio es obligatoria'),
-  horaFin: z.string().nullable().optional(),
+  fecha: z
+    .string()
+    .min(1, 'La fecha es obligatoria')
+    .refine((value) => !value || isValidAgendaDate(value), 'La fecha no es válida'),
+  horaInicio: z
+    .string()
+    .min(1, 'La hora de inicio es obligatoria')
+    .refine((value) => !value || isValidAgendaTime(value), 'La hora de inicio no es válida'),
+  horaFin: z
+    .string()
+    .refine((value) => !value || isValidAgendaTime(value), 'La hora de fin no es válida')
+    .nullable()
+    .optional(),
   tareaId: z.string().nullable().optional(),
   tratoId: z.string().nullable().optional(),
   ubicacion: z
@@ -82,6 +144,7 @@ const agendaFormShape = {
     .optional(),
   linkVideollamada: z
     .string()
+    .trim()
     .max(500, 'El link no puede superar los 500 caracteres')
     .nullable()
     .optional(),
@@ -95,7 +158,12 @@ const agendaFormShape = {
 //   - LLAMADA (remota)     → link de videollamada obligatorio, sin ubicación.
 function refineAgenda(v: z.infer<z.ZodObject<typeof agendaFormShape>>, ctx: z.RefinementCtx): void {
   // horaFin debe ser posterior a horaInicio (comparación lexicográfica de "HH:mm" es válida).
-  if (v.horaFin && v.horaInicio && v.horaFin <= v.horaInicio) {
+  if (
+    v.horaFin &&
+    isValidAgendaTime(v.horaFin) &&
+    isValidAgendaTime(v.horaInicio) &&
+    v.horaFin <= v.horaInicio
+  ) {
     ctx.addIssue({
       code: 'custom',
       path: ['horaFin'],
@@ -116,6 +184,12 @@ function refineAgenda(v: z.infer<z.ZodObject<typeof agendaFormShape>>, ctx: z.Re
       path: ['linkVideollamada'],
       message: 'El link de videollamada es obligatorio para llamadas',
     });
+  } else if (v.tipo === 'LLAMADA' && !isHttpUrl(v.linkVideollamada ?? '')) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['linkVideollamada'],
+      message: 'El link debe ser una URL absoluta válida con http o https',
+    });
   }
   // minutosAntes requerido y ≥ 1 cuando el recordatorio está habilitado.
   if (v.recordatorioHabilitado && (v.minutosAntes === null || v.minutosAntes === undefined)) {
@@ -123,6 +197,24 @@ function refineAgenda(v: z.infer<z.ZodObject<typeof agendaFormShape>>, ctx: z.Re
       code: 'custom',
       path: ['minutosAntes'],
       message: 'Indica con cuántos minutos de anticipación enviar el recordatorio',
+    });
+  }
+
+  const mexicoCityNow = getMexicoCityCurrentDateTime();
+  const validDate = isValidAgendaDate(v.fecha);
+  const validStartTime = isValidAgendaTime(v.horaInicio);
+
+  if (validDate && v.fecha < mexicoCityNow.date) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['fecha'],
+      message: 'La fecha no puede ser anterior a hoy',
+    });
+  } else if (validDate && v.fecha === mexicoCityNow.date && validStartTime && v.horaInicio < mexicoCityNow.time) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['horaInicio'],
+      message: 'La hora de inicio no puede estar en el pasado',
     });
   }
 }

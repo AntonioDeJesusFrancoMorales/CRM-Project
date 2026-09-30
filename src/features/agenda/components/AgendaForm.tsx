@@ -32,6 +32,7 @@ import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import {
   agendaCreateSchema,
+  agendaEditSchema,
   AGENDA_EMPTY_DEFAULTS,
   TIPO_AGENDA_OPTIONS,
   type AgendaCreateInput,
@@ -65,7 +66,7 @@ export function AgendaForm({
   };
 
   const form = useForm<AgendaCreateInput>({
-    resolver: zodResolver(agendaCreateSchema),
+    resolver: zodResolver(mode === 'edit' ? agendaEditSchema : agendaCreateSchema),
     defaultValues: resolvedDefaults,
   });
 
@@ -82,8 +83,10 @@ export function AgendaForm({
   function handleValidSubmit(values: AgendaCreateInput) {
     onSubmit({
       ...values,
+      asunto: values.asunto.trim(),
       ubicacion: values.tipo === 'REUNION' ? values.ubicacion : null,
-      linkVideollamada: values.tipo === 'LLAMADA' ? values.linkVideollamada : null,
+      linkVideollamada:
+        values.tipo === 'LLAMADA' ? values.linkVideollamada?.trim() ?? null : null,
       minutosAntes: values.recordatorioHabilitado ? values.minutosAntes : null,
     });
   }
@@ -408,6 +411,7 @@ export function AgendaForm({
                     </FormLabel>
                     <FormControl>
                       <Input
+                        className="no-spinner"
                         type="number"
                         min={1}
                         placeholder="Ej: 15"
