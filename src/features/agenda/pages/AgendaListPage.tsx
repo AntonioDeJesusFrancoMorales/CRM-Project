@@ -123,15 +123,15 @@ export function AgendaListPage() {
           <p className="text-sm text-muted-foreground">Organiza tus llamadas y reuniones.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => openCreate()}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo evento
-          </Button>
           <RefreshButton
             resourceLabel="agenda"
             onRefresh={() => void refetch()}
             isRefreshing={isFetching}
           />
+          <Button onClick={() => openCreate()}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nuevo evento
+          </Button>
         </div>
       </header>
 

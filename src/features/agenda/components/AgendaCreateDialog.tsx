@@ -31,13 +31,20 @@ export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: Agenda
       : undefined;
 
   function handleSubmit(values: AgendaCreateInput) {
+    if (mutation.isPending) return;
     if (!acquire()) return;
-    mutation.mutate(values, {
-      onSettled: (_data, error) => {
-        release();
-        if (!error) onOpenChange(false);
-      },
-    });
+
+    try {
+      mutation.mutate(values, {
+        onSettled: (_data, error) => {
+          release();
+          if (!error) onOpenChange(false);
+        },
+      });
+    } catch (error) {
+      release();
+      throw error;
+    }
   }
 
   function handleOpenChange(nextOpen: boolean) {

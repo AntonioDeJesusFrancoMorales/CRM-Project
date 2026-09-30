@@ -19,6 +19,17 @@ describe('AgendaListPage', () => {
     expect(screen.getByRole('heading', { name: 'Agenda', level: 1 })).toBeInTheDocument();
   });
 
+  it('places "Recargar agenda" immediately before "Nuevo evento"', async () => {
+    renderPage();
+    await waitFor(() => {
+      const refresh = screen.getByRole('button', { name: /recarg(?:ar|ando) agenda/i });
+      const create = screen.getByRole('button', { name: 'Nuevo evento' });
+      const actionButtons = within(refresh.parentElement!).getAllByRole('button');
+
+      expect(actionButtons).toEqual([refresh, create]);
+    });
+  });
+
   it('(b) carga y muestra los eventos de la fixture', async () => {
     const user = userEvent.setup();
     renderPage();
