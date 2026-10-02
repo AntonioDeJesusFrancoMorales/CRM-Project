@@ -3,6 +3,7 @@ import { withDelay } from '@/mocks/utils/withDelay';
 import { errors } from '@/mocks/utils/error';
 import { nowIso } from '@/mocks/utils/crud';
 import { tareasFixture } from '@/mocks/fixtures/tareas';
+import { fichasFixture, tableroTareasFixture } from '@/mocks/fixtures/tableros';
 import type { Tarea } from '@/api/types';
 
 const API = '/api';
@@ -41,6 +42,18 @@ export const tareasHandlers = [
       actualizadoEn: nowIso(),
     };
     tareasFixture.push(tarea);
+    const columnaInicial = tableroTareasFixture.columnas[0];
+    if (columnaInicial) {
+      fichasFixture.push({
+        id: crypto.randomUUID(),
+        columnaId: columnaInicial.id,
+        tipoFicha: 'TAREA',
+        tratoId: null,
+        tareaId: tarea.id,
+        actualizadoEn: nowIso(),
+        etiquetas: [],
+      });
+    }
     return HttpResponse.json(tarea, { status: 201 });
   }),
 
