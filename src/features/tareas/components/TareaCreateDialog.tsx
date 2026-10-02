@@ -5,6 +5,8 @@
 // NO la crea para evitar duplicados. useCreateTarea invalida ['fichas'] tras crear.
 
 import { isHttpError } from '@/api/http-error';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
@@ -19,12 +21,16 @@ import {
 } from '../schemas/tarea.schema';
 import { useCreateTarea } from '../hooks/useCreateTarea';
 import { TareaForm } from './TareaForm';
+import { moveCreatedEntityFicha } from '@/features/kanban/lib/moveCreatedEntityFicha';
+import { fichasKeys } from '@/features/kanban/hooks/useFichas';
 
 interface TareaCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tratoIdFijo?: string;
   defaultValues?: Partial<TareaCreateInput>;
+  targetColumnId?: string;
+  targetColumnName?: string;
 }
 
 export function TareaCreateDialog({
@@ -32,8 +38,11 @@ export function TareaCreateDialog({
   onOpenChange,
   tratoIdFijo,
   defaultValues,
+  targetColumnId,
+  targetColumnName,
 }: TareaCreateDialogProps) {
   const mutation = useCreateTarea();
+  const queryClient = useQueryClient();
   const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
@@ -41,14 +50,24 @@ export function TareaCreateDialog({
       ? mutation.error.details
       : undefined;
 
-  function handleSubmit(values: TareaCreateInput) {
+  async function handleSubmit(values: TareaCreateInput) {
     if (!acquire()) return;
-    mutation.mutate(values, {
-      onSettled: (_data, error) => {
+    try {
+      const created = await mutation.mutateAsync(values);
+      if (targetColumnId) {
+        try {
+          await moveCreatedEntityFicha('TAREA', created.id, targetColumnId);
+          await queryClient.invalidateQueries({ queryKey: fichasKeys.all });
+        } catch {
+          toast.error('La tarea se creó, pero no fue posible colocarla en la columna seleccionada');
+        }
+      }
+      onOpenChange(false);
+    } catch {
+      // The mutation hook owns API error toasts and inline 422 errors.
+    } finally {
         release();
-        if (!error) onOpenChange(false);
-      },
-    });
+    }
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -69,6 +88,7 @@ export function TareaCreateDialog({
           <DialogTitle>Nueva tarea</DialogTitle>
           <DialogDescription>
             Registra una nueva actividad asociada a tu pipeline comercial.
+            {targetColumnName && ` Se agregará en la columna «${targetColumnName}».`}
           </DialogDescription>
         </DialogHeader>
         <TareaForm
