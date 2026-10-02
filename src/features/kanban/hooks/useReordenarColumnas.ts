@@ -24,10 +24,14 @@ interface ReordenarColumnasVars {
   idsActuales: string[];
 }
 
-export function useReordenarColumnas(): UseMutationResult<Tablero, Error, ReordenarColumnasVars> {
+interface ReordenarColumnasContext {
+  previousTablero: Tablero | undefined;
+}
+
+export function useReordenarColumnas(): UseMutationResult<Tablero, Error, ReordenarColumnasVars, ReordenarColumnasContext> {
   const queryClient = useQueryClient();
 
-  return useMutation<Tablero, Error, ReordenarColumnasVars>({
+  return useMutation<Tablero, Error, ReordenarColumnasVars, ReordenarColumnasContext>({
     mutationFn: ({ tableroId, nuevoOrden, idsActuales }) => {
       // Guard 1: lista vacía es inválida
       if (nuevoOrden.length === 0) {
@@ -66,11 +70,28 @@ export function useReordenarColumnas(): UseMutationResult<Tablero, Error, Reorde
         nuevoOrden,
       });
     },
+    onMutate: async ({ tableroId, nuevoOrden }) => {
+      await queryClient.cancelQueries({ queryKey: tablerosKeys.detail(tableroId) });
+      const previousTablero = queryClient.getQueryData<Tablero>(tablerosKeys.detail(tableroId));
+      if (previousTablero) {
+        const columnasById = new Map(previousTablero.columnas.map((columna) => [columna.id, columna]));
+        queryClient.setQueryData<Tablero>(tablerosKeys.detail(tableroId), {
+          ...previousTablero,
+          columnas: nuevoOrden
+            .map((id) => columnasById.get(id))
+            .filter((columna): columna is Tablero['columnas'][number] => columna !== undefined),
+        });
+      }
+      return { previousTablero };
+    },
     onSuccess: (_result, { tableroId }) => {
       void queryClient.invalidateQueries({ queryKey: tablerosKeys.detail(tableroId) });
       toast.success('Columnas reordenadas');
     },
-    onError: (error) => {
+    onError: (error, { tableroId }, context) => {
+      if (context?.previousTablero) {
+        queryClient.setQueryData(tablerosKeys.detail(tableroId), context.previousTablero);
+      }
       if (isHttpError(error)) {
         if (error.status === 422) return;
         toast.error(error.message);
