@@ -3,6 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { tratoSchema, tratoEditSchema } from '../schemas/trato.schema';
+import { getMexicoCityToday } from '@/lib/date';
 
 describe('tratoSchema — modelo unificado', () => {
   it('valida happy path completo con todos los campos opcionales presentes', () => {
@@ -13,7 +14,7 @@ describe('tratoSchema — modelo unificado', () => {
       tipoContrato: 'SERVICIO',
       valorEstimado: 50000,
       probabilidad: 70,
-      fechaCierreEsperada: '2026-06-30',
+      fechaCierreEsperada: getMexicoCityToday(),
     });
 
     expect(result.success).toBe(true);

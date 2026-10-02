@@ -14,11 +14,47 @@ import type { Trato, TratoCreatePayload } from '@/api/types';
 import { tratosKeys } from './useTratos';
 import { fichasKeys } from '@/features/kanban/hooks/useFichas';
 
+const inFlightTratoCreates = new Map<string, Promise<Trato>>();
+
+function canonicalizeTratoCreatePayload(payload: TratoCreatePayload): string {
+  return JSON.stringify({
+    contactoId: payload.contactoId,
+    responsableId: payload.responsableId,
+    nombre: payload.nombre,
+    valorEstimado: payload.valorEstimado ?? null,
+    probabilidad: payload.probabilidad ?? null,
+    fechaCierreEsperada: payload.fechaCierreEsperada ?? null,
+    tipoContrato: payload.tipoContrato,
+  });
+}
+
+function createTratoSingleFlight(payload: TratoCreatePayload): Promise<Trato> {
+  const key = canonicalizeTratoCreatePayload(payload);
+  const existingRequest = inFlightTratoCreates.get(key);
+  if (existingRequest) return existingRequest;
+
+  const request = apiClient.post<Trato>(endpoints.tratos.create(), payload);
+  inFlightTratoCreates.set(key, request);
+
+  // Remove both successful and failed requests, but never remove a newer request
+  // that might have reused the same key after this one settled.
+  void request.then(
+    () => {
+      if (inFlightTratoCreates.get(key) === request) inFlightTratoCreates.delete(key);
+    },
+    () => {
+      if (inFlightTratoCreates.get(key) === request) inFlightTratoCreates.delete(key);
+    },
+  );
+
+  return request;
+}
+
 export function useCreateTrato(): UseMutationResult<Trato, Error, TratoCreatePayload> {
   const queryClient = useQueryClient();
 
   return useMutation<Trato, Error, TratoCreatePayload>({
-    mutationFn: (payload) => apiClient.post<Trato>(endpoints.tratos.create(), payload),
+    mutationFn: createTratoSingleFlight,
     onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: tratosKeys.all });
       // El back creó la ficha asociada — refrescar el Kanban.

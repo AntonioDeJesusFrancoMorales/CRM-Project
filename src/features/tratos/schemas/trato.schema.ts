@@ -4,8 +4,9 @@
 
 import { z } from 'zod';
 import { requiredTrimmedName } from '@/lib/validation';
+import { getMexicoCityToday, isValidYmd } from '@/lib/date';
 
-export const tratoSchema = z.object({
+const tratoFields = z.object({
   contactoId: z.string().min(1, { message: 'El contacto es requerido' }),
   responsableId: z.string().min(1, { message: 'El responsable es requerido' }),
   nombre: requiredTrimmedName(200),
@@ -23,10 +24,31 @@ export const tratoSchema = z.object({
     .max(100, { message: 'Probabilidad máxima 100' })
     .nullable()
     .optional(),
-  fechaCierreEsperada: z.string().nullable().optional().or(z.literal('')),
+  fechaCierreEsperada: z
+    .string()
+    .refine((value) => value === '' || isValidYmd(value), 'La fecha de cierre no es válida')
+    .nullable()
+    .optional()
+    .or(z.literal('')),
 });
 
-export const tratoEditSchema = tratoSchema.omit({ contactoId: true });
+function refineFechaCierre(
+  values: { fechaCierreEsperada?: string | null },
+  ctx: z.RefinementCtx,
+): void {
+  const value = values.fechaCierreEsperada;
+  if (!value || !isValidYmd(value)) return;
+  if (value < getMexicoCityToday()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['fechaCierreEsperada'],
+      message: 'La fecha de cierre no puede ser anterior a hoy',
+    });
+  }
+}
+
+export const tratoSchema = tratoFields.superRefine(refineFechaCierre);
+export const tratoEditSchema = tratoFields.omit({ contactoId: true }).superRefine(refineFechaCierre);
 
 export type TratoCreateInput = z.infer<typeof tratoSchema>;
 export type TratoEditInput = z.infer<typeof tratoEditSchema>;

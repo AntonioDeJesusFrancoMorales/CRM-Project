@@ -102,4 +102,75 @@ describe('useCreateTrato', () => {
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tratos'] });
   });
+
+  it('deduplica creaciones idénticas en vuelo y permite reintentar después de un fallo', async () => {
+    let requestCount = 0;
+    let releaseFirstRequest!: () => void;
+    const firstRequestGate = new Promise<void>((resolve) => {
+      releaseFirstRequest = resolve;
+    });
+
+    server.use(
+      http.post('/api/tratos/create', async ({ request }) => {
+        requestCount += 1;
+        const body = (await request.json()) as Record<string, unknown>;
+
+        if (requestCount === 1) {
+          await firstRequestGate;
+          return HttpResponse.json({ error: 'CREATE_FAILED', message: 'Create failed' }, { status: 500 });
+        }
+
+        return HttpResponse.json(
+          {
+            id: 'retry-trato-id',
+            contactoId: body['contactoId'],
+            responsableId: body['responsableId'],
+            nombre: body['nombre'],
+            valorEstimado: null,
+            probabilidad: null,
+            fechaCierreEsperada: null,
+            tipoContrato: 'SERVICIO',
+            motivoPerdida: null,
+            creadoEn: '2026-05-24T00:00:00.000Z',
+            actualizadoEn: null,
+          },
+          { status: 201 },
+        );
+      }),
+    );
+
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => useCreateTrato(), { wrapper: Wrapper });
+    const payload: TratoCreatePayload = {
+      contactoId: 'c1111111-cccc-1111-cccc-111111111111',
+      responsableId: '11111111-1111-1111-1111-111111111111',
+      nombre: 'Concurrente',
+      valorEstimado: 50000,
+      probabilidad: 70,
+      fechaCierreEsperada: '2026-06-30',
+      tipoContrato: 'SERVICIO',
+    };
+
+    const firstAttempt = result.current.mutateAsync(payload);
+    const secondAttempt = result.current.mutateAsync({
+      tipoContrato: payload.tipoContrato,
+      fechaCierreEsperada: payload.fechaCierreEsperada,
+      probabilidad: payload.probabilidad,
+      nombre: payload.nombre,
+      responsableId: payload.responsableId,
+      valorEstimado: payload.valorEstimado,
+      contactoId: payload.contactoId,
+    });
+
+    await waitFor(() => expect(requestCount).toBe(1));
+    releaseFirstRequest();
+
+    const failedAttempts = await Promise.allSettled([firstAttempt, secondAttempt]);
+    expect(failedAttempts[0]?.status).toBe('rejected');
+    expect(failedAttempts[1]?.status).toBe('rejected');
+    expect(requestCount).toBe(1);
+
+    await expect(result.current.mutateAsync(payload)).resolves.toMatchObject({ id: 'retry-trato-id' });
+    expect(requestCount).toBe(2);
+  });
 });

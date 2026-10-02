@@ -11,7 +11,6 @@ import {
   LayoutGrid,
   Layers,
   List as ListIcon,
-  MoreVertical,
   PanelTopClose,
   PanelTopOpen,
   Plus,
@@ -24,9 +23,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { EstadoTrato, TipoContrato, Trato } from '@/api/types';
-import { isHttpError } from '@/api/http-error';
 import { Button } from '@/components/ui/button';
-import { RefreshIcon } from '@/components/shared/RefreshButton';
+import { RefreshButton, RefreshIcon } from '@/components/shared/RefreshButton';
 import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Dialog,
@@ -37,13 +35,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -69,6 +60,7 @@ import {
 } from '@/features/list-presets/lib/listPresets';
 import { useTratos, useTratosPage } from '../hooks/useTratos';
 import { useDeleteTrato } from '../hooks/useDeleteTrato';
+import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { TratosTable } from '../components/TratosTable';
@@ -84,6 +76,7 @@ import {
   type TratoFilters,
 } from '../lib/tratoFilters';
 import { tipoContratoLabels } from '../lib/tipoContrato';
+import { getTratoTaskConflictMessage } from '../lib/tratoDeletion';
 
 const PRESETS_STORAGE_KEY = 'crm:list-presets:tratos';
 
@@ -138,6 +131,7 @@ export function TratosListPage() {
 
   const { data: tratosPage, isLoading, isError, isFetching, refetch } = useTratosPage(paging.query);
   const { data: tratos } = useTratos();
+  const { data: tareas = [] } = useTareas();
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
   const deleteMutation = useDeleteTrato();
@@ -148,10 +142,9 @@ export function TratosListPage() {
     () => applyTratoFilters(tratos ?? [], filters),
     [tratos, filters],
   );
-  const tratosPagina = tratosPage?.items ?? [];
   const tratosLista = useMemo(
-    () => applyTratoFilters(tratosPagina, filters),
-    [tratosPagina, filters],
+    () => applyTratoFilters(tratosPage?.items ?? [], filters),
+    [tratosPage?.items, filters],
   );
   const filteredTratoIds = useMemo(
     () => filteredTratos.map((trato) => trato.id),
@@ -207,14 +200,19 @@ export function TratosListPage() {
     toast.success('Vista eliminada');
   }
 
+  function handleDeleteRequest(trato: Trato) {
+    const taskCount = tareas.filter((tarea) => tarea.tratoId === trato.id).length;
+    if (taskCount > 0) {
+      toast.error(getTratoTaskConflictMessage(taskCount));
+      return;
+    }
+    setDeleteTarget(trato);
+  }
+
   function handleConfirmDelete() {
     if (!deleteTarget || !acquire()) return;
     deleteMutation.mutate(deleteTarget.id, {
-      onError: (err) => {
-        // 409: el trato tiene tareas asociadas; mostramos el mensaje del back.
-        if (isHttpError(err) && err.status === 409) {
-          toast.error(err.message);
-        }
+      onError: () => {
         setDeleteTarget(null);
       },
       onSettled: (_data, error) => {
@@ -233,25 +231,15 @@ export function TratosListPage() {
           <p className="text-sm text-muted-foreground">Gestiona los tratos comerciales del CRM.</p>
         </div>
         <div className="flex items-center gap-2">
+          <RefreshButton
+            resourceLabel="tratos"
+            onRefresh={() => void refetch()}
+            isRefreshing={isFetching}
+          />
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nuevo trato
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Más acciones">
-                <MoreVertical className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuGroup>
-                <DropdownMenuItem disabled={isFetching} onClick={() => void refetch()}>
-                  <RefreshIcon isRefreshing={isFetching} className="mr-2" />
-                  {isFetching ? 'Recargando...' : 'Recargar'}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -583,7 +571,7 @@ export function TratosListPage() {
                 contactos={contactos}
                 usuarios={usuarios}
                 onEdit={(trato) => setEditTarget(trato)}
-                onDelete={(trato) => setDeleteTarget(trato)}
+                onDelete={handleDeleteRequest}
                 sort={paging.sort}
                 onSort={paging.setSort}
               />
