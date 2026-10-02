@@ -4,7 +4,7 @@
 //   - Fichas: draggable con data.type='ficha'; onDragEnd mueve fichas entre columnas.
 //   - Columnas: sortable con data.type='columna'; onDragEnd reordena columnas.
 // Agrupar fichas por columnaId, filtrar por tipoFicha (prop, default 'TRATO').
-// Orden dentro de cada columna: creadoEn ASC (estable, no reordenable).
+// Orden dentro de cada columna: actualizadoEn ASC (estable, no reordenable).
 //
 // buildDragEndHandler: función pura exportada para testeo aislado de lógica de fichas.
 // buildColumnReorderHandler: función pura exportada para testeo aislado de reorden de columnas.
@@ -14,7 +14,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import {
   DndContext,
+  DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
@@ -26,9 +28,11 @@ import {
 } from '@dnd-kit/sortable';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import type { Ficha, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { useMoverFicha, type MoverFichaVars } from '@/features/kanban/hooks/useMoverFicha';
 import { useReordenarColumnas } from '@/features/kanban/hooks/useReordenarColumnas';
 import { ArrastreRecienteContext } from './arrastreReciente';
+import { KanbanCardOverlay, type KanbanCardOverlayData } from './KanbanCard';
 import { KanbanColumn } from './KanbanColumn';
 
 // ---------------------------------------------------------------------------
@@ -123,6 +127,18 @@ interface KanbanBoardProps {
 export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', onAddColumn }: KanbanBoardProps) {
   const { mutate } = useMoverFicha();
   const { mutate: reordenarColumnas } = useReordenarColumnas();
+  const { acquire: acquireMove, release: releaseMove } = useSynchronousMutationLock();
+  const { acquire: acquireReorder, release: releaseReorder } = useSynchronousMutationLock();
+
+  function moveFicha(vars: MoverFichaVars) {
+    if (!acquireMove()) return;
+    mutate(vars, { onSettled: () => releaseMove() });
+  }
+
+  function reorderColumns(vars: { tableroId: string; nuevoOrden: string[]; idsActuales: string[] }) {
+    if (!acquireReorder()) return;
+    reordenarColumnas(vars, { onSettled: () => releaseReorder() });
+  }
 
   // Filtrar fichas por tipo (no hardcodear 'TRATO')
   const fichasFiltradas = fichas.filter((f) => f.tipoFicha === tipoFicha);
@@ -139,11 +155,11 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', 
     }
   }
 
-  const handleFichaDragEnd = buildDragEndHandler({ fichas: fichasFiltradas, mutate });
+  const handleFichaDragEnd = buildDragEndHandler({ fichas: fichasFiltradas, mutate: moveFicha });
   const handleColumnDragEnd = buildColumnReorderHandler({
     columnas,
     tableroId,
-    reordenar: reordenarColumnas,
+    reordenar: reorderColumns,
   });
 
   // Guarda click-vs-arrastre: tras soltar un arrastre el navegador dispara un click sobre
@@ -152,6 +168,7 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', 
   const arrastreRecienteRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [activeCard, setActiveCard] = useState<KanbanCardOverlayData | null>(null);
 
   function updateScrollHint() {
     const el = scrollRef.current;
@@ -190,6 +207,13 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', 
         arrastreRecienteRef.current = false;
       }, 250);
     }
+    setActiveCard(null);
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    if (event.active.data.current?.type !== 'ficha') return;
+    const card = event.active.data.current.card as KanbanCardOverlayData | undefined;
+    if (card) setActiveCard(card);
   }
 
   // Sensor con tolerancia de 5px para evitar drags accidentales en clicks
@@ -202,7 +226,12 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', 
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={() => {
+      onDragStart={(event) => {
+        arrastreRecienteRef.current = false;
+        handleDragStart(event);
+      }}
+      onDragCancel={() => {
+        setActiveCard(null);
         arrastreRecienteRef.current = false;
       }}
       onDragEnd={handleDragEndConGuard}
@@ -264,6 +293,9 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', 
           </div>
         </SortableContext>
       </ArrastreRecienteContext.Provider>
+      <DragOverlay dropAnimation={null}>
+        {activeCard ? <KanbanCardOverlay card={activeCard} /> : null}
+      </DragOverlay>
     </DndContext>
   );
 }

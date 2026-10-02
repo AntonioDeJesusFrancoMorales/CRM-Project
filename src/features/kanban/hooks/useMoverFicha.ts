@@ -17,7 +17,7 @@ export interface MoverFichaVars {
 }
 
 interface MoverFichaContext {
-  previousFichas: Ficha[] | undefined;
+  previousQueries: Array<[readonly unknown[], Ficha[] | undefined]>;
 }
 
 export function useMoverFicha(): UseMutationResult<Ficha, Error, MoverFichaVars, MoverFichaContext> {
@@ -33,20 +33,26 @@ export function useMoverFicha(): UseMutationResult<Ficha, Error, MoverFichaVars,
       await queryClient.cancelQueries({ queryKey: fichasKeys.all });
 
       // Snapshot del estado previo (para rollback)
-      const previousFichas = queryClient.getQueryData<Ficha[]>(fichasKeys.all);
+      const previousQueries = queryClient.getQueriesData<Ficha[]>({ queryKey: fichasKeys.all });
 
-      // Aplicar cambio optimista en cache
-      queryClient.setQueryData<Ficha[]>(fichasKeys.all, (old) =>
-        old?.map((f) => (f.id === id ? { ...f, columnaId: targetColumnaId } : f)) ?? [],
-      );
+      // Aplicar el cambio a cada lista visible, no solo a la query raíz.
+      for (const [queryKey, fichas] of previousQueries) {
+        if (!fichas) continue;
+        queryClient.setQueryData<Ficha[]>(
+          queryKey,
+          fichas.map((ficha) =>
+            ficha.id === id ? { ...ficha, columnaId: targetColumnaId } : ficha,
+          ),
+        );
+      }
 
-      return { previousFichas };
+      return { previousQueries };
     },
 
     // En caso de error: rollback al estado previo
     onError: (_error, _vars, context) => {
-      if (context?.previousFichas !== undefined) {
-        queryClient.setQueryData<Ficha[]>(fichasKeys.all, context.previousFichas);
+      for (const [queryKey, fichas] of context?.previousQueries ?? []) {
+        queryClient.setQueryData<Ficha[] | undefined>(queryKey, fichas);
       }
       if (isHttpError(_error)) {
         if (_error.status !== 422) {
@@ -60,6 +66,7 @@ export function useMoverFicha(): UseMutationResult<Ficha, Error, MoverFichaVars,
     // Tras éxito: invalidar para sincronizar con el servidor
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: fichasKeys.all });
+      toast.success('Ficha movida');
     },
   });
 }
