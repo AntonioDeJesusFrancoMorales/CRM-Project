@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
@@ -171,13 +172,18 @@ function renderBoard(
 
 describe('KanbanBoard — tableroId threading', () => {
   it('(f-tableroId) recibe tableroId como prop y lo pasa a cada KanbanColumn (los botones Quitar columna aparecen por columna PERSONALIZADA)', async () => {
+    const user = userEvent.setup();
     // COLUMNA_A y COLUMNA_B tienen ids que no existen en el catálogo fixture (col-a, col-b)
     // → esPredeterminada devuelve false → ambas son PERSONALIZADA → ambas muestran Trash2
     renderBoard([COLUMNA_A, COLUMNA_B], [], TABLERO_ID);
     // Esperar a que el catálogo cargue (async via MSW)
-    const quitarBtns = await screen.findAllByRole('button', { name: /quitar columna/i });
-    // Una por cada columna
-    expect(quitarBtns).toHaveLength(2);
+    const actionButtons = screen.getAllByRole('button', { name: /acciones de la columna/i });
+    for (const actionButton of actionButtons) {
+      await user.click(actionButton);
+      expect(await screen.findByRole('menuitem', { name: /eliminar columna/i })).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+    }
+    expect(actionButtons).toHaveLength(2);
   });
 });
 

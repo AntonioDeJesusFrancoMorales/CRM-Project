@@ -48,18 +48,20 @@ async function request<T>(method: Method, path: string, body?: unknown, retryAft
 
     if (res.status === 401) {
       // SINGLE RETRY: si todavía estamos autenticados y es el intento original, intentamos
-      // un refresh reactivo y reintentamos UNA vez (retryAfterRefresh=false). Si el refresh
-      // es imposible (refresh token vencido), cortamos la sesión. El reintento ya entra con
-      // retryAfterRefresh=false, así que jamás hay recursión más allá de un retry.
+      // un refresh reactivo. Solo las lecturas GET se reintentan UNA vez; las escrituras
+      // conservan el 401 original para nunca duplicar una operación no idempotente. Si el
+      // refresh es imposible (refresh token vencido), cortamos la sesión.
       if (retryAfterRefresh) {
         if (isKeycloakAuthenticated()) {
           const refreshed = await useAuthStore.getState().refreshKeycloakToken();
-          if (refreshed) {
+          if (refreshed && method === 'GET') {
             return request<T>(method, path, body, false);
           }
-        }
-        // Refresh imposible o sesión ausente: corte limpio e idempotente.
-        if (useAuthStore.getState().token !== null) {
+          if (!refreshed && useAuthStore.getState().token !== null) {
+            await useAuthStore.getState().handleSessionExpired();
+          }
+        } else if (useAuthStore.getState().token !== null) {
+          // Refresh imposible o sesión ausente: corte limpio e idempotente.
           await useAuthStore.getState().handleSessionExpired();
         }
       }

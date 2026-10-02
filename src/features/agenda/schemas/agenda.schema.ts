@@ -8,6 +8,7 @@
 // recordatorioHabilitado + minutosAntes; el estado del recordatorio es READ-ONLY.
 
 import { z } from 'zod';
+import { isValidYmd } from '@/lib/date';
 
 // ---------------------------------------------------------------------------
 // Enums confirmados contra Java (fuente de verdad)
@@ -21,22 +22,8 @@ export type TipoAgenda = z.infer<typeof tipoAgenda>;
 export const recordatorioEstado = z.enum(['PENDIENTE', 'ENVIADO', 'FALLIDO']);
 export type RecordatorioEstado = z.infer<typeof recordatorioEstado>;
 
-const MEXICO_CITY_TIME_ZONE = 'America/Mexico_City';
-
 function isValidAgendaDate(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
-
-  const [, year, month, day] = match;
-  const parsed = new Date(0);
-  parsed.setUTCFullYear(Number(year), Number(month) - 1, Number(day));
-  parsed.setUTCHours(0, 0, 0, 0);
-
-  return (
-    parsed.getUTCFullYear() === Number(year) &&
-    parsed.getUTCMonth() === Number(month) - 1 &&
-    parsed.getUTCDate() === Number(day)
-  );
+  return isValidYmd(value);
 }
 
 function isValidAgendaTime(value: string): boolean {
@@ -45,7 +32,7 @@ function isValidAgendaTime(value: string): boolean {
 
 function getMexicoCityCurrentDateTime(): { date: string; time: string } {
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: MEXICO_CITY_TIME_ZONE,
+    timeZone: 'America/Mexico_City',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

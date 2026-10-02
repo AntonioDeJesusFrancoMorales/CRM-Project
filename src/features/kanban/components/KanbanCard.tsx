@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { CalendarClock, GripVertical, MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { CalendarClock, GripVertical, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
@@ -64,17 +64,34 @@ interface KanbanCardProps {
    *  Cuando se provee, el área de contenido renderiza un Link para navegar al detalle.
    *  Sin to, la tarjeta no es navegable. */
   to?: string;
-  /** Ruta al chat del contacto (solo tratos con contacto). Añade "Abrir chat" al menú. */
-  chatTo?: string;
   empresaNombre?: string;
   responsableNombre?: string;
 }
 
-export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to, chatTo, empresaNombre, responsableNombre }: KanbanCardProps) {
+export interface KanbanCardOverlayData {
+  ficha: Ficha;
+  titulo: string;
+  detalles: KanbanCardDetalle[];
+  badge?: KanbanCardBadge;
+  etiquetas: KanbanCardEtiqueta[];
+  empresaNombre?: string;
+  responsableNombre?: string;
+}
+
+export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to, empresaNombre, responsableNombre }: KanbanCardProps) {
+  const overlayData: KanbanCardOverlayData = {
+    ficha,
+    titulo,
+    detalles,
+    badge,
+    etiquetas,
+    empresaNombre,
+    responsableNombre,
+  };
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
     // type: 'ficha' permite discriminar fichas vs columnas en el onDragEnd del DndContext
-    data: { type: 'ficha', ficha },
+    data: { type: 'ficha', ficha, card: overlayData },
   });
 
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -166,14 +183,6 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
                       </Link>
                     </DropdownMenuItem>
                   )}
-                {chatTo && (
-                  <DropdownMenuItem asChild>
-                    <Link to={chatTo}>
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Abrir chat
-                    </Link>
-                  </DropdownMenuItem>
-                )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -189,10 +198,16 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
         </div>
 
         {detalles.length > 0 && (
-          <div className="mt-2 flex items-baseline justify-between gap-2 pl-5">
-            <span className="text-sm font-semibold tabular-nums text-foreground">{detalles[0]?.value}</span>
-            {detalles[1] && <span className="text-xs font-medium tabular-nums text-muted-foreground">{detalles[1].value}</span>}
-          </div>
+          <dl className="mt-2 flex items-baseline justify-between gap-2 pl-5">
+            {detalles.slice(0, 2).map((detalle) => (
+              <div key={detalle.label} className="min-w-0">
+                <dt className="sr-only">{detalle.label}</dt>
+                <dd className="truncate text-sm font-semibold tabular-nums text-foreground">
+                  {detalle.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         )}
 
         {(badge || empresaNombre) && (
@@ -242,6 +257,56 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
         cantidadTareas={cantidadTareas}
       />
     </>
+  );
+}
+
+/** Static card used by DragOverlay; it never registers a second draggable. */
+export function KanbanCardOverlay({ card }: { card: KanbanCardOverlayData }) {
+  const { titulo, detalles, badge, empresaNombre, responsableNombre } = card;
+
+  return (
+    <div className="pointer-events-none w-72 rotate-1 rounded-lg border border-primary/40 bg-card p-3 shadow-2xl ring-2 ring-primary/20">
+      <div className="flex items-start gap-1.5">
+        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{titulo}</p>
+      </div>
+      {detalles.length > 0 && (
+        <dl className="mt-2 flex items-baseline justify-between gap-2 pl-5">
+          {detalles.slice(0, 2).map((detalle) => (
+            <div key={detalle.label} className="min-w-0">
+              <dt className="sr-only">{detalle.label}</dt>
+              <dd className="truncate text-sm font-semibold tabular-nums text-foreground">
+                {detalle.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {(badge || empresaNombre) && (
+        <div className="mt-2 flex items-center gap-2 pl-5">
+          {badge && (
+            <span className={cn('inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset', badge.classes)}>
+              {badge.text}
+            </span>
+          )}
+          {empresaNombre && <span className="truncate text-xs text-muted-foreground">{empresaNombre}</span>}
+        </div>
+      )}
+      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5 pl-5">
+        <div className="inline-flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+          <CalendarClock className="h-3.5 w-3.5" />
+          {detalles[2]?.value ?? 'Sin fecha'}
+        </div>
+        {responsableNombre && (
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+              {initials(responsableNombre)}
+            </span>
+            <span className="truncate text-xs font-medium text-foreground">{responsableNombre}</span>
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 

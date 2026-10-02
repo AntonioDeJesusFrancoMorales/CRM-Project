@@ -213,6 +213,7 @@ describe('KanbanPage — ver tablero', () => {
 
 describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna', () => {
   it('(g) pasa tableroId al KanbanBoard (botones "Quitar columna" visibles por columna)', async () => {
+    const user = userEvent.setup();
     const tableroId = tableroTratosFixture.id;
     renderDetailPage(`/tableros/${tableroId}`);
 
@@ -221,10 +222,14 @@ describe('KanbanPage — Batch 5 / Fase 3: tableroId threading + Nueva columna',
       expect(screen.getByText('Por contactar')).toBeInTheDocument();
     });
 
-    // Si tableroId fue threadeado, KanbanColumn renderiza botones "Quitar columna"
-    // El fixture tiene 4 columnas → 4 botones
-    const quitarBtns = screen.getAllByRole('button', { name: /quitar columna/i });
-    expect(quitarBtns.length).toBeGreaterThanOrEqual(1);
+    const actionButtons = screen.getAllByRole('button', { name: /acciones de la columna/i });
+    let deleteActions = 0;
+    for (const actionButton of actionButtons) {
+      await user.click(actionButton);
+      if (screen.queryByRole('menuitem', { name: /eliminar columna/i })) deleteActions += 1;
+      await user.keyboard('{Escape}');
+    }
+    expect(deleteActions).toBeGreaterThanOrEqual(1);
   });
 
   it('(h) UI "Nueva columna" — el botón está presente en el header', async () => {

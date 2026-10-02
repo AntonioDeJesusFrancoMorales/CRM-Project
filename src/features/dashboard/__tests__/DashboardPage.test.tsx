@@ -108,6 +108,7 @@ describe('DashboardPage', () => {
     expect(close).toHaveTextContent('70%');
     expect(close).toHaveTextContent('$250,000');
 
+    await screen.findByRole('link', { name: /demo presencial con cto/i });
     const actionLinks = screen
       .getAllByRole('link')
       .filter((link) => link.getAttribute('href')?.startsWith('/tareas/'));

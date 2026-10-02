@@ -10,18 +10,30 @@ export function listItems<T>(value: ListResponse<T>): T[] {
   return isPageResponse(value) ? value.items : value;
 }
 
+export interface ToPageResponseOptions<T> {
+  /** Applies the requested ordering before local pagination or to server items. */
+  sortItems?: (items: T[]) => T[];
+}
+
 export function toPageResponse<T>(
   value: ListResponse<T>,
   page: number,
   pageSize: number,
+  options?: ToPageResponseOptions<T>,
 ): PageResponse<T> {
-  if (isPageResponse(value)) return value;
+  if (isPageResponse(value)) {
+    return options?.sortItems
+      ? { ...value, items: options.sortItems(value.items) }
+      : value;
+  }
+
+  const sortedValue = options?.sortItems ? options.sortItems(value) : value;
   const start = page * pageSize;
-  const items = value.slice(start, start + pageSize);
-  const totalPages = value.length === 0 ? 0 : Math.ceil(value.length / pageSize);
+  const items = sortedValue.slice(start, start + pageSize);
+  const totalPages = sortedValue.length === 0 ? 0 : Math.ceil(sortedValue.length / pageSize);
   return {
     items,
-    totalItems: value.length,
+    totalItems: sortedValue.length,
     page,
     pageSize,
     totalPages,

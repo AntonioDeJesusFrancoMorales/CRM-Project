@@ -715,7 +715,7 @@ describe('useQuitarColumna', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(toastErrorSpy).toHaveBeenCalledWith(
-      'La columna tiene fichas; muévelas o elimínalas antes de quitarla',
+      'La columna tiene fichas; muévelas o elimínalas antes de eliminarla',
     );
   });
 
