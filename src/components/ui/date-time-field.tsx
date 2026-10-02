@@ -126,10 +126,11 @@ interface DatePickerProps
   value: string | null;
   onChange: (value: string) => void;
   placeholder?: string;
+  minDate?: string;
 }
 
 export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
-  ({ value, onChange, placeholder = 'Elegí una fecha', className, disabled, ...props }, ref) => {
+  ({ value, onChange, placeholder = 'Elegí una fecha', minDate, className, disabled, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
     const [dropUp, setDropUp] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -192,6 +193,7 @@ export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
           >
             <Calendar
               selected={selected}
+              isDateDisabled={minDate ? (date) => formatYmd(date) < minDate : undefined}
               onSelect={(date) => {
                 onChange(formatYmd(date));
                 setOpen(false);

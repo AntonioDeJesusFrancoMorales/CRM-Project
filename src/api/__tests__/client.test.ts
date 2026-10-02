@@ -1,12 +1,14 @@
 // Test de apiClient.put — verifica que emite PUT con body correcto.
 // Usa un handler MSW ad-hoc (server.use) para interceptar la petición.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { server } from '@/test/server';
 import { http, HttpResponse } from 'msw';
 import { apiClient } from '@/api/client';
 import { HttpError } from '@/api/http-error';
+import { keycloak } from '@/lib/keycloak';
+import { useAuthStore } from '@/store/authStore';
 
 describe('apiClient.put', () => {
   it('emite PUT /api/empresas/edit?id=e1 con el body correcto', async () => {
@@ -79,6 +81,45 @@ describe('apiClient — mutaciones explícitas', () => {
 });
 
 describe('apiClient — manejo de errores de autorización', () => {
+  it('no reintenta un POST 401 aunque el refresh reactivo sea exitoso', async () => {
+    let calls = 0;
+    const initialToken = useAuthStore.getState().token;
+    const initialUsuario = useAuthStore.getState().usuario;
+    const initialIsLoggingOut = useAuthStore.getState().isLoggingOut;
+    const initialRefresh = useAuthStore.getState().refreshKeycloakToken;
+    const initialAuthenticated = keycloak.authenticated;
+    const initialKeycloakToken = keycloak.token;
+    const refreshKeycloakToken = vi.fn(async () => true);
+
+    keycloak.authenticated = true;
+    keycloak.token = 'expired-token';
+    useAuthStore.setState({ token: 'expired-token', refreshKeycloakToken });
+
+    server.use(
+      http.post('/api/tratos/create', () => {
+        calls += 1;
+        return HttpResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+      }),
+    );
+
+    try {
+      await expect(apiClient.post('/tratos/create', { nombre: 'Ana' })).rejects.toMatchObject({
+        status: 401,
+      });
+      expect(calls).toBe(1);
+      expect(refreshKeycloakToken).toHaveBeenCalledTimes(2);
+    } finally {
+      keycloak.authenticated = initialAuthenticated;
+      keycloak.token = initialKeycloakToken;
+      useAuthStore.setState({
+        token: initialToken,
+        usuario: initialUsuario,
+        isLoggingOut: initialIsLoggingOut,
+        refreshKeycloakToken: initialRefresh,
+      });
+    }
+  });
+
   it('propaga HttpError honesto ante 403 (sin desloguear ni mensaje de rol)', async () => {
     server.use(
       http.get('/api/empresas', () =>

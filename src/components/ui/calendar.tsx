@@ -9,6 +9,8 @@ interface CalendarProps {
   selected?: Date | null;
   /** Se dispara al hacer clic en un día. */
   onSelect: (date: Date) => void;
+  /** Prevents selecting dates that are not valid for the current form. */
+  isDateDisabled?: (date: Date) => boolean;
   className?: string;
 }
 
@@ -28,7 +30,7 @@ function sameYmd(a: Date, b: Date): boolean {
  * Calendario de un mes, hecho a mano (sin dependencias externas).
  * Navegación por mes con chevrons; grilla de 6 semanas para altura estable.
  */
-export function Calendar({ selected, onSelect, className }: CalendarProps) {
+export function Calendar({ selected, onSelect, isDateDisabled, className }: CalendarProps) {
   const today = React.useMemo(() => new Date(), []);
   const [viewMonth, setViewMonth] = React.useState<Date>(() =>
     startOfMonth(selected ?? today),
@@ -110,18 +112,22 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
           if (!date) return <div key={i} className="h-8 w-8" />;
           const isSelected = selected != null && sameYmd(date, selected);
           const isToday = sameYmd(date, today);
+          const isDisabled = isDateDisabled?.(date) ?? false;
           return (
             <button
               key={i}
               type="button"
               aria-label={formatYmd(date)}
               aria-pressed={isSelected}
+              aria-disabled={isDisabled}
+              disabled={isDisabled}
               onClick={() => onSelect(date)}
               className={cn(
                 'flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring',
                 isSelected
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                   : 'hover:bg-accent hover:text-accent-foreground',
+                isDisabled && 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-inherit',
                 !isSelected && isToday && 'border border-input font-medium',
               )}
             >
