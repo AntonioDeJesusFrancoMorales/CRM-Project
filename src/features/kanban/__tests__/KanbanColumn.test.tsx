@@ -105,6 +105,11 @@ function renderColumn(
   );
 }
 
+async function openActions(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /acciones de la columna/i }));
+  await screen.findByRole('menu');
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -219,31 +224,35 @@ describe('KanbanColumn — fichas children', () => {
 // ---------------------------------------------------------------------------
 
 describe('KanbanColumn — botón "+" y FichaCreateDialog', () => {
-  it('(m) header muestra botón "+"', () => {
+  it('(m) el menú de acciones muestra la opción para agregar una ficha', async () => {
+    const user = userEvent.setup();
     renderColumn(COL_BASE);
-    expect(screen.getByRole('button', { name: /nueva ficha/i })).toBeInTheDocument();
+    await openActions(user);
+    expect(screen.getByRole('menuitem', { name: /agregar trato/i })).toBeInTheDocument();
   });
 
   it('(n) clic en "+" abre FichaCreateDialog con columnaId de la columna precargado', async () => {
     const user = userEvent.setup();
     renderColumn(COL_BASE);
 
-    const addBtn = screen.getByRole('button', { name: /nueva ficha/i });
-    await user.click(addBtn);
+    await openActions(user);
+    await user.click(screen.getByRole('menuitem', { name: /agregar trato/i }));
 
     // El dialog se abre y muestra el título
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText(/nueva ficha/i)).toBeInTheDocument();
+    expect(screen.getByText(/nuevo trato/i)).toBeInTheDocument();
   });
 });
 
 describe('KanbanColumn — botón "Quitar columna" (condicional: solo PERSONALIZADA)', () => {
   it('(o) columna PERSONALIZADA muestra botón "Quitar columna"', async () => {
+    const user = userEvent.setup();
     // COL_PERSONALIZADA tiene id de "En negociación" → tipoColumna: PERSONALIZADA en el fixture
     renderColumn(COL_PERSONALIZADA);
+    await openActions(user);
     // El catálogo se carga de forma async — esperamos que el botón aparezca
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /quitar columna/i })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: /eliminar columna/i })).toBeInTheDocument();
     });
   });
 
@@ -264,8 +273,8 @@ describe('KanbanColumn — botón "Quitar columna" (condicional: solo PERSONALIZ
 
     renderColumn(COL_PERSONALIZADA, [], TABLERO_ID);
 
-    // Esperar que el catálogo cargue y el botón aparezca
-    const quitarBtn = await screen.findByRole('button', { name: /quitar columna/i });
+    await openActions(user);
+    const quitarBtn = await screen.findByRole('menuitem', { name: /eliminar columna/i });
     await user.click(quitarBtn);
 
     await waitFor(() => {
@@ -288,7 +297,8 @@ describe('KanbanColumn — botón "Quitar columna" (condicional: solo PERSONALIZ
 
     renderColumn(COL_PERSONALIZADA, [], TABLERO_ID);
 
-    const quitarBtn = await screen.findByRole('button', { name: /quitar columna/i });
+    await openActions(user);
+    const quitarBtn = await screen.findByRole('menuitem', { name: /eliminar columna/i });
     await user.click(quitarBtn);
 
     // El hook maneja el 409 con toast.error — verificamos que el botón queda habilitado
@@ -670,35 +680,42 @@ describe('KanbanColumn — Cambio 2: datos adicionales tarjeta TAREA', () => {
 
 describe('KanbanColumn — Fase 4: botón Pencil siempre visible', () => {
   it('(z6) columna PREDETERMINADA muestra el botón "Editar columna" (lápiz)', async () => {
+    const user = userEvent.setup();
     // COL_BASE id = porContactar → PREDETERMINADA en el catálogo fixture
     renderColumn(COL_BASE);
-    // El botón está en el DOM desde el primer render (no depende del catálogo)
-    expect(screen.getByRole('button', { name: /editar columna/i })).toBeInTheDocument();
+    await openActions(user);
+    expect(screen.getByRole('menuitem', { name: /editar columna/i })).toBeInTheDocument();
   });
 
   it('(z7) columna PERSONALIZADA también muestra el botón "Editar columna" (lápiz)', async () => {
+    const user = userEvent.setup();
     renderColumn(COL_PERSONALIZADA);
-    expect(screen.getByRole('button', { name: /editar columna/i })).toBeInTheDocument();
+    await openActions(user);
+    expect(screen.getByRole('menuitem', { name: /editar columna/i })).toBeInTheDocument();
   });
 });
 
 describe('KanbanColumn — Fase 4: Trash2 condicional según tipoColumna', () => {
   it('(z8) columna PREDETERMINADA NO muestra el botón "Quitar columna"', async () => {
+    const user = userEvent.setup();
     // COL_BASE tiene id de "Por contactar" → PREDETERMINADA en el catálogo fixture.
     // El catálogo se carga async (MSW); al inicio catalogo=[] → esPredeterminada=false → Trash2 visible.
     // Una vez que carga, esPredeterminada=true → Trash2 desaparece.
     // Esperamos a que el Trash2 desaparezca (catálogo cargado).
     renderColumn(COL_BASE);
+    await openActions(user);
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /quitar columna/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: /eliminar columna/i })).not.toBeInTheDocument();
     });
   });
 
   it('(z9) columna PERSONALIZADA SÍ muestra el botón "Quitar columna"', async () => {
+    const user = userEvent.setup();
     // COL_PERSONALIZADA tiene id de "En negociación" → PERSONALIZADA en el catálogo fixture
     renderColumn(COL_PERSONALIZADA);
+    await openActions(user);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /quitar columna/i })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: /eliminar columna/i })).toBeInTheDocument();
     });
   });
 });
@@ -708,8 +725,8 @@ describe('KanbanColumn — Fase 4: botón Pencil abre ColumnaEditDialog', () => 
     const user = userEvent.setup();
     renderColumn(COL_BASE);
 
-    const editBtn = screen.getByRole('button', { name: /editar columna/i });
-    await user.click(editBtn);
+    await openActions(user);
+    await user.click(screen.getByRole('menuitem', { name: /editar columna/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -721,7 +738,8 @@ describe('KanbanColumn — Fase 4: botón Pencil abre ColumnaEditDialog', () => 
     const user = userEvent.setup();
     renderColumn(COL_BASE);
 
-    await user.click(screen.getByRole('button', { name: /editar columna/i }));
+    await openActions(user);
+    await user.click(screen.getByRole('menuitem', { name: /editar columna/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
