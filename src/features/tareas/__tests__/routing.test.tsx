@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router';
 
@@ -108,6 +109,8 @@ describe('Routing tareas', () => {
         <Route path="/tareas" element={<TareasListPage />} />
       </Routes>,
     );
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /mostrar filtros/i }));
 
     // Esperar que la página cargue y que el trigger del Select de responsable
     // muestre el nombre del usuario una vez que los usuarios del fixture estén disponibles.

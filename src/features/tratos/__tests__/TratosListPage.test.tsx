@@ -70,6 +70,22 @@ function renderPageWithLocation(initialEntry = '/tratos') {
   );
 }
 
+async function openFilters(user: ReturnType<typeof userEvent.setup>) {
+  const toggle = screen.getByRole('button', { name: /mostrar filtros/i });
+  await user.click(toggle);
+  await waitFor(() => expect(toggle).toHaveAttribute('aria-expanded', 'true'));
+}
+
+function expectCount(text: string) {
+  expect(
+    screen.getByText(
+      (_, element) =>
+        element?.tagName === 'P' &&
+        element.textContent?.replace(/\s+/g, ' ').includes(text) === true,
+    ),
+  ).toBeInTheDocument();
+}
+
 beforeEach(() => {
   localStorage.removeItem(PRESETS_STORAGE_KEY);
   vi.restoreAllMocks();
@@ -184,6 +200,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
     );
 
+    await openFilters(user);
     await user.click(screen.getByRole('combobox', { name: /estado/i }));
     await user.click(await screen.findByRole('option', { name: /perdido/i }));
 
@@ -191,7 +208,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
       expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
     );
     expect(screen.getByText('Automatización logística Maya')).toBeInTheDocument();
-    expect(screen.getByText(/mostrando 1 de 5 tratos/i)).toBeInTheDocument();
+    expectCount('Mostrando 1 de 5 tratos');
   });
 
   it('filtro responsable aplica client-side sin refetch ni query params', async () => {
@@ -212,6 +229,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
     await waitFor(() => expect(requestCount).toBeGreaterThan(0));
     const initialCount = requestCount;
 
+    await openFilters(user);
     await user.click(screen.getByRole('combobox', { name: /responsable/i }));
     await user.click(await screen.findByRole('option', { name: /antonio franco/i }));
 
@@ -231,6 +249,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
     );
 
+    await openFilters(user);
     await user.type(screen.getByPlaceholderText(/buscar por nombre/i), 'maya');
     await waitFor(() =>
       expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
@@ -261,6 +280,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
   });
 
   it('storage corrupto de presets no rompe la página', async () => {
+    const user = userEvent.setup();
     localStorage.setItem(PRESETS_STORAGE_KEY, '{bad-json');
 
     renderPage('/tratos?tab=lista');
@@ -268,6 +288,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
     await waitFor(() =>
       expect(screen.getByText('Implementación CRM Innovatech')).toBeInTheDocument(),
     );
+    await openFilters(user);
     expect(screen.getByRole('combobox', { name: /vistas guardadas/i })).toBeInTheDocument();
   });
 
@@ -287,13 +308,14 @@ describe('TratosListPage — filtros avanzados y presets', () => {
     );
     expect(screen.getByText('Consultoría procesos Maya')).toBeInTheDocument();
 
+    await openFilters(user);
     await user.type(screen.getByPlaceholderText(/buscar por nombre/i), 'maya');
 
     await waitFor(() =>
       expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
     );
     expect(screen.getByText('Consultoría procesos Maya')).toBeInTheDocument();
-    expect(screen.getByText(/mostrando 2 de 5 tratos/i)).toBeInTheDocument();
+    expectCount('Mostrando 2 de 5 tratos');
   });
 });
 

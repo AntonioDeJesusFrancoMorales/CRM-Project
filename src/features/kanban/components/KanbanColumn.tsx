@@ -6,7 +6,7 @@
 // Muestra: nombre (fallback 'Sin nombre'), contador fichas, indicador limiteWip,
 //          indicador WIP superado. El badge de estado de columna se omite en AMBOS tipos
 //          (TRATO y TAREA): el nombre de la columna ya comunica el estado (decisión de UX).
-// Orden de fichas: creadoEn ASC (orden estable derivado del back).
+// Orden de fichas: actualizadoEn ASC (orden estable derivado del back).
 // Prop tipoFicha: discrimina badge dual y resolución de datos de cada ficha.
 //   - 'TRATO' (default): badge estadoTrato; resuelve trato.nombre, valorEstimado, probabilidad, fechaCierreEsperada
 //                        + muestra total derivado (suma valorEstimado de fichas de la columna)
@@ -22,8 +22,9 @@ import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { MoreHorizontal, Trash2, Pencil, GripVertical, Trophy, XCircle } from 'lucide-react';
+import { MoreHorizontal, Trash2, Pencil, GripVertical, Trophy, XCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +47,8 @@ import { useEtiquetas } from '@/features/etiquetas/hooks/useEtiquetas';
 import { TIPO_TAREA_OPTIONS, PRIORIDAD_OPTIONS } from '@/features/tareas/schemas/tarea.schema';
 import { formatCompactCurrency, formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { FichaCreateDialog } from './FichaCreateDialog';
+import { TratoCreateDialog } from '@/features/tratos/components/TratoCreateDialog';
+import { TareaCreateDialog } from '@/features/tareas/components/TareaCreateDialog';
 import { ColumnaEditDialog } from './ColumnaEditDialog';
 import { KanbanCard } from './KanbanCard';
 import type { KanbanCardDetalle, KanbanCardBadge, KanbanCardEtiqueta } from './KanbanCard';
@@ -161,6 +163,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const { mutate: quitarColumna, isPending: isQuitando } = useQuitarColumna();
+  const { acquire: acquireDelete, release: releaseDelete, isLocked: deleteLocked } = useSynchronousMutationLock();
 
   // Derivar si la columna es PREDETERMINADA para mostrar/ocultar el Trash2
   const { data: catalogo = [] } = useColumnas();
@@ -207,8 +210,12 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
   const wipAdvertencia =
     columna.limiteWip !== null && fichas.length >= Math.ceil(columna.limiteWip * 0.75);
 
-  function handleQuitarColumna() {
-    quitarColumna({ tableroId, columnaId: columna.id });
+  function handleEliminarColumna() {
+    if (predeterminada || fichas.length > 0 || isQuitando || !acquireDelete()) return;
+    quitarColumna(
+      { tableroId, columnaId: columna.id },
+      { onSettled: () => releaseDelete() },
+    );
   }
 
   // Resolver título, detalles, badge y to de cada ficha según tipoFicha
@@ -217,7 +224,6 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     detalles: KanbanCardDetalle[];
     badge: KanbanCardBadge | undefined;
     to: string | undefined;
-    chatTo: string | undefined;
     empresaNombre: string | undefined;
     responsableNombre: string | undefined;
   } {
@@ -248,7 +254,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       // Solo navegar si hay tareaId válido
       const to = ficha.tareaId ? `/tareas/${ficha.tareaId}` : undefined;
 
-      return { titulo, detalles, badge, to, chatTo: undefined, empresaNombre: undefined, responsableNombre: undefined };
+       return { titulo, detalles, badge, to, empresaNombre: undefined, responsableNombre: undefined };
     }
 
     // TRATO (default)
@@ -280,15 +286,11 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
 
     // Solo navegar si hay tratoId válido
     const to = ficha.tratoId ? `/tratos/${ficha.tratoId}` : undefined;
-    // Atajo al chat del contacto del trato (best-effort: lo resuelve WhatsappChatPage).
-    const chatTo = trato?.contactoId ? `/whatsapp?contacto=${trato.contactoId}` : undefined;
-
     return {
       titulo,
       detalles,
       badge,
       to,
-      chatTo,
       empresaNombre: empresa?.nombre,
       responsableNombre: responsable?.nombre,
     };
@@ -347,8 +349,12 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
             </span>
           </div>
         {totalDerivado !== null && (
-          <span data-testid="columna-total-derivado" className="mr-1 hidden text-xs tabular-nums text-muted-foreground sm:inline">
-            {formatCompactCurrency(totalDerivado)}
+          <span
+            data-testid="columna-total-derivado"
+            className="mr-1 hidden text-xs tabular-nums text-muted-foreground sm:inline"
+            aria-label={`Total estimado: ${formatCompactCurrency(totalDerivado)}`}
+          >
+            Total: {formatCompactCurrency(totalDerivado)}
           </span>
         )}
         <DropdownMenu>
@@ -359,17 +365,36 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => setCreateOpen(true)}>Agregar trato</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+             <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+               <Plus className="mr-2 h-4 w-4" />
+               {tipoFicha === 'TAREA' ? 'Agregar tarea' : 'Agregar trato'}
+             </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => setEditOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
-                Renombrar columna
+                 Editar columna
               </DropdownMenuItem>
-              {!predeterminada && (
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleQuitarColumna} disabled={isQuitando}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Ocultar columna
-                </DropdownMenuItem>
-              )}
+               {!predeterminada && (fichas.length > 0 ? (
+                 <span title="No se puede eliminar hasta que la columna no tenga fichas">
+                   <DropdownMenuItem
+                     className="text-destructive focus:text-destructive"
+                     disabled
+                     aria-label="Eliminar columna; primero mueve sus fichas"
+                   >
+                     <Trash2 className="mr-2 h-4 w-4" />
+                     Eliminar columna
+                   </DropdownMenuItem>
+                 </span>
+               ) : (
+                 <DropdownMenuItem
+                   className="text-destructive focus:text-destructive"
+                   onClick={handleEliminarColumna}
+                   disabled={isQuitando || deleteLocked}
+                   aria-label="Eliminar columna"
+                 >
+                   <Trash2 className="mr-2 h-4 w-4" />
+                   Eliminar columna
+                 </DropdownMenuItem>
+               ))}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -419,7 +444,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           </p>
         ) : (
           sortedFichas.map((ficha) => {
-            const { titulo, detalles, badge, to, chatTo, empresaNombre, responsableNombre } = resolveCardProps(ficha);
+            const { titulo, detalles, badge, to, empresaNombre, responsableNombre } = resolveCardProps(ficha);
             return (
               <KanbanCard
                 key={ficha.id}
@@ -429,7 +454,6 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
                 badge={badge}
                 etiquetas={resolveEtiquetas(ficha)}
                 to={to}
-                chatTo={chatTo}
                 empresaNombre={empresaNombre}
                 responsableNombre={responsableNombre}
               />
@@ -438,13 +462,22 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
         )}
       </div>
 
-      {/* FichaCreateDialog — abierto desde el botón "+" */}
-      <FichaCreateDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        columnaId={columna.id}
-        tipoFicha={tipoFicha}
-      />
+      {/* Entity creation — the backend creates the ficha; the dialog moves it here afterward. */}
+      {tipoFicha === 'TAREA' ? (
+        <TareaCreateDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          targetColumnId={columna.id}
+          targetColumnName={nombre}
+        />
+      ) : (
+        <TratoCreateDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          targetColumnId={columna.id}
+          targetColumnName={nombre}
+        />
+      )}
 
       {/* ColumnaEditDialog — abierto desde el botón lápiz */}
       <ColumnaEditDialog

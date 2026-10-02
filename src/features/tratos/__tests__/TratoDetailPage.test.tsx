@@ -117,7 +117,9 @@ describe('TratoDetailPage', () => {
       ).toBeInTheDocument(),
     );
 
-    await waitFor(() => expect(screen.getByText('2')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId('badge-pendientes')).toHaveTextContent('2 pendientes'),
+    );
   });
 
   // ── (f) Badge oculto cuando count = 0 ─────────────────────────────────────

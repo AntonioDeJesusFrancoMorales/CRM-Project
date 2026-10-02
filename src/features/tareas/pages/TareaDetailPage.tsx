@@ -90,7 +90,7 @@ export function TareaDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6" aria-busy="true" aria-label="Cargando tarea">
+      <div className="space-y-6 px-4 py-4 sm:px-6 lg:px-8" aria-busy="true" aria-label="Cargando tarea">
         <div className="flex items-start gap-3">
           <Skeleton className="h-9 w-9 rounded-md" />
           <div className="space-y-2">
@@ -123,6 +123,7 @@ export function TareaDetailPage() {
 
   if (error || !tarea || !id) {
     return (
+      <div className="px-4 py-4 sm:px-6 lg:px-8">
       <Card>
         <CardContent className="space-y-4 py-12 text-center">
           <p className="text-sm text-destructive">No fue posible cargar la tarea.</p>
@@ -131,6 +132,7 @@ export function TareaDetailPage() {
           </Button>
         </CardContent>
       </Card>
+      </div>
     );
   }
 
@@ -138,7 +140,7 @@ export function TareaDetailPage() {
   const workflowState = workflowByTareaId[tarea.id];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-4 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <Button
