@@ -1,6 +1,6 @@
 # Checklist QA manual — Tratos
 
-Fecha: 2026-10-01  
+Fecha: 2026-10-01
 Ambiente: `[ ] MSW` `[x] backend real`
 
 Lista breve para revisar la pestaña **Tratos** según la implementación actual. `[x]` indica un comportamiento respaldado por código, tests o revisión del flujo; `[Revisar]` queda pendiente o no está definido en esta pantalla. Si se encuentra una diferencia, anotarla en **Observaciones**.
