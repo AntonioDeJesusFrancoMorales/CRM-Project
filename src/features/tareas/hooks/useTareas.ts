@@ -6,6 +6,7 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { listItems, toPageResponse, type ListResponse } from '@/api/pagination';
 import type { ListQueryOptions, PageResponse, PrioridadTarea, TipoTarea, Tarea } from '@/api/types';
+import { sortNullableLast } from '@/components/shared/listPaging';
 
 export interface UseTareasFilters {
   trato_id?: string;
@@ -25,6 +26,21 @@ export const tareasKeys = {
 };
 
 type TareaListQuery = Partial<UseTareasFilters> & { search?: string; responsableId?: string; tratoId?: string } & ListQueryOptions;
+
+function sortTareas(items: Tarea[], sortBy?: string, direction?: 'asc' | 'desc'): Tarea[] {
+  if (!sortBy || !direction) return items;
+
+  const getters: Record<string, (tarea: Tarea) => string | number | null | undefined> = {
+    titulo: (tarea) => tarea.titulo,
+    tipo: (tarea) => tarea.tipo,
+    prioridad: (tarea) => tarea.prioridad,
+    fechaLimite: (tarea) => tarea.fechaLimite,
+    creadoEn: (tarea) => tarea.creadoEn,
+    actualizadoEn: (tarea) => tarea.actualizadoEn,
+  };
+  const getValue = getters[sortBy];
+  return getValue ? sortNullableLast(items, getValue, direction) : items;
+}
 
 function toApiFilters(filters?: TareaListQuery) {
   return {
@@ -55,6 +71,7 @@ export function useTareasPage(filters: TareaListQuery): UseQueryResult<PageRespo
       await apiClient.get<ListResponse<Tarea>>(endpoints.tareas.getAll(toApiFilters(filters))),
       filters.page ?? 0,
       filters.pageSize ?? 25,
+      { sortItems: (items) => sortTareas(items, filters.sortBy, filters.sortDirection) },
     ),
   });
 }

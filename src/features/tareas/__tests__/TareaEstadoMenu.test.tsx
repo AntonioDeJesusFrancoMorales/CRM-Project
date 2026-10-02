@@ -81,7 +81,10 @@ describe('TareaEstadoMenu — Kanban workflow', () => {
     await openMenu(user);
     await user.click(screen.getByRole('menuitem', { name: /mover a en curso/i }));
 
-    expect(mutateMock).toHaveBeenCalledWith({ id: 'ficha-1', targetColumnaId: 'col-en-curso' });
+    expect(mutateMock).toHaveBeenCalledWith(
+      { id: 'ficha-1', targetColumnaId: 'col-en-curso' },
+      expect.objectContaining({ onSettled: expect.any(Function) }),
+    );
     expect(localStorage.getItem(`tarea-estado-${TAREA.id}`)).toBeNull();
   });
 

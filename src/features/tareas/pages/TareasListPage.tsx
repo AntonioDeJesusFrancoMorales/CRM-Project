@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   ListTodo,
   List as ListIcon,
-  MoreVertical,
   PanelTopClose,
   PanelTopOpen,
   Plus,
@@ -23,14 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { RefreshIcon } from '@/components/shared/RefreshButton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { RefreshButton, RefreshIcon } from '@/components/shared/RefreshButton';
 import {
   Dialog,
   DialogContent,
@@ -136,10 +128,9 @@ export function TareasListPage() {
     () => applyTareaFilters(todasLasTareas ?? [], filters, new Date(), workflowByTareaId),
     [todasLasTareas, filters, workflowByTareaId],
   );
-  const tareasPagina = tareasPage?.items ?? [];
   const tareasLista = useMemo(
-    () => applyTareaFilters(tareasPagina, filters, new Date(), workflowByTareaId),
-    [tareasPagina, filters, workflowByTareaId],
+    () => applyTareaFilters(tareasPage?.items ?? [], filters, new Date(), workflowByTareaId),
+    [tareasPage?.items, filters, workflowByTareaId],
   );
   const filteredTareaIds = useMemo(
     () => tareasFiltradas.map((tarea) => tarea.id),
@@ -208,25 +199,15 @@ export function TareasListPage() {
           <p className="text-sm text-muted-foreground">Gestiona las tareas del CRM.</p>
         </div>
         <div className="flex items-center gap-2">
+          <RefreshButton
+            resourceLabel="tareas"
+            onRefresh={() => void refetch()}
+            isRefreshing={isFetching}
+          />
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nueva tarea
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Más acciones">
-                <MoreVertical className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuGroup>
-                <DropdownMenuItem disabled={isFetching} onClick={() => void refetch()}>
-                  <RefreshIcon isRefreshing={isFetching} className="mr-2" />
-                  {isFetching ? 'Recargando...' : 'Recargar'}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

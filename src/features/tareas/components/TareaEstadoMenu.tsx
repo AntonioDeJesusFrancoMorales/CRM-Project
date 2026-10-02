@@ -1,5 +1,6 @@
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +23,15 @@ export function TareaEstadoMenu({
   workflowColumns = [],
 }: TareaEstadoMenuProps) {
   const moverFicha = useMoverFicha();
+  const { acquire, release, isLocked } = useSynchronousMutationLock();
   const canMove = workflowState?.fichaId !== null && workflowState?.fichaId !== undefined;
 
   function moveTo(columnaId: string) {
-    if (!workflowState?.fichaId) return;
-    moverFicha.mutate({ id: workflowState.fichaId, targetColumnaId: columnaId });
+    if (!workflowState?.fichaId || !acquire()) return;
+    moverFicha.mutate(
+      { id: workflowState.fichaId, targetColumnaId: columnaId },
+      { onSettled: () => release() },
+    );
   }
 
   return (
@@ -47,7 +52,7 @@ export function TareaEstadoMenu({
         {workflowColumns.map((columna) => (
           <DropdownMenuItem
             key={columna.id}
-            disabled={!canMove || workflowState?.columnaId === columna.id || moverFicha.isPending}
+            disabled={!canMove || workflowState?.columnaId === columna.id || moverFicha.isPending || isLocked}
             onClick={() => moveTo(columna.id)}
           >
             Mover a {columna.nombre ?? 'Sin nombre'}
