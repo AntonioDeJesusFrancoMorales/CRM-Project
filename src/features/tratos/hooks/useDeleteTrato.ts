@@ -31,6 +31,7 @@ export function useDeleteTrato(): UseMutationResult<void, Error, string> {
       if (isHttpError(error)) {
         if (error.status === 409) {
           // 409 → NO invalida (el trato sigue existiendo).
+          toast.error(error.message);
           return;
         }
         toast.error(error.message);

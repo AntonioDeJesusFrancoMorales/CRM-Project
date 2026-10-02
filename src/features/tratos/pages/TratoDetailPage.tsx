@@ -34,6 +34,7 @@ import { TratoTareasTab } from '../components/TratoTareasTab';
 import { TratoNotasTab } from '../components/TratoNotasTab';
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
+import { getTratoTaskConflictMessage } from '../lib/tratoDeletion';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -58,6 +59,12 @@ export function TratoDetailPage() {
 
   const deleteMutation = useDeleteTrato();
   const { acquire, release, isLocked } = useSynchronousMutationLock();
+  const {
+    acquire: acquireEstado,
+    release: releaseEstado,
+    isLocked: estadoLocked,
+    lockRef: estadoLock,
+  } = useSynchronousMutationLock();
   const ganarMutation = useGanarTrato();
   const perderMutation = usePerderTrato();
 
@@ -66,12 +73,26 @@ export function TratoDetailPage() {
   const [perderOpen, setPerderOpen] = useState(false);
   const [motivo, setMotivo] = useState('');
 
+  function handleGanar() {
+    if (!id || !acquireEstado()) return;
+    ganarMutation.mutate(id, { onSettled: () => releaseEstado() });
+  }
+
   function handlePerder() {
-    if (!id || !motivo.trim()) return;
+    if (!id || !motivo.trim() || !acquireEstado()) return;
     perderMutation.mutate(
       { id, motivo: motivo.trim() },
-      { onSuccess: () => { setPerderOpen(false); setMotivo(''); } },
+      {
+        onSuccess: () => { setPerderOpen(false); setMotivo(''); },
+        onSettled: () => releaseEstado(),
+      },
     );
+  }
+
+  function handlePerderOpenChange(nextOpen: boolean) {
+    if (!nextOpen && estadoLock.current) return;
+    setPerderOpen(nextOpen);
+    if (!nextOpen) setMotivo('');
   }
 
   // Sincroniza el tab activo con ?tab= en la URL.
@@ -89,16 +110,18 @@ export function TratoDetailPage() {
   }, [is404, navigate]);
 
   function handleConfirmDelete() {
+    if (tareasDelTrato.length > 0) {
+      toast.error(getTratoTaskConflictMessage(tareasDelTrato.length));
+      setDeleteOpen(false);
+      return;
+    }
     if (!id || !acquire()) return;
     deleteMutation.mutate(id, {
       onSuccess: () => {
         setDeleteOpen(false);
         navigate('/tratos', { replace: true });
       },
-      onError: (err) => {
-        if (isHttpError(err) && err.status === 409) {
-          toast.error(err.message);
-        }
+      onError: () => {
         setDeleteOpen(false);
       },
       onSettled: () => release(),
@@ -107,7 +130,7 @@ export function TratoDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6" aria-busy="true" aria-label="Cargando trato">
+      <div className="space-y-6 px-4 py-4 sm:px-6 lg:px-8" aria-busy="true" aria-label="Cargando trato">
         <div className="flex items-start gap-3">
           <Skeleton className="h-9 w-9 rounded-md" />
           <div className="space-y-2">
@@ -132,22 +155,26 @@ export function TratoDetailPage() {
 
   if (is404) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        Este trato no existe. Volviendo al listado...
-      </p>
+      <div className="px-4 py-4 sm:px-6 lg:px-8">
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          Este trato no existe. Volviendo al listado...
+        </p>
+      </div>
     );
   }
 
   if (error || !trato || !id) {
     return (
-      <Card>
-        <CardContent className="space-y-4 py-12 text-center">
-          <p className="text-sm text-destructive">No fue posible cargar el trato.</p>
-          <Button variant="outline" onClick={() => navigate('/tratos')}>
-            Volver al listado
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="px-4 py-4 sm:px-6 lg:px-8">
+        <Card>
+          <CardContent className="space-y-4 py-12 text-center">
+            <p className="text-sm text-destructive">No fue posible cargar el trato.</p>
+            <Button variant="outline" onClick={() => navigate('/tratos')}>
+              Volver al listado
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -158,7 +185,7 @@ export function TratoDetailPage() {
   const pendientesCount = tareasPendientes.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-4 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         {/* Lado izquierdo: volver + título + badge de pendientes */}
         <div className="flex items-start gap-3">
@@ -181,7 +208,9 @@ export function TratoDetailPage() {
               )}
               {/* badge OCULTO cuando count = 0 (solo visible si hay >= 1 tarea pendiente) */}
               {pendientesCount > 0 && (
-                <Badge data-testid="badge-pendientes">{pendientesCount}</Badge>
+                <Badge data-testid="badge-pendientes">
+                  {pendientesCount === 1 ? '1 pendiente' : `${pendientesCount} pendientes`}
+                </Badge>
               )}
             </div>
           </div>
@@ -194,16 +223,17 @@ export function TratoDetailPage() {
               <Button
                 variant="outline"
                 className="text-emerald-700 hover:text-emerald-700"
-                disabled={ganarMutation.isPending}
-                onClick={() => id && ganarMutation.mutate(id)}
+                disabled={ganarMutation.isPending || estadoLocked}
+                onClick={handleGanar}
               >
                 <Trophy className="mr-2 h-4 w-4" aria-hidden="true" />
                 Ganar
               </Button>
               <Button
                 variant="outline"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setPerderOpen(true)}
+                className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={perderMutation.isPending || estadoLocked}
+                onClick={() => handlePerderOpenChange(true)}
               >
                 <XCircle className="mr-2 h-4 w-4" aria-hidden="true" />
                 Perder
@@ -216,7 +246,13 @@ export function TratoDetailPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              if (tareasDelTrato.length > 0) {
+                toast.error(getTratoTaskConflictMessage(tareasDelTrato.length));
+                return;
+              }
+              setDeleteOpen(true);
+            }}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -267,10 +303,10 @@ export function TratoDetailPage() {
         onOpenChange={setDeleteOpen}
         nombre={trato.nombre}
         onConfirm={handleConfirmDelete}
-         isDeleting={deleteMutation.isPending || isLocked}
+        isDeleting={deleteMutation.isPending || isLocked}
       />
 
-      <Dialog open={perderOpen} onOpenChange={(o) => { setPerderOpen(o); if (!o) setMotivo(''); }}>
+      <Dialog open={perderOpen} onOpenChange={handlePerderOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Marcar como perdido</DialogTitle>
@@ -283,10 +319,17 @@ export function TratoDetailPage() {
             rows={3}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPerderOpen(false)}>Cancelar</Button>
             <Button
-              variant="destructive"
-              disabled={!motivo.trim() || perderMutation.isPending}
+              variant="outline"
+              onClick={() => handlePerderOpenChange(false)}
+              disabled={estadoLocked}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={!motivo.trim() || perderMutation.isPending || estadoLocked}
               onClick={handlePerder}
             >
               Marcar como perdido

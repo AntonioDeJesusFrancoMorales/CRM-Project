@@ -9,6 +9,7 @@ import { apiError } from '@/mocks/utils/error';
 import { nowIso } from '@/mocks/utils/crud';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 import { tareasFixture } from '@/mocks/fixtures/tareas';
+import { fichasFixture, tableroTratosFixture } from '@/mocks/fixtures/tableros';
 import type { NotaTrato, Trato } from '@/api/types';
 
 const API = '/api';
@@ -52,6 +53,18 @@ export const tratosHandlers = [
       actualizadoEn: null,
     };
     tratosFixture.push(trato);
+    const columnaInicial = tableroTratosFixture.columnas[0];
+    if (columnaInicial) {
+      fichasFixture.push({
+        id: crypto.randomUUID(),
+        columnaId: columnaInicial.id,
+        tipoFicha: 'TRATO',
+        tratoId: trato.id,
+        tareaId: null,
+        actualizadoEn: nowIso(),
+        etiquetas: [],
+      });
+    }
     return HttpResponse.json(trato, { status: 201 });
   }),
 
