@@ -2,7 +2,7 @@
 // Un único select Contacto (contactoId), select responsable (responsableId),
 // select tipoContrato con 5 valores del back. Sin toggle XOR, sin campo estado.
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-time-field';
+import { getMexicoCityToday } from '@/lib/date';
+import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import {
   Select,
   SelectContent,
@@ -59,6 +61,8 @@ export function TratoForm({
   isSubmitting = false,
   serverErrors,
 }: TratoFormProps) {
+  const { acquire, release } = useSynchronousMutationLock();
+  const previousIsSubmitting = useRef(isSubmitting);
   const { data: contactos = [], isLoading: contactosLoading } = useContactos();
   const { data: usuarios = [], isLoading: usuariosLoading } = useUsuarios();
 
@@ -79,9 +83,30 @@ export function TratoForm({
     }
   }, [serverErrors, form]);
 
+  useEffect(() => {
+    if (previousIsSubmitting.current && !isSubmitting) {
+      release();
+    }
+    previousIsSubmitting.current = isSubmitting;
+  }, [isSubmitting, release]);
+
+  function handleValidSubmit(values: TratoCreateInput) {
+    const wasSubmitting = isSubmitting;
+    const acquireRejected = wasSubmitting ? false : !acquire();
+    const onSubmitForwarded = !wasSubmitting && !acquireRejected;
+
+    if (!onSubmitForwarded) return;
+    onSubmit(values);
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3.5" noValidate autoComplete="off">
+      <form
+        onSubmit={form.handleSubmit(handleValidSubmit)}
+        className="flex flex-col gap-3.5"
+        noValidate
+        autoComplete="off"
+      >
         {/* Contacto (único select unificado) */}
         <FormField
           control={form.control}
@@ -95,7 +120,7 @@ export function TratoForm({
               <Select
                 onValueChange={field.onChange}
                 value={field.value ?? ''}
-                disabled={contactosLoading}
+                disabled={contactosLoading || mode === 'edit'}
               >
                 <FormControl>
                   <SelectTrigger className="h-9 w-full">
@@ -112,6 +137,11 @@ export function TratoForm({
                   ))}
                 </SelectContent>
               </Select>
+              {mode === 'edit' && (
+                <p className="text-xs text-muted-foreground">
+                  El contacto no se puede cambiar después de crear el trato.
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -272,6 +302,7 @@ export function TratoForm({
                   <DatePicker
                     value={field.value ?? null}
                     onChange={field.onChange}
+                    minDate={getMexicoCityToday()}
                   />
                 </FormControl>
                 <FormMessage />
