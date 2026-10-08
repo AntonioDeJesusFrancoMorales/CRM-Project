@@ -3,7 +3,6 @@
 
 import { useMemo } from 'react';
 import { Link } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   AlertCircle,
@@ -18,15 +17,12 @@ import {
   Rocket,
   ShieldAlert,
   ShieldCheck,
-  Star,
   Target,
   TrendingUp,
   Users,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
-import { apiClient } from '@/api/client';
-import { endpoints } from '@/api/endpoints';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,11 +38,6 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { downloadTratosCsv } from '../lib/dashboardCsv';
 import { computeDashboardInsights, type DashboardAlert } from '../lib/dashboardMetrics';
 
-interface CsatResumen {
-  promedio: number | null;
-  total: number;
-}
-
 export function DashboardPage() {
   const now = useMemo(() => new Date(), []);
   const { data: tratos = [], isLoading: tratosLoading, isError: tratosError } = useTratos();
@@ -58,15 +49,11 @@ export function DashboardPage() {
   const { data: tareas = [], isLoading: tareasLoading, isError: tareasError } = useTareas();
   const { data: empresas = [], isLoading: empresasLoading, isError: empresasError } = useEmpresas();
   const { data: usuarios = [], isLoading: usuariosLoading, isError: usuariosError } = useUsuarios();
-  const { data: csat, isError: csatError } = useQuery<CsatResumen>({
-    queryKey: ['wa-csat-resumen'],
-    queryFn: () => apiClient.get<CsatResumen>(endpoints.wa.conversaciones.csatResumen()),
-  });
 
   const loading =
     tratosLoading || contactosLoading || tareasLoading || empresasLoading || usuariosLoading;
   const hasPartialError =
-    tratosError || contactosError || tareasError || empresasError || usuariosError || csatError;
+    tratosError || contactosError || tareasError || empresasError || usuariosError;
   const insights = useMemo(
     () => computeDashboardInsights({ tratos, tareas, contactos, empresas, usuarios, now }),
     [tratos, tareas, contactos, empresas, usuarios, now],
@@ -192,7 +179,7 @@ export function DashboardPage() {
         </div>
         <div className="contents lg:block lg:space-y-4">
           <div className="order-2 min-w-0">
-            <PortfolioPanel insights={insights} csat={csat} loading={loading} />
+            <PortfolioPanel insights={insights} loading={loading} />
           </div>
           <div className="order-4 min-w-0">
             <ActionAlerts alerts={insights.alerts} />
@@ -260,11 +247,9 @@ function PrimaryKpiCard({
 
 function PortfolioPanel({
   insights,
-  csat,
   loading,
 }: {
   insights: ReturnType<typeof computeDashboardInsights>;
-  csat: CsatResumen | undefined;
   loading: boolean;
 }) {
   const metrics: Array<{
@@ -305,13 +290,6 @@ function PortfolioPanel({
       value: String(insights.kpis.leadsMes),
       icon: TrendingUp,
       tone: 'violet',
-    },
-    {
-      label: 'CSAT promedio',
-      value: csat?.promedio != null ? `${csat.promedio.toFixed(1)}/5` : '—',
-      icon: Star,
-      tone: 'amber',
-      hint: `${csat?.total ?? 0} respuestas`,
     },
   ];
   return (
