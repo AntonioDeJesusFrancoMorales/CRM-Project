@@ -184,6 +184,15 @@ export interface ApiError {
   details?: Array<{ field: string; message: string }>;
 }
 
+export interface AgentMessageRequest {
+  message: string;
+  idempotencyKey: string;
+}
+
+export interface AgentMessageResponse {
+  content: string;
+}
+
 export type SortDirection = 'asc' | 'desc';
 
 export interface ListQueryOptions {

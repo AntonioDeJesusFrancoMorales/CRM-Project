@@ -4,11 +4,7 @@
 //        columnas/get-all, fichas/{get-all,create,edit,delete}.
 
 import { describe, it, expect } from 'vitest';
-import {
-  tableroTratosFixture,
-  columnasFixture,
-  fichasFixture,
-} from '@/mocks/fixtures/tableros';
+import { tableroTratosFixture, columnasFixture, fichasFixture } from '@/mocks/fixtures/tableros';
 
 // IDs del fixture
 const TABLERO_ID = tableroTratosFixture.id; // 'f1111111-ffff-1111-ffff-111111111111'
@@ -55,9 +51,11 @@ describe('tableros fixture — invariantes', () => {
       'd2222222-dddd-2222-dddd-222222222222',
       'd3333333-dddd-3333-dddd-333333333333',
     ];
-    fichasFixture.filter((f) => f.tipoFicha === 'TRATO').forEach((f) => {
-      expect(knownTratoIds).toContain(f.tratoId);
-    });
+    fichasFixture
+      .filter((f) => f.tipoFicha === 'TRATO')
+      .forEach((f) => {
+        expect(knownTratoIds).toContain(f.tratoId);
+      });
   });
 
   it('fichasFixture tiene fichas TAREA con tareaId no-null', () => {
@@ -473,7 +471,11 @@ describe('tableros MSW handler — POST /api/tableros/create', () => {
     const res = await fetch('/api/tableros/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Pipeline nuevo', descripcion: 'Demo', tipoTablero: 'TRATOS' }),
+      body: JSON.stringify({
+        nombre: 'Pipeline nuevo',
+        descripcion: 'Demo',
+        tipoTablero: 'TRATOS',
+      }),
     });
     expect(res.status).toBe(201);
     const data = (await res.json()) as {
@@ -520,6 +522,20 @@ describe('tableros MSW handler — POST /api/tableros/create', () => {
     const all = (await allRes.json()) as { id: string }[];
     expect(all.find((t) => t.id === created.id)).toBeDefined();
   });
+
+  it('retorna 422 si faltan campos obligatorios o el tipo no es compatible', async () => {
+    const res = await fetch('/api/tableros/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Incompleto', descripcion: '', tipoTablero: 'PERSONALIZADO' }),
+    });
+
+    expect(res.status).toBe(422);
+    const data = (await res.json()) as { details: Array<{ field: string }> };
+    expect(data.details.map((detail) => detail.field)).toEqual(
+      expect.arrayContaining(['descripcion', 'tipoTablero']),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -538,7 +554,7 @@ describe('tableros MSW handler — PUT /api/tableros/edit?id=', () => {
     const res = await fetch(`/api/tableros/edit?id=${created.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Renombrado', descripcion: 'Nueva' }),
+      body: JSON.stringify({ nombre: '  Renombrado  ', descripcion: '  Nueva  ' }),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as { nombre: string; descripcion: string; tipoTablero: string };
@@ -554,6 +570,30 @@ describe('tableros MSW handler — PUT /api/tableros/edit?id=', () => {
       body: JSON.stringify({ nombre: 'X' }),
     });
     expect(res.status).toBe(404);
+  });
+
+  it('retorna 422 cuando el nombre está vacío', async () => {
+    const res = await fetch(`/api/tableros/edit?id=${TABLERO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: '   ', descripcion: 'Descripción' }),
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('retorna 422 cuando la descripción está vacía', async () => {
+    const res = await fetch(`/api/tableros/edit?id=${TABLERO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Renombrado', descripcion: '   ' }),
+    });
+
+    expect(res.status).toBe(422);
+    const data = (await res.json()) as { details: Array<{ field: string }> };
+    expect(data.details).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'descripcion' })]),
+    );
   });
 });
 
@@ -721,7 +761,11 @@ describe('tableros MSW handler — buildDefaultColumns registra columnas en cat�
     const createRes = await fetch('/api/tableros/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Tablero catálogo test', descripcion: 'Fase 1', tipoTablero: 'TRATOS' }),
+      body: JSON.stringify({
+        nombre: 'Tablero catálogo test',
+        descripcion: 'Fase 1',
+        tipoTablero: 'TRATOS',
+      }),
     });
     expect(createRes.status).toBe(201);
     const tablero = (await createRes.json()) as { columnas: { id: string }[] };
@@ -729,7 +773,11 @@ describe('tableros MSW handler — buildDefaultColumns registra columnas en cat�
 
     // Obtener catálogo completo
     const catRes = await fetch('/api/columnas/get-all');
-    const catalogo = (await catRes.json()) as { id: string; tipoColumna: string; tipoTablero: string }[];
+    const catalogo = (await catRes.json()) as {
+      id: string;
+      tipoColumna: string;
+      tipoTablero: string;
+    }[];
 
     // Cada columna del tablero debe estar en el catálogo
     for (const id of idsColumnas) {
@@ -744,12 +792,20 @@ describe('tableros MSW handler — buildDefaultColumns registra columnas en cat�
     const createRes = await fetch('/api/tableros/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Tablero tareas catálogo', descripcion: 'Fase 1', tipoTablero: 'TAREAS' }),
+      body: JSON.stringify({
+        nombre: 'Tablero tareas catálogo',
+        descripcion: 'Fase 1',
+        tipoTablero: 'TAREAS',
+      }),
     });
     const tablero = (await createRes.json()) as { columnas: { id: string }[] };
 
     const catRes = await fetch('/api/columnas/get-all');
-    const catalogo = (await catRes.json()) as { id: string; tipoColumna: string; tipoTablero: string }[];
+    const catalogo = (await catRes.json()) as {
+      id: string;
+      tipoColumna: string;
+      tipoTablero: string;
+    }[];
 
     for (const { id } of tablero.columnas) {
       const entrada = catalogo.find((c) => c.id === id);
@@ -763,7 +819,11 @@ describe('tableros MSW handler — buildDefaultColumns registra columnas en cat�
     const createRes = await fetch('/api/tableros/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Tablero get-by-id test', descripcion: 'Fase 1', tipoTablero: 'TRATOS' }),
+      body: JSON.stringify({
+        nombre: 'Tablero get-by-id test',
+        descripcion: 'Fase 1',
+        tipoTablero: 'TRATOS',
+      }),
     });
     const tablero = (await createRes.json()) as { columnas: { id: string }[] };
     const primeraColumnaId = tablero.columnas[0]!.id;
