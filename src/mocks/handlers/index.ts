@@ -1,5 +1,4 @@
 import { empresasHandlers } from './empresas';
-import { whatsappHandlers } from './whatsapp';
 import { usuariosHandlers } from './usuarios';
 import { rolesHandlers } from './roles';
 import { contactosHandlers } from './contactos';
@@ -9,8 +8,8 @@ import { tablerosHandlers } from './tableros';
 import { agendaHandlers } from './agenda';
 import { etiquetasHandlers } from './etiquetas';
 import { comentariosHandlers } from './comentarios';
-import { botsHandlers } from './bots';
 import { agentHandlers } from './agent';
+import { waStreamHandlers } from './wa-stream';
 
 export const handlers = [
   ...empresasHandlers,
@@ -23,7 +22,6 @@ export const handlers = [
   ...agendaHandlers,
   ...etiquetasHandlers,
   ...comentariosHandlers,
-  ...whatsappHandlers,
-  ...botsHandlers,
   ...agentHandlers,
+  ...waStreamHandlers,
 ];

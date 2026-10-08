@@ -24,12 +24,6 @@ function getInitials(nombre: string): string {
 
 // Título de la página según la ruta (más específicas primero).
 const TITULOS: { prefijo: string; titulo: string }[] = [
-  { prefijo: '/whatsapp/grupos', titulo: 'Grupos de WhatsApp' },
-  { prefijo: '/whatsapp/canales', titulo: 'Canales de WhatsApp' },
-  { prefijo: '/whatsapp/ajustes', titulo: 'Ajustes de WhatsApp' },
-  { prefijo: '/whatsapp/plantillas', titulo: 'Plantillas' },
-  { prefijo: '/whatsapp/bots', titulo: 'Bots' },
-  { prefijo: '/whatsapp', titulo: 'WhatsApp' },
   { prefijo: '/empresas', titulo: 'Empresas' },
   { prefijo: '/contactos', titulo: 'Contactos' },
   { prefijo: '/agenda', titulo: 'Agenda' },

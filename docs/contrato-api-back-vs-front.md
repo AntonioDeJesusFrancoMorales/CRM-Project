@@ -172,52 +172,13 @@ front asume, en el back no está modelado.
 
 ---
 
-## 7. Addendum (2026-06-18) — Bots de n8n: ✅ implementado en ambos lados
+## 7. Retiro de contratos frontend ausentes (2026-10-08)
 
-Los bloqueantes de auth de §3 ya están resueltos (Keycloak + JWT real, ver
-`src/lib/keycloak.ts` / `SecurityConfig.java`). Este addendum documenta el
-módulo nuevo de **Bots** (Agent Bot estilo Chatwoot, conecta el CRM a un
-workflow de n8n) — implementado siguiendo el estilo RPC del back (id por
-query param o path param según el recurso), igual que el resto de `wa.*`.
+La auditoría del backend actual confirmó que los grupos REST anteriores de
+WhatsApp, los helpers `/api/bots*` y `/api/media/upload` no forman parte del
+contrato disponible. Se retiraron sus callers, pantallas, rutas, mocks y tipos
+del frontend; no se agregó un reemplazo.
 
-### CRUD de administración (JWT — `src/features/bots/`)
-
-| Front (`endpoints.bots`) | Back | Nota |
-|---|---|---|
-| `GET /bots` | `GET /api/bots` | |
-| `GET /bots/:id` | `GET /api/bots/{id}` | |
-| `POST /bots` | `POST /api/bots` | body `{nombre, canalId?, webhookUrl}` |
-| `PUT /bots/:id` | `PUT /api/bots/{id}` | no cambia el token |
-| `DELETE /bots/:id` | `DELETE /api/bots/{id}` | |
-| `PUT /bots/:id/activar` | `PUT /api/bots/{id}/activar` | |
-| `PUT /bots/:id/desactivar` | `PUT /api/bots/{id}/desactivar` | |
-
-A diferencia del resto del back (RPC con `?id=`), `BotController` usa
-**path param** (`/api/bots/{id}`) — es el único recurso así por ahora.
-
-### Toggle de handoff desde el panel de chat (JWT)
-
-`PUT /wa/conversaciones/labels?id={uuid}` con body `{labels: string[]}` —
-mismo contrato que usa el bot de n8n (ver abajo), pero autenticado por JWT
-para que un agente humano apague/encienda el bot desde `ConversacionHeader`.
-Mandar `["escalado_humano"]` apaga el bot y pasa la conversación a
-`EN_ESPERA`; mandar `[]` la reactiva. `Conversacion` ahora trae `labels` y
-`botActivo` (antes no existían en el tipo del front).
-
-### Contrato del bot hacia n8n (NO lo usa este front — token `api_access_token`)
-
-Estos endpoints los llama el workflow de n8n, no la SPA. Documentados acá
-solo para referencia cruzada:
-
-| Método | Ruta | Para qué |
-|---|---|---|
-| `GET` | `/api/v1/accounts/1/conversations/{id}` | estado/labels/bot_activo |
-| `POST` | `/api/v1/accounts/1/conversations/{id}/messages` | el bot responde |
-| `POST` | `/api/v1/accounts/1/conversations/{id}/labels` | handoff |
-| `POST` | `/api/v1/accounts/1/conversations/{id}/funnel` | mover etapa del embudo |
-| `POST` | `/api/cron/auto-resolver` | cierre de chats inactivos (x-api-key) |
-
-**Limitación conocida:** `/funnel` solo mueve una oportunidad (`Trato`) que
-ya existe para el contacto — el back no crea una por defecto (no hay
-`responsableId` por defecto a diferencia de AmbarCRM). Sin oportunidad
-activa, responde `{"moved": false}`.
+Se conserva únicamente `/api/wa/stream` como integración runtime incierta: su
+helper de endpoint, hook SSE y mock dedicado permanecen sin cambios de
+comportamiento.
