@@ -10,6 +10,7 @@ import { agendaHandlers } from './agenda';
 import { etiquetasHandlers } from './etiquetas';
 import { comentariosHandlers } from './comentarios';
 import { botsHandlers } from './bots';
+import { agentHandlers } from './agent';
 
 export const handlers = [
   ...empresasHandlers,
@@ -24,4 +25,5 @@ export const handlers = [
   ...comentariosHandlers,
   ...whatsappHandlers,
   ...botsHandlers,
+  ...agentHandlers,
 ];

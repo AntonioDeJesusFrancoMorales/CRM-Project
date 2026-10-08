@@ -120,6 +120,9 @@ export const endpoints = {
     delete: (id: string, confirm = false) =>
       `/etiquetas/delete?id=${id}&confirm=${confirm}`,
   },
+  agent: {
+    messages: () => '/agent/messages',
+  },
   wa: {
     canales: {
       getAll: (empresaId: string) => `/wa/canales/get-all?empresaId=${empresaId}`,

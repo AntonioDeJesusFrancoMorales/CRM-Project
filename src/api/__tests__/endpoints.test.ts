@@ -100,3 +100,15 @@ describe('endpoints.roles — rutas RPC', () => {
     expect(endpoints.roles.getAll()).toBe('/roles/get-all');
   });
 });
+
+describe('endpoints.agent — contrato del asistente', () => {
+  it('messages() retorna /agent/messages sin duplicar el prefijo /api', () => {
+    expect(endpoints.agent.messages()).toBe('/agent/messages');
+  });
+});
+
+describe('endpoints.wa — stream runtime', () => {
+  it('stream() conserva la ruta SSE /wa/stream', () => {
+    expect(endpoints.wa.stream()).toBe('/wa/stream');
+  });
+});
