@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { AssistantWidget } from '@/features/assistant/components/AssistantWidget';
 
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -76,6 +77,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <AssistantWidget />
     </div>
   );
 }

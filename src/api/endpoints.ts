@@ -124,61 +124,6 @@ export const endpoints = {
     messages: () => '/agent/messages',
   },
   wa: {
-    canales: {
-      getAll: (empresaId: string) => `/wa/canales/get-all?empresaId=${empresaId}`,
-      getAllGlobal: () => '/wa/canales/get-all',
-      getById: (id: string) => `/wa/canales/get-by-id?id=${id}`,
-      create: () => '/wa/canales/create',
-      edit: (id: string) => `/wa/canales/edit?id=${id}`,
-      delete: (id: string) => `/wa/canales/delete?id=${id}`,
-      conectar: (id: string) => `/wa/canales/conectar?id=${id}`,
-      estado: (id: string) => `/wa/canales/estado?id=${id}`,
-      syncChats: (canalId: string) => `/wa/canales/sync-chats?canalId=${canalId}`,
-      reconfigurarWebhook: (id: string) => `/wa/canales/reconfigurar-webhook?id=${id}`,
-    },
-    conversaciones: {
-      getAll: (empresaId: string) => `/wa/conversaciones/get-all?empresaId=${empresaId}`,
-      getById: (id: string) => `/wa/conversaciones/get-by-id?id=${id}`,
-      mensajes: (conversacionId: string) => `/wa/conversaciones/${conversacionId}/mensajes`,
-      asignar: (id: string, agenteId: string) => `/wa/conversaciones/asignar?id=${id}&agenteId=${agenteId}`,
-      cerrar: (id: string) => `/wa/conversaciones/cerrar?id=${id}`,
-      reabrir: (id: string) => `/wa/conversaciones/reabrir?id=${id}`,
-      marcarLeido: (id: string) => `/wa/conversaciones/marcar-leido?id=${id}`,
-      renombrar: (id: string) => `/wa/conversaciones/nombre?id=${id}`,
-      sugerir: (id: string) => `/wa/conversaciones/${id}/sugerir`,
-      csatResumen: () => '/wa/conversaciones/csat-resumen',
-      // Toggle de bot/handoff desde el panel humano (JWT). Mismo contrato de labels
-      // que usa el bot de n8n vía api_access_token — ver BotConversationController.
-      labels: (id: string) => `/wa/conversaciones/labels?id=${id}`,
-    },
-    mensajes: {
-      send: (conversacionId: string) => `/wa/mensajes/send?conversacionId=${conversacionId}`,
-    },
-    grupos: {
-      getAll: () => '/wa/grupos/get-all',
-      mensajes: (grupoId: string) => `/wa/grupos/${grupoId}/mensajes`,
-      send: (grupoId: string) => `/wa/grupos/${grupoId}/mensajes`,
-      importar: (canalId: string) => `/wa/grupos/importar?canalId=${canalId}`,
-      marcarLeido: (grupoId: string) => `/wa/grupos/${grupoId}/marcar-leido`,
-    },
-    ajustes: () => '/wa/ajustes',
-    plantillas: {
-      getAll: () => '/wa/plantillas/get-all',
-      create: () => '/wa/plantillas/create',
-      delete: (id: string) => `/wa/plantillas/delete?id=${id}`,
-    },
     stream: () => '/wa/stream',
-  },
-  bots: {
-    getAll: () => '/bots',
-    getById: (id: string) => `/bots/${id}`,
-    create: () => '/bots',
-    edit: (id: string) => `/bots/${id}`,
-    delete: (id: string) => `/bots/${id}`,
-    activar: (id: string) => `/bots/${id}/activar`,
-    desactivar: (id: string) => `/bots/${id}/desactivar`,
-  },
-  media: {
-    upload: () => '/media/upload',
   },
 } as const;
