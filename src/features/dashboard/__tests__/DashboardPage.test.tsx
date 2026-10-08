@@ -181,9 +181,6 @@ describe('DashboardPage', () => {
       http.get('/api/tareas/get-all', () => HttpResponse.json([])),
       http.get('/api/empresas/get-all', () => HttpResponse.json([])),
       http.get('/api/usuarios/get-all', () => HttpResponse.json([])),
-      http.get('/api/wa/conversaciones/csat-resumen', () =>
-        HttpResponse.json({ promedio: null, total: 0 }),
-      ),
     );
     renderPage();
 
