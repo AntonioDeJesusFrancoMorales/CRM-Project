@@ -63,22 +63,30 @@ export type Tablero = z.infer<typeof tableroSchema>;
 
 export const tableroCreateSchema = z.object({
   nombre: requiredTrimmedName(100, 'Máximo 100 caracteres', 'El nombre es obligatorio'),
-  descripcion: z.string().min(1, 'La descripción es obligatoria'),
+  descripcion: z.string().trim().min(1, 'La descripción es obligatoria'),
   tipoTablero,
   columnasPredeterminadas: z.boolean().optional(),
 });
 
 export type TableroCreateInput = z.infer<typeof tableroCreateSchema>;
 
+// Payload exacto de POST /tableros/create. El campo columnasPredeterminadas existe en
+// versiones anteriores del DTO, pero el flujo actual del back siempre crea las columnas
+// por defecto y el frontend no debe enviarlo.
+export type TableroCreatePayload = Pick<
+  TableroCreateInput,
+  'nombre' | 'descripcion' | 'tipoTablero'
+>;
+
 // ---------------------------------------------------------------------------
 // EditTableroRequest — payload para PUT /tableros/edit?id=
-// Fuente: EditTableroRequest.java. Solo nombre (@NotBlank, 1-100) y descripcion
-// (sin restricción) son editables; tipoTablero y creadoEn se preservan.
+// Fuente: EditTableroRequest.java. Solo nombre y descripcion (@NotBlank) son
+// editables; tipoTablero y creadoEn se preservan.
 // ---------------------------------------------------------------------------
 
 export const tableroEditSchema = z.object({
   nombre: requiredTrimmedName(100, 'Máximo 100 caracteres', 'El nombre es obligatorio'),
-  descripcion: z.string().nullable().optional(),
+  descripcion: z.string().trim().min(1, 'La descripción es obligatoria'),
 });
 
 export type TableroEditInput = z.infer<typeof tableroEditSchema>;

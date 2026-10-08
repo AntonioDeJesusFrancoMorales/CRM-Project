@@ -363,15 +363,16 @@ describe('tableroCreateSchema', () => {
 // ---------------------------------------------------------------------------
 
 describe('tableroEditSchema', () => {
-  it('parsea con solo nombre', () => {
-    expect(tableroEditSchema.safeParse({ nombre: 'Editado' }).success).toBe(true);
+  it('requiere descripcion además del nombre', () => {
+    expect(tableroEditSchema.safeParse({ nombre: 'Editado' }).success).toBe(false);
+    expect(tableroEditSchema.safeParse({ nombre: 'Editado', descripcion: '   ' }).success).toBe(false);
   });
 
-  it('acepta descripcion opcional/null', () => {
-    expect(tableroEditSchema.safeParse({ nombre: 'Editado', descripcion: null }).success).toBe(true);
-    expect(tableroEditSchema.safeParse({ nombre: 'Editado', descripcion: 'Nueva' }).success).toBe(
-      true,
-    );
+  it('acepta descripcion no vacía y la normaliza', () => {
+    const result = tableroEditSchema.safeParse({ nombre: 'Editado', descripcion: '  Nueva  ' });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.descripcion).toBe('Nueva');
   });
 
   it('requiere nombre no vacío', () => {

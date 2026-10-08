@@ -6,11 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { withDelay } from '@/mocks/utils/withDelay';
 import { errors } from '@/mocks/utils/error';
 import { nowIso } from '@/mocks/utils/crud';
-import {
-  tablerosFixture,
-  columnasFixture,
-  fichasFixture,
-} from '@/mocks/fixtures/tableros';
+import { tablerosFixture, columnasFixture, fichasFixture } from '@/mocks/fixtures/tableros';
 import { etiquetasFixture } from '@/mocks/fixtures/etiquetas';
 import type { Ficha, EtiquetaRef } from '@/features/kanban/schemas/ficha.schema';
 
@@ -44,19 +40,20 @@ function buildDefaultColumns(tipo: TipoTablero): ColumnaTablero[] {
     limiteWip: number;
   };
 
-  const defs: ColDef[] = tipo === 'TAREAS'
-    ? [
-        { nombre: 'Pendiente',  limiteWip: 5 },
-        { nombre: 'En Curso',   limiteWip: 3 },
-        { nombre: 'Finalizada', limiteWip: 5 },
-        { nombre: 'Cancelada',  limiteWip: 5 },
-      ]
-    : [
-        { nombre: 'Abierto',  limiteWip: 10 },
-        { nombre: 'Ganado',   limiteWip: 10 },
-        { nombre: 'Perdido',  limiteWip: 10 },
-        { nombre: 'Archivado', limiteWip: 10 },
-      ];
+  const defs: ColDef[] =
+    tipo === 'TAREAS'
+      ? [
+          { nombre: 'Pendiente', limiteWip: 5 },
+          { nombre: 'En Curso', limiteWip: 3 },
+          { nombre: 'Finalizada', limiteWip: 5 },
+          { nombre: 'Cancelada', limiteWip: 5 },
+        ]
+      : [
+          { nombre: 'Abierto', limiteWip: 10 },
+          { nombre: 'Ganado', limiteWip: 10 },
+          { nombre: 'Perdido', limiteWip: 10 },
+          { nombre: 'Archivado', limiteWip: 10 },
+        ];
 
   return defs.map((def) => {
     const id = crypto.randomUUID();
@@ -81,6 +78,50 @@ function buildDefaultColumns(tipo: TipoTablero): ColumnaTablero[] {
     };
     return columnaTablero;
   });
+}
+
+function isTipoTablero(value: unknown): value is TipoTablero {
+  return value === 'TAREAS' || value === 'TRATOS';
+}
+
+function validateCreateTablero(body: Record<string, unknown>) {
+  const details: Array<{ field: string; message: string }> = [];
+  const nombre = body['nombre'];
+  const descripcion = body['descripcion'];
+
+  if (typeof nombre !== 'string' || !nombre.trim()) {
+    details.push({ field: 'nombre', message: 'El nombre es obligatorio' });
+  } else if (nombre.trim().length > 100) {
+    details.push({ field: 'nombre', message: 'Máximo 100 caracteres' });
+  }
+
+  if (typeof descripcion !== 'string' || !descripcion.trim()) {
+    details.push({ field: 'descripcion', message: 'La descripción es obligatoria' });
+  }
+
+  if (!isTipoTablero(body['tipoTablero'])) {
+    details.push({ field: 'tipoTablero', message: 'El tipo de tablero no es válido' });
+  }
+
+  return details;
+}
+
+function validateEditTablero(body: Record<string, unknown>) {
+  const details: Array<{ field: string; message: string }> = [];
+  const nombre = body['nombre'];
+  const descripcion = body['descripcion'];
+
+  if (typeof nombre !== 'string' || !nombre.trim()) {
+    details.push({ field: 'nombre', message: 'El nombre es obligatorio' });
+  } else if (nombre.trim().length > 100) {
+    details.push({ field: 'nombre', message: 'Máximo 100 caracteres' });
+  }
+
+  if (typeof descripcion !== 'string' || !descripcion.trim()) {
+    details.push({ field: 'descripcion', message: 'La descripción es obligatoria' });
+  }
+
+  return details;
 }
 
 export const tablerosHandlers = [
@@ -162,9 +203,7 @@ export const tablerosHandlers = [
     if (body.nuevoOrden && body.nuevoOrden.length > 0) {
       const orden = body.nuevoOrden;
       // Reordena las columnas del tablero según la posición en nuevoOrden
-      t.columnas = [...t.columnas].sort(
-        (a, b) => orden.indexOf(a.id) - orden.indexOf(b.id),
-      );
+      t.columnas = [...t.columnas].sort((a, b) => orden.indexOf(a.id) - orden.indexOf(b.id));
     }
     return HttpResponse.json(t);
   }),
@@ -173,7 +212,10 @@ export const tablerosHandlers = [
   http.post(`${API}/tableros/create`, async ({ request }) => {
     await withDelay();
     const body = (await request.json()) as Record<string, unknown>;
-    const tipoTablero = (body['tipoTablero'] as TipoTablero) ?? 'TRATOS';
+    const validationErrors = validateCreateTablero(body);
+    if (validationErrors.length > 0) return errors.validation(validationErrors);
+
+    const tipoTablero = body['tipoTablero'] as TipoTablero;
     const tablero: Tablero = {
       id: crypto.randomUUID(),
       nombre: String(body['nombre'] ?? ''),
@@ -193,8 +235,13 @@ export const tablerosHandlers = [
     const t = tablerosFixture.find((x) => x.id === id);
     if (!t) return errors.notFound();
     const body = (await request.json()) as Partial<Pick<Tablero, 'nombre' | 'descripcion'>>;
-    if (body.nombre !== undefined) t.nombre = body.nombre;
-    if (body.descripcion !== undefined) t.descripcion = body.descripcion;
+    const validationErrors = validateEditTablero(body as Record<string, unknown>);
+    if (validationErrors.length > 0) return errors.validation(validationErrors);
+
+    const nombre = body.nombre as string;
+    const descripcion = body.descripcion as string;
+    t.nombre = nombre.trim();
+    t.descripcion = descripcion.trim();
     return HttpResponse.json(t);
   }),
 
