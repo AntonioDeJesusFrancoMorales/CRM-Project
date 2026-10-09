@@ -31,6 +31,7 @@ import type { Ficha, TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
 import { useMoverFicha, type MoverFichaVars } from '@/features/kanban/hooks/useMoverFicha';
 import { useReordenarColumnas } from '@/features/kanban/hooks/useReordenarColumnas';
+import { cn } from '@/lib/utils';
 import { ArrastreRecienteContext } from './arrastreReciente';
 import { KanbanCardOverlay, type KanbanCardOverlayData } from './KanbanCard';
 import { KanbanColumn } from './KanbanColumn';
@@ -118,13 +119,22 @@ interface KanbanBoardProps {
   tableroId: string;
   tipoFicha?: TipoFicha; // default 'TRATO' (backward-compatible)
   onAddColumn?: () => void;
+  /** Estilos opt-in para el workspace standalone de /tableros/:id. */
+  className?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', onAddColumn }: KanbanBoardProps) {
+export function KanbanBoard({
+  columnas,
+  fichas,
+  tableroId,
+  tipoFicha = 'TRATO',
+  onAddColumn,
+  className,
+}: KanbanBoardProps) {
   const { mutate } = useMoverFicha();
   const { mutate: reordenarColumnas } = useReordenarColumnas();
   const { acquire: acquireMove, release: releaseMove } = useSynchronousMutationLock();
@@ -242,10 +252,13 @@ export function KanbanBoard({ columnas, fichas, tableroId, tipoFicha = 'TRATO', 
           items={columnas.map((c) => c.id)}
           strategy={horizontalListSortingStrategy}
         >
-          <div className="relative">
+          <div className={cn('relative', className)}>
             <div
               ref={scrollRef}
-              className="-mx-4 flex min-h-[calc(100dvh-25rem)] gap-3 overflow-x-auto overflow-y-visible px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden"
+              className={cn(
+                '-mx-4 flex min-h-[calc(100dvh-25rem)] gap-3 overflow-x-auto overflow-y-visible px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden',
+                className && 'h-full',
+              )}
             >
               {columnas.map((columna) => {
                 // Nombres de las demás columnas (excluye la propia) para bloqueo de duplicados en edición
