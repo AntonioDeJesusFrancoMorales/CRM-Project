@@ -146,6 +146,19 @@ describe('KanbanListPage — lista unificada TRATOS + TAREAS', () => {
     await waitFor(() => {
       expect(screen.getByText(/no hay tableros/i)).toBeInTheDocument();
     });
+    expect(screen.getByRole('status', { name: /no hay tableros/i })).toBeInTheDocument();
+  });
+
+  it('(c2) loading state conserva el layout con skeletons accesibles', () => {
+    server.use(
+      http.get('/api/tableros/get-all', async () => {
+        await new Promise(() => {});
+      }),
+    );
+
+    renderListPage();
+
+    expect(screen.getByRole('status', { name: /cargando tableros/i })).toBeInTheDocument();
   });
 
   it('(d) error 500 muestra botón "Reintentar"', async () => {
@@ -163,6 +176,7 @@ describe('KanbanListPage — lista unificada TRATOS + TAREAS', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
     });
+    expect(screen.getByRole('alert')).toHaveTextContent(/no fue posible cargar los tableros/i);
   });
 });
 
@@ -184,6 +198,57 @@ describe('KanbanPage — ver tablero', () => {
     expect(screen.getByText('En negociación')).toBeInTheDocument();
     expect(screen.getByText('Ganados')).toBeInTheDocument();
     expect(screen.getByText('Perdidos')).toBeInTheDocument();
+  });
+
+  it('(e2) loading state muestra skeletons y conserva el back button', () => {
+    server.use(
+      http.get('/api/tableros/get-by-id', async () => {
+        await new Promise(() => {});
+      }),
+    );
+
+    renderDetailPage(`/tableros/${tableroTratosFixture.id}`);
+
+    expect(screen.getByRole('status', { name: /cargando tablero/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /volver al listado de tableros/i })).toHaveAttribute(
+      'href',
+      '/tableros',
+    );
+  });
+
+  it('(e3) error de carga muestra un panel con acción para volver al listado', async () => {
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json(
+          { status: 500, error: 'INTERNAL_SERVER_ERROR', message: 'Error interno' },
+          { status: 500 },
+        ),
+      ),
+    );
+
+    renderDetailPage(`/tableros/${tableroTratosFixture.id}`);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/no fue posible cargar el tablero/i);
+    });
+    expect(screen.getByRole('button', { name: /volver al listado/i })).toBeInTheDocument();
+  });
+
+  it('(e4) tablero sin columnas muestra un panel vacío y mantiene la acción de nueva columna', async () => {
+    server.use(
+      http.get('/api/tableros/get-by-id', () =>
+        HttpResponse.json({ ...tableroTratosFixture, columnas: [] }),
+      ),
+    );
+
+    renderDetailPage(`/tableros/${tableroTratosFixture.id}`);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('status', { name: /este tablero no tiene columnas configuradas/i }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /nueva columna/i })).toBeInTheDocument();
   });
 
   it('(f) 404 tablero muestra mensaje y redirige a /tableros', async () => {
