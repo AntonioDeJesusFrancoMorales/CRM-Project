@@ -12,12 +12,20 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
+type DialogOverlayProps = Omit<
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>,
+  'forceMount'
+> & {
+  forceMount?: boolean;
+};
+
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+  DialogOverlayProps
+>(({ className, forceMount, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
+    forceMount={forceMount as unknown as true | undefined}
     className={cn(
       "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-[backdrop-filter]:backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
@@ -33,11 +41,12 @@ const DialogContent = React.forwardRef<
     showCloseButton?: boolean;
     overlayClassName?: string;
   }
->(({ className, children, showCloseButton = true, overlayClassName, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay className={overlayClassName} />
+>(({ className, children, showCloseButton = true, overlayClassName, forceMount, ...props }, ref) => (
+  <DialogPortal forceMount={forceMount}>
+    <DialogOverlay forceMount={false} className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
+      forceMount={forceMount}
       className={cn(
         "dialog-centered fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground outline-none ring-1 ring-foreground/10 data-[state=closed]:animate-dialog-pop-out data-[state=open]:animate-dialog-pop-in sm:max-w-sm",
         className

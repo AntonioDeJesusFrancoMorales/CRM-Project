@@ -125,6 +125,31 @@
   .table-scroll-container::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
   }
+
+  .chat-scroll-container {
+    scrollbar-color: var(--border) var(--muted);
+    scrollbar-width: thin;
+  }
+
+  .chat-scroll-container::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+
+  .chat-scroll-container::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: 9999px;
+  }
+
+  .chat-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 2px solid var(--muted);
+    border-radius: 9999px;
+  }
+
+  .chat-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
 }
 
 @layer base {
