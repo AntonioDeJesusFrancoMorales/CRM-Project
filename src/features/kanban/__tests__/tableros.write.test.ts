@@ -18,7 +18,7 @@ const TABLERO: Tablero = {
 };
 
 describe('tablero mutation hooks', () => {
-  it('create sends only the supported fields and accepts 201', async () => {
+  it('create sends the required compatibility boolean and accepts 201', async () => {
     let capturedBody: unknown;
     server.use(
       http.post('/api/tableros/create', async ({ request }) => {
@@ -46,6 +46,7 @@ describe('tablero mutation hooks', () => {
       nombre: input.nombre,
       descripcion: input.descripcion,
       tipoTablero: input.tipoTablero,
+      columnasPredeterminadas: true,
     });
     expect(result.current.data).toEqual(TABLERO);
   });

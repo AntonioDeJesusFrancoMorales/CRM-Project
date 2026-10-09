@@ -58,7 +58,8 @@ export type Tablero = z.infer<typeof tableroSchema>;
 // (@NotBlank), tipoTablero (@NotNull) son obligatorios. El back sintetiza las
 // 4 columnas por defecto; el cliente no las envía.
 // superUsuarioId se OMITE: el back lo ignora (lo deriva del JWT del actor).
-// columnasPredeterminadas es opcional (existe en el contrato del back).
+// columnasPredeterminadas se mantiene opcional en el formulario por compatibilidad,
+// pero el payload de transporte siempre la envía explícitamente como true.
 // ---------------------------------------------------------------------------
 
 export const tableroCreateSchema = z.object({
@@ -70,13 +71,15 @@ export const tableroCreateSchema = z.object({
 
 export type TableroCreateInput = z.infer<typeof tableroCreateSchema>;
 
-// Payload exacto de POST /tableros/create. El campo columnasPredeterminadas existe en
-// versiones anteriores del DTO, pero el flujo actual del back siempre crea las columnas
-// por defecto y el frontend no debe enviarlo.
+// Payload exacto de POST /tableros/create. El DTO actual del back requiere el campo
+// columnasPredeterminadas como boolean no nulo; el frontend lo envía siempre como true
+// para conservar el comportamiento de columnas predeterminadas del back.
 export type TableroCreatePayload = Pick<
   TableroCreateInput,
   'nombre' | 'descripcion' | 'tipoTablero'
->;
+> & {
+  columnasPredeterminadas: true;
+};
 
 // ---------------------------------------------------------------------------
 // EditTableroRequest — payload para PUT /tableros/edit?id=
