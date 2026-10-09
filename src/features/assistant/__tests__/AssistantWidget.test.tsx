@@ -28,12 +28,18 @@ describe('AssistantWidget', () => {
     expect(screen.getByText('¡Hola! ¿En qué puedo ayudarte?')).toBeInTheDocument();
   });
 
+  it('keeps the dialog shell mounted while closed for the opening animation', () => {
+    renderWidget();
+
+    expect(document.querySelector('[role="dialog"][data-state="closed"]')).toBeInTheDocument();
+  });
+
   it('keeps the page clear and uses a larger fixed trigger', async () => {
     const { user } = renderWidget();
     const trigger = screen.getByRole('button', { name: /abrir asistente de chat/i });
 
     expect(trigger).toHaveClass('fixed', 'h-14', 'w-14');
-    expect(trigger.querySelector('svg')).toHaveClass('h-6', 'w-6');
+    expect(trigger.querySelector('svg')).toHaveClass('h-7', 'w-7');
 
     await openWidget(user);
 
