@@ -1,6 +1,6 @@
 // useCreateTablero — POST /tableros/create (201).
-// El back sintetiza las columnas por defecto; el payload solo contiene los tres campos
-// soportados por el contrato actual.
+// El back sintetiza las columnas por defecto; el payload incluye el booleano de
+// compatibilidad requerido por el contrato actual.
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -19,7 +19,12 @@ export function useCreateTablero(): UseMutationResult<Tablero, Error, TableroCre
 
   return useMutation<Tablero, Error, TableroCreateInput>({
     mutationFn: ({ nombre, descripcion, tipoTablero }: TableroCreateInput) => {
-      const payload: TableroCreatePayload = { nombre, descripcion, tipoTablero };
+      const payload: TableroCreatePayload = {
+        nombre,
+        descripcion,
+        tipoTablero,
+        columnasPredeterminadas: true,
+      };
       return apiClient.post<Tablero>(endpoints.tableros.create(), payload);
     },
     onSuccess: (created) => {
