@@ -83,6 +83,17 @@ describe('columnaTableroSchema', () => {
     }
   });
 
+  it('acepta totalValorEstimado null en la respuesta del backend', () => {
+    const result = columnaTableroSchema.safeParse({
+      ...COLUMNA_TABLERO_VALIDA,
+      totalValorEstimado: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.totalValorEstimado).toBeNull();
+    }
+  });
+
   it('requiere id', () => {
     const { id: _id, ...sinId } = COLUMNA_TABLERO_VALIDA;
     expect(columnaTableroSchema.safeParse(sinId).success).toBe(false);

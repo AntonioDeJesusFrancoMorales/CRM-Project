@@ -24,6 +24,8 @@ interface EtiquetasTableProps {
   etiquetas: Etiqueta[];
   onEdit: (etiqueta: Etiqueta) => void;
   onDelete: (etiqueta: Etiqueta) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 /** Normaliza acentos y mayúsculas para comparación de búsqueda. */
@@ -39,7 +41,7 @@ const tipoLabel: Record<Etiqueta['tipoEtiqueta'], string> = {
   TAREA: 'Tarea',
 };
 
-export function EtiquetasTable({ etiquetas, onEdit, onDelete }: EtiquetasTableProps) {
+export function EtiquetasTable({ etiquetas, onEdit, onDelete, canEdit = true, canDelete = true }: EtiquetasTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filtered = useMemo(() => {
@@ -96,23 +98,25 @@ export function EtiquetasTable({ etiquetas, onEdit, onDelete }: EtiquetasTablePr
                   {etiqueta.color}
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
+                  {(canEdit || canDelete) && <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" aria-label="Acciones">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(etiqueta)}>Editar</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => onDelete(etiqueta)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        Eliminar
-                      </DropdownMenuItem>
+                       {canEdit && <DropdownMenuItem onClick={() => onEdit(etiqueta)}>Editar</DropdownMenuItem>}
+                       {canEdit && canDelete && <DropdownMenuSeparator />}
+                       {canDelete && (
+                         <DropdownMenuItem
+                           onClick={() => onDelete(etiqueta)}
+                           className="text-destructive focus:text-destructive"
+                         >
+                           Eliminar
+                         </DropdownMenuItem>
+                       )}
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenu>}
                 </TableCell>
               </TableRow>
             ))

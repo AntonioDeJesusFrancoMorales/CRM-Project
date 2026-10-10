@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRoles } from '@/features/roles/hooks/useRoles';
+import { SensitiveWriteNotice } from '@/features/permissions/components/PermissionState';
 import {
   usuarioCreateSchema,
   usuarioUpdateSchema,
@@ -106,28 +107,30 @@ function CreateForm({
         />
 
         {/* Correo electrónico */}
-        <FormField
-          control={form.control}
-          name="correo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Correo electrónico{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <SensitiveWriteNotice resource="USUARIO" group="CONTACTO_PRIVADO">
+          <FormField
+            control={form.control}
+            name="correo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Correo electrónico{' '}
+                  <span aria-hidden="true" className="text-destructive">
+                    *
+                  </span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SensitiveWriteNotice>
 
         {/* Rol — select dinámico */}
         <FormField
@@ -163,6 +166,9 @@ function CreateForm({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Asignar un rol distinto puede requerir USUARIO.ADMINISTRAR y puede ser rechazado por el backend con 403.
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -269,28 +275,30 @@ function EditForm({
         />
 
         {/* Correo electrónico */}
-        <FormField
-          control={form.control}
-          name="correo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Correo electrónico{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <SensitiveWriteNotice resource="USUARIO" group="CONTACTO_PRIVADO">
+          <FormField
+            control={form.control}
+            name="correo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Correo electrónico{' '}
+                  <span aria-hidden="true" className="text-destructive">
+                    *
+                  </span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SensitiveWriteNotice>
 
         {/* Rol — select dinámico */}
         <FormField
@@ -326,6 +334,9 @@ function EditForm({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Asignar un rol distinto puede requerir USUARIO.ADMINISTRAR y puede ser rechazado por el backend con 403.
+              </p>
               <FormMessage />
             </FormItem>
           )}

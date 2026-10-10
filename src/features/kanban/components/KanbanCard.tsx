@@ -32,6 +32,11 @@ import { useEliminarTarjeta } from '../hooks/useEliminarTarjeta';
 import { useArrastreReciente } from './arrastreReciente';
 import { FichaDeleteDialog } from './FichaDeleteDialog';
 import { cn } from '@/lib/utils';
+import { usePermissions } from '@/features/permissions/context';
+import {
+  KANBAN_MOVE_FICHA_CHECKS,
+  getKanbanEntityDeletionChecks,
+} from '../lib/kanbanPermissions';
 
 export interface KanbanCardDetalle {
   label: string;
@@ -79,6 +84,11 @@ export interface KanbanCardOverlayData {
 }
 
 export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = [], to, empresaNombre, responsableNombre }: KanbanCardProps) {
+  const permissions = usePermissions();
+  const resource = ficha.tipoFicha === 'TAREA' ? 'TAREA' : 'TRATO';
+  const canEdit = permissions.allows(resource, 'ACTUALIZAR');
+  const canDelete = permissions.allowsAll(getKanbanEntityDeletionChecks(ficha.tipoFicha));
+  const canMoveFicha = permissions.allowsAll(KANBAN_MOVE_FICHA_CHECKS);
   const overlayData: KanbanCardOverlayData = {
     ficha,
     titulo,
@@ -90,6 +100,7 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
   };
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ficha.id,
+    disabled: !canMoveFicha,
     // type: 'ficha' permite discriminar fichas vs columnas en el onDragEnd del DndContext
     data: { type: 'ficha', ficha, card: overlayData },
   });
@@ -158,7 +169,7 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
           </div>
 
           {/* Dropdown de acciones — stopPropagation evita que el drag intercepte el click */}
-          <div
+          {(canEdit || canDelete) && <div
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
@@ -175,7 +186,7 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuGroup>
-                  {to && (
+                  {to && canEdit && (
                     <DropdownMenuItem asChild>
                       <Link to={to}>
                         <Pencil className="mr-2 h-4 w-4" />
@@ -184,17 +195,19 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Eliminar
-                </DropdownMenuItem>
+                {to && canEdit && canDelete && <DropdownMenuSeparator />}
+                {canDelete && (
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Eliminar
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+          </div>}
         </div>
 
         {detalles.length > 0 && (
@@ -247,15 +260,17 @@ export function KanbanCard({ ficha, titulo, detalles = [], badge, etiquetas = []
         )}
       </div>
 
-      <FichaDeleteDialog
-        open={deleteOpen}
-        onConfirm={() => { void handleConfirmDelete(); }}
-        onCancel={() => setDeleteOpen(false)}
-        isDeleting={isPending || isLocked}
-        tipoFicha={ficha.tipoFicha}
-        bloqueado={bloqueado}
-        cantidadTareas={cantidadTareas}
-      />
+      {canDelete && (
+        <FichaDeleteDialog
+          open={deleteOpen}
+          onConfirm={() => { void handleConfirmDelete(); }}
+          onCancel={() => setDeleteOpen(false)}
+          isDeleting={isPending || isLocked}
+          tipoFicha={ficha.tipoFicha}
+          bloqueado={bloqueado}
+          cantidadTareas={cantidadTareas}
+        />
+      )}
     </>
   );
 }

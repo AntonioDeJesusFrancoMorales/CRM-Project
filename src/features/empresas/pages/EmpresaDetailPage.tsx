@@ -17,6 +17,7 @@ import { EmpresaContactosTab } from '../components/EmpresaContactosTab';
 import { EmpresaFormDialog } from '../components/EmpresaFormDialog';
 import { EmpresaDeleteDialog } from '../components/EmpresaDeleteDialog';
 import { Empresa360Tab } from '@/features/customer-360/components/Empresa360Tab';
+import { usePermissions } from '@/features/permissions/context';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -25,6 +26,9 @@ export function EmpresaDetailPage() {
   const navigate = useNavigate();
   const { data: empresa, isLoading, error } = useEmpresa(id);
   const { data: empresas } = useEmpresas();
+  const permissions = usePermissions();
+  const canEdit = permissions.allows('EMPRESA', 'ACTUALIZAR');
+  const canDelete = permissions.allows('EMPRESA', 'ELIMINAR');
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
@@ -134,19 +138,23 @@ export function EmpresaDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil data-icon="inline-start" aria-hidden="true" />
-              Editar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDeleteTarget(empresa)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 data-icon="inline-start" aria-hidden="true" />
-              Eliminar
-            </Button>
+             {canEdit && (
+               <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                 <Pencil data-icon="inline-start" aria-hidden="true" />
+                 Editar
+               </Button>
+             )}
+             {canDelete && (
+               <Button
+                 variant="outline"
+                 size="sm"
+                 onClick={() => setDeleteTarget(empresa)}
+                 className="text-destructive hover:text-destructive"
+               >
+                 <Trash2 data-icon="inline-start" aria-hidden="true" />
+                 Eliminar
+               </Button>
+             )}
           </div>
         </header>
       </div>
@@ -184,21 +192,25 @@ export function EmpresaDetailPage() {
         </TabsContent>
       </Tabs>
 
-      <EmpresaFormDialog
-        mode="edit"
-        empresa={empresa}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        existingEmpresas={empresas}
-      />
+      {canEdit && (
+        <EmpresaFormDialog
+          mode="edit"
+          empresa={empresa}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          existingEmpresas={empresas}
+        />
+      )}
 
-      <EmpresaDeleteDialog
-        empresa={deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-        onSuccess={() => navigate('/empresas', { replace: true })}
-      />
+      {canDelete && (
+        <EmpresaDeleteDialog
+          empresa={deleteTarget}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          onSuccess={() => navigate('/empresas', { replace: true })}
+        />
+      )}
     </div>
   );
 }

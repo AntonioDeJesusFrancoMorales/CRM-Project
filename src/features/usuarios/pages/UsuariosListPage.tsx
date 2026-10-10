@@ -17,6 +17,8 @@ import { useRoles } from '@/features/roles/hooks/useRoles';
 import { UsuariosTable } from '../components/UsuariosTable';
 import { UsuarioFormDialog } from '../components/UsuarioFormDialog';
 import { UsuarioDeleteDialog } from '../components/UsuarioDeleteDialog';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 /** KPIs del directorio calculados sólo con la lista plana de usuarios. */
 function computeKpis(usuarios: Usuario[]) {
@@ -28,6 +30,11 @@ function computeKpis(usuarios: Usuario[]) {
 export function UsuariosListPage() {
   const { data: usuarios, isPending, isError, isFetching, refetch } = useUsuarios();
   const { data: roles = [] } = useRoles();
+  const permissions = usePermissions();
+  const canRead = permissions.allows('USUARIO', 'LEER');
+  const canCreate = permissions.allows('USUARIO', 'CREAR');
+  const canEdit = permissions.allows('USUARIO', 'ACTUALIZAR');
+  const canDelete = permissions.allows('USUARIO', 'ADMINISTRAR');
   const sessionUserId = useAuthStore((s) => s.usuario?.usuario_id ?? '');
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -36,18 +43,20 @@ export function UsuariosListPage() {
 
   const kpis = useMemo(() => computeKpis(usuarios ?? []), [usuarios]);
 
+  if (!canRead) return <AccessDeniedView resource="USUARIO" />;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
         title="Usuarios"
         description="Gestiona los usuarios y sus permisos en el sistema."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo usuario
-          </Button>
-        }
+        actions={canCreate ? (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nuevo usuario
+            </Button>
+          ) : undefined}
       />
 
       {/* Fila de KPIs del directorio (oculta en error de carga) */}
@@ -100,12 +109,12 @@ export function UsuariosListPage() {
           icon={Users}
           title="Aún no hay usuarios"
           description="Aún no hay usuarios registrados."
-          action={
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Crear primer usuario
-            </Button>
-          }
+           action={canCreate ? (
+             <Button onClick={() => setCreateOpen(true)}>
+               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+               Crear primer usuario
+             </Button>
+           ) : undefined}
         />
       )}
 
@@ -118,19 +127,23 @@ export function UsuariosListPage() {
             sessionUserId={sessionUserId}
             onEdit={(usuario) => setEditTarget(usuario)}
             onDelete={(usuario) => setDeleteTarget(usuario)}
+            canEdit={canEdit}
+            canDelete={canDelete}
           />
         </div>
       )}
 
       {/* Dialog: Crear usuario */}
-      <UsuarioFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
+      {canCreate && (
+        <UsuarioFormDialog
+          mode="create"
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+        />
+      )}
 
       {/* Dialog: Editar usuario */}
-      {editTarget && (
+      {editTarget && canEdit && (
         <UsuarioFormDialog
           mode="edit"
           open={!!editTarget}
@@ -142,14 +155,16 @@ export function UsuariosListPage() {
       )}
 
       {/* Dialog: Eliminar usuario */}
-      <UsuarioDeleteDialog
-        open={!!deleteTarget}
-        onOpenChange={(v) => {
-          if (!v) setDeleteTarget(null);
-        }}
-        usuario={deleteTarget}
-        isOwnAccount={(deleteTarget?.id ?? '') === sessionUserId}
-      />
+      {canDelete && (
+        <UsuarioDeleteDialog
+          open={!!deleteTarget}
+          onOpenChange={(v) => {
+            if (!v) setDeleteTarget(null);
+          }}
+          usuario={deleteTarget}
+          isOwnAccount={(deleteTarget?.id ?? '') === sessionUserId}
+        />
+      )}
     </div>
   );
 }

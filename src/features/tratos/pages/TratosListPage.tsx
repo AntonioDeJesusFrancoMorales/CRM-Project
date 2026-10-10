@@ -77,6 +77,8 @@ import {
 } from '../lib/tratoFilters';
 import { tipoContratoLabels } from '../lib/tipoContrato';
 import { getTratoTaskConflictMessage } from '../lib/tratoDeletion';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 const PRESETS_STORAGE_KEY = 'crm:list-presets:tratos';
 
@@ -115,6 +117,12 @@ function computeKpis(tratos: Trato[]) {
 }
 
 export function TratosListPage() {
+  const permissions = usePermissions();
+  const canRead = permissions.allows('TRATO', 'LEER');
+  const canCreate = permissions.allows('TRATO', 'CREAR');
+  const canEdit = permissions.allows('TRATO', 'ACTUALIZAR');
+  const canDelete = permissions.allows('TRATO', 'ELIMINAR');
+  const canReadFinancial = permissions.canReadGroup('TRATO', 'FINANCIERO');
   const [filters, setFilters] = useState<TratoFilters>(() => createEmptyTratoFilters());
   const [presets, setPresets] = useState<Array<ListPreset<TratoFilters>>>(() =>
     loadListPresets<TratoFilters>(PRESETS_STORAGE_KEY),
@@ -138,19 +146,29 @@ export function TratosListPage() {
   const { acquire, release, isLocked } = useSynchronousMutationLock();
 
   const kpis = useMemo(() => computeKpis(tratos ?? []), [tratos]);
+  const effectiveFilters = useMemo(
+    () =>
+      canReadFinancial
+        ? filters
+        : { ...filters, valorMin: undefined, valorMax: undefined, cierreEsperado: undefined },
+    [canReadFinancial, filters],
+  );
   const filteredTratos = useMemo(
-    () => applyTratoFilters(tratos ?? [], filters),
-    [tratos, filters],
+    () => applyTratoFilters(tratos ?? [], effectiveFilters),
+    [effectiveFilters, tratos],
   );
   const tratosLista = useMemo(
-    () => applyTratoFilters(tratosPage?.items ?? [], filters),
-    [tratosPage?.items, filters],
+    () => applyTratoFilters(tratosPage?.items ?? [], effectiveFilters),
+    [effectiveFilters, tratosPage?.items],
   );
   const filteredTratoIds = useMemo(
     () => filteredTratos.map((trato) => trato.id),
     [filteredTratos],
   );
-  const hasFilters = hasActiveTratoFilters(filters);
+  const hasFilters = hasActiveTratoFilters(effectiveFilters);
+  const tableColumnCount = 4 + (canReadFinancial ? 2 : 0) + (canEdit || canDelete ? 1 : 0);
+
+  if (!canRead) return <AccessDeniedView resource="TRATO" />;
 
   function updateFilters(patch: Partial<TratoFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
@@ -236,10 +254,12 @@ export function TratosListPage() {
             onRefresh={() => void refetch()}
             isRefreshing={isFetching}
           />
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo trato
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nuevo trato
+            </Button>
+          )}
         </div>
       </div>
 
@@ -248,9 +268,24 @@ export function TratosListPage() {
         <div className="mx-auto grid w-full max-w-[1400px] grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { label: 'Total de tratos', value: String(kpis.total), hint: `${kpis.abiertos} abiertos`, icon: Layers },
-            { label: 'Valor pipeline', value: formatCompactCurrency(kpis.pipeline), hint: 'Tratos abiertos', icon: Wallet },
-            { label: 'Valor ponderado', value: formatCompactCurrency(kpis.ponderado), hint: 'Ajustado por probabilidad', icon: Scale },
-            { label: 'Ticket promedio', value: formatCompactCurrency(kpis.ticketPromedio), hint: 'Por trato abierto', icon: Receipt },
+            {
+              label: 'Valor pipeline',
+              value: canReadFinancial ? formatCompactCurrency(kpis.pipeline) : 'Dato no disponible',
+              hint: 'Tratos abiertos',
+              icon: Wallet,
+            },
+            {
+              label: 'Valor ponderado',
+              value: canReadFinancial ? formatCompactCurrency(kpis.ponderado) : 'Dato no disponible',
+              hint: 'Ajustado por probabilidad',
+              icon: Scale,
+            },
+            {
+              label: 'Ticket promedio',
+              value: canReadFinancial ? formatCompactCurrency(kpis.ticketPromedio) : 'Dato no disponible',
+              hint: 'Por trato abierto',
+              icon: Receipt,
+            },
           ].map((item) => {
             const Icon = item.icon;
             return (
@@ -440,58 +475,62 @@ export function TratosListPage() {
           </Select>
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Valor mín.</span>
-          <Input
-            type="number"
-            min="0"
-            inputMode="numeric"
-            placeholder="0"
-            value={filters.valorMin ?? ''}
-            onChange={(event) => handleNumberFilterChange('valorMin', event.target.value)}
-            className="no-spinner h-8 w-full"
-            aria-label="Valor mínimo"
-          />
-          </label>
+          {canReadFinancial && (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-medium text-muted-foreground">Valor mín.</span>
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={filters.valorMin ?? ''}
+                  onChange={(event) => handleNumberFilterChange('valorMin', event.target.value)}
+                  className="no-spinner h-8 w-full"
+                  aria-label="Valor mínimo"
+                />
+              </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Valor máx.</span>
-          <Input
-            type="number"
-            min="0"
-            inputMode="numeric"
-            placeholder="Sin límite"
-            value={filters.valorMax ?? ''}
-            onChange={(event) => handleNumberFilterChange('valorMax', event.target.value)}
-            className="no-spinner h-8 w-full"
-            aria-label="Valor máximo"
-          />
-          </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-medium text-muted-foreground">Valor máx.</span>
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Sin límite"
+                  value={filters.valorMax ?? ''}
+                  onChange={(event) => handleNumberFilterChange('valorMax', event.target.value)}
+                  className="no-spinner h-8 w-full"
+                  aria-label="Valor máximo"
+                />
+              </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Cierre esperado</span>
-          <Select
-            value={filters.cierreEsperado ?? 'todas'}
-            onValueChange={(value) =>
-              updateFilters({
-                cierreEsperado:
-                  value === 'todas' ? undefined : (value as CierreEsperadoFilter),
-              })
-            }
-          >
-            <SelectTrigger className="h-8 w-full" aria-label="Cierre esperado">
-              <SelectValue placeholder="Cierre esperado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas las fechas</SelectItem>
-              {CIERRE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-medium text-muted-foreground">Cierre esperado</span>
+                <Select
+                  value={filters.cierreEsperado ?? 'todas'}
+                  onValueChange={(value) =>
+                    updateFilters({
+                      cierreEsperado:
+                        value === 'todas' ? undefined : (value as CierreEsperadoFilter),
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-8 w-full" aria-label="Cierre esperado">
+                    <SelectValue placeholder="Cierre esperado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas las fechas</SelectItem>
+                    {CIERRE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+            </>
+          )}
               </div>
 
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -526,7 +565,7 @@ export function TratosListPage() {
           {/* Loading: esqueleto de tabla en vez de texto plano */}
           {isLoading && (
             <div className="overflow-hidden rounded-lg border border-border bg-card">
-              <TableSkeleton columns={7} rows={6} />
+              <TableSkeleton columns={tableColumnCount} rows={6} />
             </div>
           )}
 
@@ -555,10 +594,12 @@ export function TratosListPage() {
               title="Aún no hay tratos"
               description="Creá tu primer trato para empezar a darle seguimiento a tu pipeline comercial."
               action={
-                <Button onClick={() => setCreateOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Nuevo trato
-                </Button>
+                canCreate ? (
+                  <Button onClick={() => setCreateOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Nuevo trato
+                  </Button>
+                ) : undefined
               }
             />
           )}
@@ -570,8 +611,9 @@ export function TratosListPage() {
                 tratos={tratosLista}
                 contactos={contactos}
                 usuarios={usuarios}
-                onEdit={(trato) => setEditTarget(trato)}
-                onDelete={handleDeleteRequest}
+                onEdit={canEdit ? (trato) => setEditTarget(trato) : undefined}
+                onDelete={canDelete ? handleDeleteRequest : undefined}
+                canReadFinancial={canReadFinancial}
                 sort={paging.sort}
                 onSort={paging.setSort}
               />
@@ -596,7 +638,7 @@ export function TratosListPage() {
       </Tabs>
 
       {/* Dialog crear trato */}
-      <TratoCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {canCreate && <TratoCreateDialog open={createOpen} onOpenChange={setCreateOpen} />}
 
       <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
         <DialogContent>
@@ -639,7 +681,7 @@ export function TratosListPage() {
       </Dialog>
 
       {/* Dialog editar trato */}
-      {editTarget && (
+      {editTarget && canEdit && (
         <TratoEditDialog
           open={!!editTarget}
           onOpenChange={(open) => !open && setEditTarget(null)}
@@ -648,13 +690,15 @@ export function TratosListPage() {
       )}
 
       {/* Dialog eliminar trato */}
-      <TratoDeleteDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        nombre={deleteTarget?.nombre ?? ''}
-        onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending || isLocked}
-      />
+      {canDelete && (
+        <TratoDeleteDialog
+          open={!!deleteTarget}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          nombre={deleteTarget?.nombre ?? ''}
+          onConfirm={handleConfirmDelete}
+          isDeleting={deleteMutation.isPending || isLocked}
+        />
+      )}
     </div>
   );
 }

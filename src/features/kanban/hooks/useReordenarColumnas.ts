@@ -15,6 +15,8 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import type { Tablero } from '@/features/kanban/schemas/tablero.schema';
+import { usePermissions } from '@/features/permissions/context';
+import { KANBAN_REORDER_COLUMN_CHECKS } from '../lib/kanbanPermissions';
 import { tablerosKeys } from './useTableros';
 
 interface ReordenarColumnasVars {
@@ -30,9 +32,15 @@ interface ReordenarColumnasContext {
 
 export function useReordenarColumnas(): UseMutationResult<Tablero, Error, ReordenarColumnasVars, ReordenarColumnasContext> {
   const queryClient = useQueryClient();
+  const permissions = usePermissions();
+  const canReorderColumns = permissions.allowsAll(KANBAN_REORDER_COLUMN_CHECKS);
 
   return useMutation<Tablero, Error, ReordenarColumnasVars, ReordenarColumnasContext>({
     mutationFn: ({ tableroId, nuevoOrden, idsActuales }) => {
+      if (!canReorderColumns) {
+        return Promise.reject(new Error('Kanban reorder permission denied'));
+      }
+
       // Guard 1: lista vacía es inválida
       if (nuevoOrden.length === 0) {
         return Promise.reject(new Error('nuevoOrden no puede estar vacío'));
@@ -71,6 +79,8 @@ export function useReordenarColumnas(): UseMutationResult<Tablero, Error, Reorde
       });
     },
     onMutate: async ({ tableroId, nuevoOrden }) => {
+      if (!canReorderColumns) return { previousTablero: undefined };
+
       await queryClient.cancelQueries({ queryKey: tablerosKeys.detail(tableroId) });
       const previousTablero = queryClient.getQueryData<Tablero>(tablerosKeys.detail(tableroId));
       if (previousTablero) {
@@ -93,7 +103,7 @@ export function useReordenarColumnas(): UseMutationResult<Tablero, Error, Reorde
         queryClient.setQueryData(tablerosKeys.detail(tableroId), context.previousTablero);
       }
       if (isHttpError(error)) {
-        if (error.status === 422) return;
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return;
         toast.error(error.message);
       } else {
         toast.error('No fue posible reordenar las columnas');

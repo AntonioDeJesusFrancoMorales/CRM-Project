@@ -24,6 +24,7 @@ import { sortDirectionFor } from '@/components/shared/listPaging';
 import { formatDate } from '@/lib/format';
 import { estadoRelacionBadgeClass, estadoRelacionLabels } from '../lib/estadoRelacion';
 import { displayWebsiteUrl, normalizeWebsiteUrl } from '../lib/empresaLinks';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 
 interface EmpresasTableProps {
   empresas: Empresa[];
@@ -31,6 +32,8 @@ interface EmpresasTableProps {
   onEdit: (empresa: Empresa) => void;
   onDelete: (empresa: Empresa) => void;
   onCreate?: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
   isEmptyDataset?: boolean;
   sort?: SortState;
   onSort?: (sortBy: string) => void;
@@ -42,6 +45,8 @@ export function EmpresasTable({
   onEdit,
   onDelete,
   onCreate,
+  canEdit = true,
+  canDelete = true,
   isEmptyDataset = false,
   sort,
   onSort,
@@ -151,20 +156,24 @@ export function EmpresasTable({
                   <span className="block truncate" title={empresa.sector ?? undefined}>
                     {empresa.sector ?? '—'}
                   </span>
-                </TableCell>
-                <TableCell className="min-w-0 text-muted-foreground">
-                  {empresa.telefono ? (
-                    <a
-                      href={`tel:${empresa.telefono}`}
-                      title={empresa.telefono}
-                      className="block truncate hover:text-foreground hover:underline"
-                    >
-                      {empresa.telefono}
-                    </a>
-                  ) : (
-                    '—'
-                  )}
-                </TableCell>
+                 </TableCell>
+                 <TableCell className="min-w-0 text-muted-foreground">
+                   <div className="min-w-0 truncate">
+                     <SensitiveField resource="EMPRESA" group="CONTACTO_PRIVADO">
+                       {empresa.telefono ? (
+                         <a
+                           href={`tel:${empresa.telefono}`}
+                           title={empresa.telefono}
+                           className="block truncate hover:text-foreground hover:underline"
+                         >
+                           {empresa.telefono}
+                         </a>
+                       ) : (
+                         '—'
+                       )}
+                     </SensitiveField>
+                   </div>
+                 </TableCell>
                 <TableCell className="min-w-0">
                   {empresa.paginaWeb && websiteHref ? (
                     <a
@@ -205,18 +214,22 @@ export function EmpresasTable({
                         <Building2 className="mr-2 h-4 w-4" aria-hidden="true" />
                         Ver detalle
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(empresa)}>
-                        <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => onDelete(empresa)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Eliminar
-                      </DropdownMenuItem>
+                      {canEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(empresa)}>
+                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
+                          Editar
+                        </DropdownMenuItem>
+                      )}
+                      {canEdit && canDelete && <DropdownMenuSeparator />}
+                      {canDelete && (
+                        <DropdownMenuItem
+                          onClick={() => onDelete(empresa)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

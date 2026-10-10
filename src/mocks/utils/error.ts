@@ -24,6 +24,8 @@ export const errors = {
     apiError(409, 'CONFLICT', message),
   validation: (details: ApiError['details'], message = 'Datos invalidos'): Response =>
     apiError(422, 'VALIDATION_ERROR', message, details),
+  badRequest: (details: ApiError['details'], message = 'Datos invalidos'): Response =>
+    apiError(400, 'VALIDATION_ERROR', message, details),
   server: (message = 'Error interno del servidor'): Response =>
     apiError(500, 'INTERNAL_SERVER_ERROR', message),
 };

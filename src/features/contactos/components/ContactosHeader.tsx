@@ -6,7 +6,7 @@ import { RefreshButton } from '@/components/shared/RefreshButton';
 interface ContactosHeaderProps {
   importExport: ReactNode;
   onRefresh: () => void;
-  onCreate: () => void;
+  onCreate?: () => void;
   isRefreshing?: boolean;
 }
 
@@ -32,10 +32,12 @@ export function ContactosHeader({
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
-        <Button size="sm" onClick={onCreate}>
-          <Plus data-icon="inline-start" aria-hidden="true" />
-          Nuevo contacto
-        </Button>
+        {onCreate && (
+          <Button size="sm" onClick={onCreate}>
+            <Plus data-icon="inline-start" aria-hidden="true" />
+            Nuevo contacto
+          </Button>
+        )}
       </div>
     </header>
   );

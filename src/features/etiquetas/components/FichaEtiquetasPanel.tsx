@@ -22,6 +22,7 @@ import { useFichas } from '@/features/kanban/hooks/useFichas';
 import { useUpdateFicha } from '@/features/kanban/hooks/useUpdateFicha';
 import type { TipoFicha } from '@/features/kanban/schemas/ficha.schema';
 import { useEtiquetas } from '../hooks/useEtiquetas';
+import { usePermissions } from '@/features/permissions/context';
 
 interface FichaEtiquetasPanelProps {
   /** TRATO o TAREA — define el tipo de etiquetas elegibles y cómo se resuelve la ficha. */
@@ -31,6 +32,11 @@ interface FichaEtiquetasPanelProps {
 }
 
 export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPanelProps) {
+  const permissions = usePermissions();
+  const canManage = permissions.allowsAll([
+    { resource: 'FICHA', action: 'ACTUALIZAR' },
+    { resource: 'ETIQUETA', action: 'LEER' },
+  ]);
   const tipo = tipoFicha as TipoEtiqueta; // TipoFicha y TipoEtiqueta comparten valores TRATO|TAREA
   const { data: fichas = [], isPending: loadingFichas } = useFichas();
   const { data: catalogo = [] } = useEtiquetas(tipo);
@@ -64,11 +70,12 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
   }, [editOpen, ficha]);
 
   function toggle(id: string) {
+    if (!canManage) return;
     setSeleccion((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function handleGuardar() {
-    if (!ficha || !acquire()) return;
+    if (!canManage || !ficha || !acquire()) return;
     updateFicha.mutate(
       {
         id: ficha.id,
@@ -101,14 +108,16 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
             <Tags className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             Etiquetas
           </h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-            disabled={!ficha || loadingFichas}
-          >
-            Gestionar
-          </Button>
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditOpen(true)}
+              disabled={!ficha || loadingFichas}
+            >
+              Gestionar
+            </Button>
+          )}
         </div>
 
         {/* Sin ficha: la entidad no está en ningún tablero → no hay dónde guardar tags */}
@@ -140,7 +149,7 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
       </CardContent>
 
       {/* Editor: lista del catálogo del tipo, toggle por click */}
-      <Dialog open={editOpen} onOpenChange={handleOpenChange}>
+      {canManage && <Dialog open={editOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar etiquetas</DialogTitle>
@@ -189,7 +198,7 @@ export function FichaEtiquetasPanel({ tipoFicha, entidadId }: FichaEtiquetasPane
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </Card>
   );
 }

@@ -4,7 +4,7 @@ import { RefreshButton } from '@/components/shared/RefreshButton';
 
 interface EmpresasHeaderProps {
   onRefresh: () => void;
-  onCreate: () => void;
+  onCreate?: () => void;
   isRefreshing?: boolean;
 }
 
@@ -22,10 +22,12 @@ export function EmpresasHeader({ onRefresh, onCreate, isRefreshing = false }: Em
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
-        <Button size="sm" onClick={onCreate}>
-          <Plus data-icon="inline-start" aria-hidden="true" />
-          Nueva empresa
-        </Button>
+        {onCreate && (
+          <Button size="sm" onClick={onCreate}>
+            <Plus data-icon="inline-start" aria-hidden="true" />
+            Nueva empresa
+          </Button>
+        )}
       </div>
     </header>
   );

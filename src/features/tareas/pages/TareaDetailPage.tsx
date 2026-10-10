@@ -26,6 +26,8 @@ import { TareaEstadoMenu } from '../components/TareaEstadoMenu';
 import { TareaEstadoBadge } from '../components/TareaEstadoBadge';
 import { FichaEtiquetasPanel } from '@/features/etiquetas/components/FichaEtiquetasPanel';
 import { useTareaWorkflowStates } from '../hooks/useTareaWorkflowStates';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -52,6 +54,10 @@ export function TareaDetailPage() {
   const { data: tarea, isLoading, error } = useTarea(id);
   const { data: trato } = useTrato(tarea?.tratoId);
   const { data: usuarios = [] } = useUsuarios();
+  const permissions = usePermissions();
+  const canRead = permissions.allows('TAREA', 'LEER');
+  const canEdit = permissions.allows('TAREA', 'ACTUALIZAR');
+  const canDelete = permissions.allows('TAREA', 'ELIMINAR');
   const {
     workflowByTareaId,
     workflowColumns,
@@ -73,6 +79,8 @@ export function TareaDetailPage() {
     }, NOT_FOUND_REDIRECT_DELAY);
     return () => window.clearTimeout(timeoutId);
   }, [is404, navigate]);
+
+  if (!canRead) return <AccessDeniedView resource="TAREA" />;
 
   function handleConfirmDelete() {
     if (!id || !acquire()) return;
@@ -163,23 +171,29 @@ export function TareaDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <TareaEstadoMenu
-            tarea={tarea}
-            workflowState={workflowState}
-            workflowColumns={workflowColumns}
-          />
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-            Editar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setDeleteOpen(true)}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-            Eliminar
-          </Button>
+          {canEdit && (
+            <TareaEstadoMenu
+              tarea={tarea}
+              workflowState={workflowState}
+              workflowColumns={workflowColumns}
+            />
+          )}
+          {canEdit && (
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
+              Editar
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(true)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Eliminar
+            </Button>
+          )}
         </div>
       </header>
 
@@ -232,19 +246,23 @@ export function TareaDetailPage() {
       <FichaEtiquetasPanel tipoFicha="TAREA" entidadId={id} />
 
       {/* Dialogs */}
-      <TareaEditDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        tarea={tarea}
-      />
+      {canEdit && (
+        <TareaEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          tarea={tarea}
+        />
+      )}
 
-      <TareaDeleteDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        titulo={tarea.titulo}
-        onConfirm={handleConfirmDelete}
-         isDeleting={deleteMutation.isPending || isLocked}
-      />
+      {canDelete && (
+        <TareaDeleteDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          titulo={tarea.titulo}
+          onConfirm={handleConfirmDelete}
+          isDeleting={deleteMutation.isPending || isLocked}
+        />
+      )}
     </div>
   );
 }

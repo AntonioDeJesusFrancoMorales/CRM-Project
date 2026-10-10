@@ -35,10 +35,32 @@ import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { prioridadBadgeClass, prioridadLabels } from '@/features/tareas/lib/tareaBadges';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+import { AccessDeniedView, SensitiveField } from '@/features/permissions/components/PermissionState';
+import { usePermissions } from '@/features/permissions/context';
 import { downloadTratosCsv } from '../lib/dashboardCsv';
 import { computeDashboardInsights, type DashboardAlert } from '../lib/dashboardMetrics';
 
+const DASHBOARD_READ_CHECKS = [
+  { resource: 'EMPRESA', action: 'LEER' },
+  { resource: 'CONTACTO', action: 'LEER' },
+  { resource: 'TRATO', action: 'LEER' },
+  { resource: 'TAREA', action: 'LEER' },
+  { resource: 'USUARIO', action: 'LEER' },
+] as const;
+
 export function DashboardPage() {
+  const permissions = usePermissions();
+  if (permissions.status === 'resolved' && !permissions.canAny(DASHBOARD_READ_CHECKS)) {
+    return <AccessDeniedView />;
+  }
+
+  return <DashboardContent />;
+}
+
+function DashboardContent() {
+  const permissions = usePermissions();
+  const canReadFinancial = permissions.canReadGroup('TRATO', 'FINANCIERO');
+  const canReadContactPrivate = permissions.canReadGroup('CONTACTO', 'CONTACTO_PRIVADO');
   const now = useMemo(() => new Date(), []);
   const { data: tratos = [], isLoading: tratosLoading, isError: tratosError } = useTratos();
   const {
@@ -59,6 +81,19 @@ export function DashboardPage() {
     [tratos, tareas, contactos, empresas, usuarios, now],
   );
   const maxRanking = insights.ranking[0]?.valor ?? 0;
+  const visibleAlerts = insights.alerts.filter((alert) => {
+    if (!canReadContactPrivate && alert.id === 'contacts-without-email') return false;
+    if (!canReadFinancial && (alert.id === 'upcoming-closes' || alert.id === 'deals-without-close-date')) {
+      return false;
+    }
+    return true;
+  });
+  const visibleHealth = insights.health.filter((item) => {
+    if (!canReadContactPrivate && item.id === 'contacts-without-email') return false;
+    if (!canReadFinancial && item.id === 'deals-without-close-date') return false;
+    return true;
+  });
+  const canExportTratos = canReadFinancial && tratos.length > 0;
 
   return (
     <div className="mx-auto flex w-full max-w-[1480px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -75,16 +110,16 @@ export function DashboardPage() {
         <Tooltip>
           <TooltipTrigger asChild>
             <span
-              tabIndex={tratos.length === 0 ? 0 : undefined}
+              tabIndex={canExportTratos ? undefined : 0}
               className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Button
                 variant="outline"
-                disabled={tratos.length === 0}
+                disabled={!canExportTratos}
                 onClick={() => downloadTratosCsv(tratos, contactos, usuarios)}
                 className={cn(
                   'w-fit max-w-full gap-2',
-                  tratos.length === 0 && 'pointer-events-none',
+                  !canExportTratos && 'pointer-events-none',
                 )}
               >
                 <Download aria-hidden="true" />
@@ -92,9 +127,11 @@ export function DashboardPage() {
               </Button>
             </span>
           </TooltipTrigger>
-          {tratos.length === 0 && (
+          {!canReadFinancial ? (
+            <TooltipContent>No se pudo verificar el permiso financiero para exportar tratos</TooltipContent>
+          ) : tratos.length === 0 ? (
             <TooltipContent>Crea tratos primero para poder exportarlos</TooltipContent>
-          )}
+          ) : null}
         </Tooltip>
       </header>
 
@@ -125,34 +162,36 @@ export function DashboardPage() {
           className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
           aria-label="KPIs ejecutivos"
         >
-          <PrimaryKpiCard
-            label="Pipeline abierto"
-            value={formatCurrency(insights.kpis.pipelineAbierto)}
+            <PrimaryKpiCard
+              label="Pipeline abierto"
+              value={formatCurrency(insights.kpis.pipelineAbierto)}
             hint="Oportunidades abiertas"
-            icon={Wallet}
-            tone="blue"
-            loading={loading}
-          />
+              icon={Wallet}
+              tone="blue"
+              loading={loading}
+              sensitive
+            />
           <PrimaryKpiCard
             label="Pipeline ponderado"
             value={formatCurrency(insights.kpis.pipelinePonderado)}
             hint="Estimado × probabilidad"
             icon={TrendingUp}
-            tone="violet"
-            loading={loading}
-            progress={normalizeProgress(
-              insights.kpis.pipelinePonderado,
-              insights.kpis.pipelineAbierto,
-            )}
-          />
+              tone="violet"
+              loading={loading}
+              sensitive
+              progress={canReadFinancial
+                ? normalizeProgress(insights.kpis.pipelinePonderado, insights.kpis.pipelineAbierto)
+                : undefined}
+            />
           <PrimaryKpiCard
             label="Ganado este mes"
             value={formatCurrency(insights.kpis.valorGanadoMes)}
             hint={`${insights.kpis.ganadosMes} oportunidades`}
-            icon={Target}
-            tone="emerald"
-            loading={loading}
-          />
+              icon={Target}
+              tone="emerald"
+              loading={loading}
+              sensitive
+            />
           <PrimaryKpiCard
             label="Conversión"
             value={`${insights.kpis.conversion}%`}
@@ -174,7 +213,7 @@ export function DashboardPage() {
             <UpcomingCloses items={insights.upcomingCloses} />
           </div>
           <div className="order-5 min-w-0">
-            <CrmHealth items={insights.health} />
+            <CrmHealth items={visibleHealth} />
           </div>
         </div>
         <div className="contents lg:block lg:space-y-4">
@@ -182,7 +221,7 @@ export function DashboardPage() {
             <PortfolioPanel insights={insights} loading={loading} />
           </div>
           <div className="order-4 min-w-0">
-            <ActionAlerts alerts={insights.alerts} />
+            <ActionAlerts alerts={visibleAlerts} />
           </div>
           <div className="order-6 min-w-0">
             <AgentRanking ranking={insights.ranking} maxValor={maxRanking} />
@@ -210,6 +249,7 @@ function PrimaryKpiCard({
   tone,
   loading,
   progress,
+  sensitive = false,
 }: {
   label: string;
   value: string;
@@ -218,6 +258,7 @@ function PrimaryKpiCard({
   tone: MetricTone;
   loading: boolean;
   progress?: number;
+  sensitive?: boolean;
 }) {
   return (
     <Card className="min-w-0">
@@ -226,7 +267,13 @@ function PrimaryKpiCard({
           <div className="min-w-0">
             <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
             <p className="mt-2 truncate text-2xl font-semibold tracking-tight tabular-nums">
-              {loading ? '—' : value}
+              {loading ? '—' : sensitive ? (
+                <SensitiveField resource="TRATO" group="FINANCIERO">
+                  {value}
+                </SensitiveField>
+              ) : (
+                value
+              )}
             </p>
           </div>
           <div
@@ -258,6 +305,7 @@ function PortfolioPanel({
     icon: LucideIcon;
     tone: MetricTone;
     hint?: string;
+    sensitive?: boolean;
   }> = [
     {
       label: 'Tareas vencidas',
@@ -282,6 +330,7 @@ function PortfolioPanel({
       value: formatCurrency(insights.kpis.ticketPromedio),
       icon: Wallet,
       tone: 'violet',
+      sensitive: true,
     },
     { label: 'Clientes', value: String(insights.kpis.clientesActivos), icon: Users, tone: 'blue' },
     { label: 'Prospectos', value: String(insights.kpis.prospectos), icon: Contact2, tone: 'amber' },
@@ -320,7 +369,13 @@ function PortfolioPanel({
                 </span>
               </div>
               <p className="mt-2 break-words text-lg font-semibold tabular-nums">
-                {loading ? '—' : metric.value}
+                {loading ? '—' : metric.sensitive ? (
+                  <SensitiveField resource="TRATO" group="FINANCIERO">
+                    {metric.value}
+                  </SensitiveField>
+                ) : (
+                  metric.value
+                )}
               </p>
               {metric.hint && (
                 <p className="mt-1 break-words text-[11px] text-muted-foreground">{metric.hint}</p>
@@ -556,39 +611,39 @@ function UpcomingCloses({
               className="block min-w-0 px-5 py-4 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             >
               <div className="min-w-0">
-                <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{item.trato.nombre}</p>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">
-                    {formatCurrency(item.trato.valorEstimado)}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {item.contacto && (
-                    <>
-                      <span>{item.contacto.nombre}</span>
+                <p className="truncate text-sm font-medium">{item.trato.nombre}</p>
+                <SensitiveField resource="TRATO" group="FINANCIERO">
+                  <>
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                      <span className="text-xs text-muted-foreground">
+                        {item.contacto?.nombre ?? 'Sin contacto'} ·{' '}
+                        {item.responsable?.nombre ?? 'Sin responsable'}
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">
+                        {formatCurrency(item.trato.valorEstimado)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span>{item.trato.probabilidad ?? 0}%</span>
                       <span>·</span>
-                    </>
-                  )}
-                  <span>{item.responsable?.nombre ?? 'Sin responsable'}</span>
-                  <span>·</span>
-                  <span>{item.trato.probabilidad ?? 0}%</span>
-                  <span>·</span>
-                  <span>{formatDate(item.trato.fechaCierreEsperada)}</span>
-                  <span>·</span>
-                  <span>
-                    {item.daysUntilClose === 0 ? 'cierra hoy' : `en ${item.daysUntilClose} días`}
-                  </span>
-                </div>
-                <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-                  <ProgressBar
-                    label={`Probabilidad de ${item.trato.nombre}`}
-                    value={normalizeProgress(item.trato.probabilidad ?? 0, 100)}
-                    className="min-w-[6rem] flex-1"
-                  />
-                  <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                    {item.trato.probabilidad ?? 0}%
-                  </span>
-                </div>
+                      <span>{formatDate(item.trato.fechaCierreEsperada)}</span>
+                      <span>·</span>
+                      <span>
+                        {item.daysUntilClose === 0 ? 'cierra hoy' : `en ${item.daysUntilClose} días`}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                      <ProgressBar
+                        label={`Probabilidad de ${item.trato.nombre}`}
+                        value={normalizeProgress(item.trato.probabilidad ?? 0, 100)}
+                        className="min-w-[6rem] flex-1"
+                      />
+                      <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                        {item.trato.probabilidad ?? 0}%
+                      </span>
+                    </div>
+                  </>
+                </SensitiveField>
               </div>
             </Link>
           ))
@@ -668,35 +723,37 @@ function AgentRanking({
         <CardDescription>Valor en pipeline asignado por responsable.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 p-4">
-        {ranking.length === 0 ? (
-          <p className="py-2 text-center text-sm text-muted-foreground">
-            Aún no hay tratos asignados.
-          </p>
-        ) : (
-          ranking.map((agent, index) => (
-            <div key={agent.id} className="flex min-w-0 items-center gap-3">
-              <div
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
-                aria-hidden="true"
-              >
-                {getInitials(agent.nombre)}
-              </div>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
-                  <span className="min-w-0 truncate font-medium">{agent.nombre}</span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">
-                    {formatCurrency(agent.valor)}
-                  </span>
+        <SensitiveField resource="TRATO" group="FINANCIERO">
+          {ranking.length === 0 ? (
+            <p className="py-2 text-center text-sm text-muted-foreground">
+              Aún no hay tratos asignados.
+            </p>
+          ) : (
+            ranking.map((agent, index) => (
+              <div key={agent.id} className="flex min-w-0 items-center gap-3">
+                <div
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+                  aria-hidden="true"
+                >
+                  {getInitials(agent.nombre)}
                 </div>
-                <ProgressBar
-                  label={`Valor asignado a ${agent.nombre}`}
-                  value={normalizeProgress(agent.valor, maxValor)}
-                  barClassName={index > 0 ? 'opacity-80' : undefined}
-                />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
+                    <span className="min-w-0 truncate font-medium">{agent.nombre}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {formatCurrency(agent.valor)}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    label={`Valor asignado a ${agent.nombre}`}
+                    value={normalizeProgress(agent.valor, maxValor)}
+                    barClassName={index > 0 ? 'opacity-80' : undefined}
+                  />
+                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </SensitiveField>
       </CardContent>
     </Card>
   );

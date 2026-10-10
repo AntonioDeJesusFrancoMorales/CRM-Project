@@ -57,7 +57,7 @@ export function FichaCreateDialog({
   // Remap 'tratoId'/'tareaId' → 'entidadId' since FichaForm uses the generic field name
   const rawServerErrors =
     isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
+    (mutation.error.status === 400 || mutation.error.status === 422) &&
     mutation.error.details
       ? mutation.error.details
       : undefined;

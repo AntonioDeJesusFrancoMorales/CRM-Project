@@ -4,6 +4,7 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { rolesKeys } from './useRoles';
+import { permissionsKeys } from '@/features/permissions/context';
 
 // Mensaje de la regla de negocio del back: borrar un rol con usuarios asignados → 409.
 export const ROL_CON_USUARIOS_MSG = 'Este rol tiene usuarios asignados y no puede eliminarse';
@@ -16,6 +17,7 @@ export function useDeleteRol(): UseMutationResult<void, Error, string> {
     onSuccess: (_void, id) => {
       queryClient.removeQueries({ queryKey: rolesKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: rolesKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: permissionsKeys.all });
       toast.success('Rol eliminado');
     },
     onError: (error) => {

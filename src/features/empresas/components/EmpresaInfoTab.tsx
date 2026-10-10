@@ -11,6 +11,7 @@ import {
   type EmpresaSocialNetwork,
 } from '../lib/empresaLinks';
 import { estadoRelacionBadgeClass, estadoRelacionLabels } from '../lib/estadoRelacion';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 
 interface EmpresaInfoTabProps {
   empresa: Empresa;
@@ -33,30 +34,38 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
           <InfoField
             label="Teléfono"
             value={
-              empresa.telefono ? (
-                <a href={`tel:${empresa.telefono}`} className="hover:text-primary hover:underline">
-                  {empresa.telefono}
-                </a>
-              ) : null
+              <SensitiveField resource="EMPRESA" group="CONTACTO_PRIVADO">
+                {empresa.telefono ? (
+                  <a href={`tel:${empresa.telefono}`} className="hover:text-primary hover:underline">
+                    {empresa.telefono}
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </SensitiveField>
             }
           />
           <InfoField
             label="Página web"
             value={
-              empresa.paginaWeb && websiteHref ? (
-                <a
-                  href={websiteHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={empresa.paginaWeb ?? undefined}
-                  className="inline-flex max-w-full items-center gap-1 text-primary hover:underline"
-                >
-                  <span className="block truncate">{displayWebsiteUrl(empresa.paginaWeb)}</span>
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                </a>
-              ) : empresa.paginaWeb ? (
-                <span title={empresa.paginaWeb}>{empresa.paginaWeb}</span>
-              ) : null
+              <SensitiveField resource="EMPRESA" group="CONTACTO_PRIVADO">
+                {empresa.paginaWeb && websiteHref ? (
+                  <a
+                    href={websiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={empresa.paginaWeb ?? undefined}
+                    className="inline-flex max-w-full items-center gap-1 text-primary hover:underline"
+                  >
+                    <span className="block truncate">{displayWebsiteUrl(empresa.paginaWeb)}</span>
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </a>
+                ) : empresa.paginaWeb ? (
+                  <span title={empresa.paginaWeb}>{empresa.paginaWeb}</span>
+                ) : (
+                  '—'
+                )}
+              </SensitiveField>
             }
           />
           <InfoField
@@ -107,11 +116,13 @@ export function EmpresaInfoTab({ empresa }: EmpresaInfoTabProps) {
           <CardTitle className="text-sm font-semibold">Notas</CardTitle>
         </CardHeader>
         <CardContent>
-          {empresa.notas ? (
-            <p className="whitespace-pre-wrap text-sm leading-6">{empresa.notas}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin notas registradas.</p>
-          )}
+          <SensitiveField resource="EMPRESA" group="CONTACTO_PRIVADO">
+            {empresa.notas ? (
+              <p className="whitespace-pre-wrap text-sm leading-6">{empresa.notas}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin notas registradas.</p>
+            )}
+          </SensitiveField>
         </CardContent>
       </Card>
 
@@ -155,20 +166,22 @@ function SocialField({
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        {value && externalUrl ? (
-          <a
-            href={externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={value}
-            className="mt-1 inline-flex max-w-full items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            <span className="block truncate">{value}</span>
-            <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          </a>
-        ) : (
-          <p className="mt-1 truncate text-sm font-medium">{value ?? '—'}</p>
-        )}
+        <SensitiveField resource="EMPRESA" group="CONTACTO_PRIVADO">
+          {value && externalUrl ? (
+            <a
+              href={externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={value}
+              className="mt-1 inline-flex max-w-full items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              <span className="block truncate">{value}</span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            </a>
+          ) : (
+            <p className="mt-1 truncate text-sm font-medium">{value ?? '—'}</p>
+          )}
+        </SensitiveField>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { Topbar } from './Topbar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AssistantWidget } from '@/features/assistant/components/AssistantWidget';
+import { PermissionsUnavailableBanner } from '@/features/permissions/components/PermissionState';
 
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -73,6 +74,7 @@ export function AppShell() {
             </Button>
           }
         />
+        <PermissionsUnavailableBanner />
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>

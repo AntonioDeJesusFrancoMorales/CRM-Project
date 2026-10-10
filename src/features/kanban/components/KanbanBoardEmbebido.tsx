@@ -9,6 +9,8 @@ import { useFichas } from '../hooks/useFichas';
 import { KanbanBoard } from './KanbanBoard';
 import { ColumnaCreateDialog } from './ColumnaCreateDialog';
 import type { TipoFicha } from '../schemas/ficha.schema';
+import { usePermissions } from '@/features/permissions/context';
+import { KANBAN_CREATE_COLUMN_CHECKS } from '../lib/kanbanPermissions';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -24,6 +26,8 @@ export interface KanbanBoardEmbebidoProps {
 // ---------------------------------------------------------------------------
 
 export function KanbanBoardEmbebido({ tableroId, allowedEntityIds }: KanbanBoardEmbebidoProps) {
+  const permissions = usePermissions();
+  const canCreateColumn = permissions.allowsAll(KANBAN_CREATE_COLUMN_CHECKS);
   const [nuevaColumnaOpen, setNuevaColumnaOpen] = useState(false);
 
   const { data: tablero, isLoading, error } = useTablero(tableroId);
@@ -87,18 +91,20 @@ export function KanbanBoardEmbebido({ tableroId, allowedEntityIds }: KanbanBoard
           fichas={fichasFiltradas}
           tableroId={tablero.id}
           tipoFicha={tipoFicha}
-          onAddColumn={() => setNuevaColumnaOpen(true)}
+            onAddColumn={canCreateColumn ? () => setNuevaColumnaOpen(true) : undefined}
         />
       )}
 
       {/* Dialog Nueva columna */}
-      <ColumnaCreateDialog
-        open={nuevaColumnaOpen}
-        onOpenChange={setNuevaColumnaOpen}
-        tableroId={tableroId}
-        tipoTablero={tipoTableroActual}
-        nombresExistentes={nombresExistentes}
-      />
+      {canCreateColumn && (
+        <ColumnaCreateDialog
+          open={nuevaColumnaOpen}
+          onOpenChange={setNuevaColumnaOpen}
+          tableroId={tableroId}
+          tipoTablero={tipoTableroActual}
+          nombresExistentes={nombresExistentes}
+        />
+      )}
     </div>
   );
 }

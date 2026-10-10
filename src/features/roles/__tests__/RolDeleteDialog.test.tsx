@@ -24,6 +24,7 @@ const rolParaEliminar: Rol = {
   nombre: 'Usuario',
   descripcion: 'Acceso estándar de ventas',
   activo: true,
+  permisos: [],
 };
 
 // ── Wrapper ───────────────────────────────────────────────────────────────────

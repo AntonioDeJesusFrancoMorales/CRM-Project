@@ -20,6 +20,7 @@ interface EmpresasFiltersProps {
   resultCount: number;
   totalCount: number;
   hasActiveFilters: boolean;
+  includePrivateData: boolean;
   children: ReactNode;
   onToggle: () => void;
   onChange: (patch: Partial<EmpresaFilterState>) => void;
@@ -36,6 +37,7 @@ export function EmpresasFilters({
   resultCount,
   totalCount,
   hasActiveFilters,
+  includePrivateData,
   children,
   onToggle,
   onChange,
@@ -95,7 +97,11 @@ export function EmpresasFilters({
                   type="search"
                   value={filters.search}
                   onChange={(event) => onChange({ search: event.target.value })}
-                  placeholder="Buscar por nombre, sector, teléfono o sitio web..."
+                  placeholder={
+                    includePrivateData
+                      ? 'Buscar por nombre, sector, teléfono o sitio web...'
+                      : 'Buscar por nombre o sector...'
+                  }
                   aria-label="Buscar empresas"
                   className="h-8 pl-8"
                 />

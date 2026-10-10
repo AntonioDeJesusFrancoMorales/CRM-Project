@@ -10,6 +10,8 @@ import {
 import type { Tarea } from '@/api/types';
 import type { ColumnaTablero } from '@/features/kanban/schemas/tablero.schema';
 import { useMoverFicha } from '@/features/kanban/hooks/useMoverFicha';
+import { usePermissions } from '@/features/permissions/context';
+import { KANBAN_MOVE_FICHA_CHECKS } from '@/features/kanban/lib/kanbanPermissions';
 import type { TareaWorkflowState } from '../lib/tareaWorkflow';
 
 interface TareaEstadoMenuProps {
@@ -23,8 +25,12 @@ export function TareaEstadoMenu({
   workflowColumns = [],
 }: TareaEstadoMenuProps) {
   const moverFicha = useMoverFicha();
+  const permissions = usePermissions();
   const { acquire, release, isLocked } = useSynchronousMutationLock();
-  const canMove = workflowState?.fichaId !== null && workflowState?.fichaId !== undefined;
+  const canMove =
+    permissions.allowsAll(KANBAN_MOVE_FICHA_CHECKS) &&
+    workflowState?.fichaId !== null &&
+    workflowState?.fichaId !== undefined;
 
   function moveTo(columnaId: string) {
     if (!workflowState?.fichaId || !acquire()) return;

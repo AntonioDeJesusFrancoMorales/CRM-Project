@@ -29,6 +29,7 @@ import {
   mapEmpresaServerError,
 } from '../lib/empresaValidation';
 import { empresaCreateSchema, type EmpresaCreateInput } from '../schemas/empresa.schema';
+import { SensitiveWriteNotice } from '@/features/permissions/components/PermissionState';
 
 interface EmpresaFormProps {
   mode: 'create' | 'edit';
@@ -176,110 +177,120 @@ export function EmpresaForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="telefono"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="empresa-telefono">
-                  Teléfono <span className="font-normal text-muted-foreground">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    id="empresa-telefono"
-                    placeholder="+52 55 1234 5678"
-                    maxLength={20}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="EMPRESA" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="telefono"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="empresa-telefono">
+                    Teléfono <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="empresa-telefono"
+                      placeholder="+52 55 1234 5678"
+                      maxLength={20}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
 
-          <FormField
-            control={form.control}
-            name="paginaWeb"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="empresa-pagina-web">
-                  Página web <span className="font-normal text-muted-foreground">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    id="empresa-pagina-web"
-                    type="url"
-                    placeholder="www.ejemplo.com o https://ejemplo.com"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="EMPRESA" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="paginaWeb"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="empresa-pagina-web">
+                    Página web <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="empresa-pagina-web"
+                      type="url"
+                      placeholder="www.ejemplo.com o https://ejemplo.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
 
-          <FormField
-            control={form.control}
-            name="facebook"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="empresa-facebook">
-                  Facebook <span className="font-normal text-muted-foreground">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    id="empresa-facebook"
-                    placeholder="https://facebook.com/empresa o @empresa"
-                    maxLength={150}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="EMPRESA" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="facebook"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="empresa-facebook">
+                    Facebook <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="empresa-facebook"
+                      placeholder="https://facebook.com/empresa o @empresa"
+                      maxLength={150}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
 
-          <FormField
-            control={form.control}
-            name="instagram"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="empresa-instagram">
-                  Instagram <span className="font-normal text-muted-foreground">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    id="empresa-instagram"
-                    placeholder="https://instagram.com/empresa o @empresa"
-                    maxLength={150}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="EMPRESA" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="instagram"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="empresa-instagram">
+                    Instagram <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="empresa-instagram"
+                      placeholder="https://instagram.com/empresa o @empresa"
+                      maxLength={150}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
 
-          <FormField
-            control={form.control}
-            name="twitter"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="empresa-twitter">
-                  Twitter / X <span className="font-normal text-muted-foreground">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    id="empresa-twitter"
-                    placeholder="https://x.com/empresa o @empresa"
-                    maxLength={150}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="EMPRESA" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="twitter"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="empresa-twitter">
+                    Twitter / X <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="empresa-twitter"
+                      placeholder="https://x.com/empresa o @empresa"
+                      maxLength={150}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
         </div>
 
         <FormField
@@ -305,27 +316,29 @@ export function EmpresaForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="notas"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="empresa-notas">
-                Notas <span className="font-normal text-muted-foreground">(opcional)</span>
-              </FormLabel>
-              <FormControl>
-                <Textarea
-                  id="empresa-notas"
-                  placeholder="Notas internas sobre la empresa..."
-                  maxLength={2000}
-                  {...field}
-                  value={field.value ?? ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <SensitiveWriteNotice resource="EMPRESA" group="CONTACTO_PRIVADO">
+          <FormField
+            control={form.control}
+            name="notas"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="empresa-notas">
+                  Notas <span className="font-normal text-muted-foreground">(opcional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    id="empresa-notas"
+                    placeholder="Notas internas sobre la empresa..."
+                    maxLength={2000}
+                    {...field}
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SensitiveWriteNotice>
 
         <div className="flex justify-end gap-2 pt-1">
           {onCancel && (

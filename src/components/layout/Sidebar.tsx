@@ -2,6 +2,8 @@ import { NavLink } from 'react-router';
 import { Building2, Contact2, Handshake, KanbanSquare, CalendarClock, ShieldCheck, ClipboardList, Settings, LayoutDashboard, Waypoints, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { usePermissions } from '@/features/permissions/context';
+import type { AccionPermiso, RecursoCRM } from '@/api/types';
 
 interface NavItem {
   label: string;
@@ -10,24 +12,39 @@ interface NavItem {
   disabled?: boolean;
   badge?: string;
   end?: boolean; // match exacto (para "/" que si no quedaría activo en todas las rutas)
+  permission?: { resource: RecursoCRM; action?: AccionPermiso };
+  anyPermission?: readonly { resource: RecursoCRM; action: AccionPermiso }[];
 }
 
 // Grupo principal. Tratos va al final para quedar pegado a "Mis tareas" (ítem dinámico).
 const mainItems: NavItem[] = [
   { label: 'Inicio', to: '/', icon: LayoutDashboard, end: true },
-  { label: 'Empresas', to: '/empresas', icon: Building2 },
-  { label: 'Contactos', to: '/contactos', icon: Contact2 },
-  { label: 'Agenda', to: '/agenda', icon: CalendarClock },
-  { label: 'Tratos', to: '/tratos', icon: Handshake, badge: '7' },
+  { label: 'Empresas', to: '/empresas', icon: Building2, permission: { resource: 'EMPRESA' } },
+  { label: 'Contactos', to: '/contactos', icon: Contact2, permission: { resource: 'CONTACTO' } },
+  { label: 'Agenda', to: '/agenda', icon: CalendarClock, permission: { resource: 'AGENDA' } },
+  { label: 'Tratos', to: '/tratos', icon: Handshake, badge: '7', permission: { resource: 'TRATO' } },
 ];
 
 // "Tableros" va DEBAJO de "Mis tareas" (no en el grupo principal).
-const tablerosItem: NavItem = { label: 'Tableros', to: '/tableros', icon: KanbanSquare };
+const tablerosItem: NavItem = {
+  label: 'Tableros',
+  to: '/tableros',
+  icon: KanbanSquare,
+  permission: { resource: 'TABLERO' },
+};
 
 // Administración: pineado al fondo del sidebar, separado del grupo principal.
 const adminItems: NavItem[] = [
-  { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck },
-  { label: 'Configuración', to: '/configuracion', icon: Settings },
+  { label: 'Usuarios', to: '/usuarios', icon: ShieldCheck, permission: { resource: 'USUARIO' } },
+  {
+    label: 'Configuración',
+    to: '/configuracion',
+    icon: Settings,
+    anyPermission: [
+      { resource: 'ROL', action: 'LEER' },
+      { resource: 'ETIQUETA', action: 'LEER' },
+    ],
+  },
 ];
 
 const baseClasses =
@@ -93,11 +110,17 @@ function NavItemLink({ item, onNavigate, collapsed }: { item: NavItem; onNavigat
 }
 
 export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; collapsed?: boolean }) {
-  // Todos los ítems se muestran a cualquier usuario autenticado. El back NO enforza
-  // autorización por rol (solo autenticación), así que ocultar ítems por "rol" sería
-  // falsa seguridad. Ver capability frontend-authorization.
   const usuario = useAuthStore((s) => s.usuario);
+  const permissions = usePermissions();
   const initials = usuario ? usuario.username.slice(0, 2).toUpperCase() : 'PI';
+  const visible = (item: NavItem) => {
+    // Mientras no se puedan resolver capacidades se conserva la navegación y la API
+    // queda como autoridad para cada operación.
+    if (permissions.status !== 'resolved') return true;
+    if (item.anyPermission) return permissions.canAny(item.anyPermission);
+    if (!item.permission) return true;
+    return permissions.can(item.permission.resource, item.permission.action ?? 'LEER');
+  };
 
   return (
     <aside className="flex h-full flex-col gap-6 bg-sidebar" role="navigation" aria-label="Menú principal">
@@ -114,12 +137,12 @@ export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; co
               Comercial
             </p>
           )}
-        {mainItems.map((item) => (
-          <NavItemLink key={item.to} item={item} onNavigate={onNavigate} collapsed={collapsed} />
-        ))}
+         {mainItems.filter(visible).map((item) => (
+           <NavItemLink key={item.to} item={item} onNavigate={onNavigate} collapsed={collapsed} />
+         ))}
 
         {/* "Mis tareas" — ítem dinámico: filtra por responsable_id del usuario logueado (ADR-054) */}
-        {usuario && (
+        {usuario && visible({ label: 'Mis tareas', to: '/tareas', icon: ClipboardList, permission: { resource: 'TAREA' } }) && (
           <NavLink
             to={`/tareas?responsable_id=${usuario.usuario_id}`}
             onClick={onNavigate}
@@ -141,12 +164,14 @@ export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; co
         )}
 
         {/* Tableros — justo debajo de "Mis tareas" */}
-        <NavItemLink item={tablerosItem} onNavigate={onNavigate} collapsed={collapsed} />
+         {visible(tablerosItem) && (
+           <NavItemLink item={tablerosItem} onNavigate={onNavigate} collapsed={collapsed} />
+         )}
         </div>
 
         {/* Administración: pineado al fondo con mt-auto, separado por un divisor. */}
         <div className="mt-auto flex flex-col gap-1.5 border-t border-sidebar-border pt-3">
-          {adminItems.map((item) => (
+           {adminItems.filter(visible).map((item) => (
             <NavItemLink key={item.to} item={item} onNavigate={onNavigate} collapsed={collapsed} />
           ))}
         </div>

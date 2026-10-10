@@ -3,8 +3,8 @@ import { resolveRolNombre } from '../lib/rolLookup';
 import type { Rol } from '@/api/types';
 
 const roles: Rol[] = [
-  { id: 'rol-admin-uuid', nombre: 'Administrador', descripcion: 'Acceso total', activo: true },
-  { id: 'rol-user-uuid', nombre: 'Usuario', descripcion: null, activo: true },
+  { id: 'rol-admin-uuid', nombre: 'Administrador', descripcion: 'Acceso total', activo: true, permisos: [] },
+  { id: 'rol-user-uuid', nombre: 'Usuario', descripcion: null, activo: true, permisos: [] },
 ];
 
 describe('resolveRolNombre', () => {

@@ -64,4 +64,10 @@ describe('empresaFilters', () => {
 
     expect(result.map((empresa) => empresa.id)).toEqual(['empresa-2']);
   });
+
+  it('no usa teléfono para buscar cuando no se puede leer el grupo privado', () => {
+    expect(
+      applyEmpresaFilters(empresas, { search: '961 123 4567' }, { includePrivateData: false }),
+    ).toEqual([]);
+  });
 });

@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 import { useEmpresaContactos } from '@/features/contactos/hooks/useEmpresaContactos';
 import {
   estadoRelacionBadgeClass,
@@ -95,28 +96,32 @@ export function EmpresaContactosTab({ empresaId }: EmpresaContactosTabProps) {
               </TableCell>
               <TableCell className="text-muted-foreground">{contacto.cargo ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">
-                {contacto.correo ? (
-                  <a
-                    href={`mailto:${contacto.correo}`}
-                    className="hover:text-foreground hover:underline"
-                  >
-                    {contacto.correo}
-                  </a>
-                ) : (
-                  '—'
-                )}
+                <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO">
+                  {contacto.correo ? (
+                    <a
+                      href={`mailto:${contacto.correo}`}
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {contacto.correo}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </SensitiveField>
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {contacto.telefono ? (
-                  <a
-                    href={`tel:${contacto.telefono}`}
-                    className="hover:text-foreground hover:underline"
-                  >
-                    {contacto.telefono}
-                  </a>
-                ) : (
-                  '—'
-                )}
+                <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO">
+                  {contacto.telefono ? (
+                    <a
+                      href={`tel:${contacto.telefono}`}
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {contacto.telefono}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </SensitiveField>
               </TableCell>
               <TableCell>
                 <Badge

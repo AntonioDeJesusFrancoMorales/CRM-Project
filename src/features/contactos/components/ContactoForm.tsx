@@ -35,6 +35,7 @@ import {
   mapContactoServerError,
 } from '../lib/contactoValidation';
 import { normalizeContactoValues } from '../lib/contactoValues';
+import { SensitiveWriteNotice } from '@/features/permissions/components/PermissionState';
 
 interface ContactoFormProps {
   mode: 'create' | 'edit';
@@ -149,49 +150,53 @@ export function ContactoForm({
         />
 
         {/* correo */}
-        <FormField
-          control={form.control}
-          name="correo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="contacto-correo">
-                Correo <span className="text-muted-foreground font-normal">(opcional)</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  id="contacto-correo"
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  {...field}
-                  value={field.value ?? ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <SensitiveWriteNotice resource="CONTACTO" group="CONTACTO_PRIVADO">
+          <FormField
+            control={form.control}
+            name="correo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="contacto-correo">
+                  Correo <span className="text-muted-foreground font-normal">(opcional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    id="contacto-correo"
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    {...field}
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SensitiveWriteNotice>
 
         {/* telefono */}
-        <FormField
-          control={form.control}
-          name="telefono"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="contacto-telefono">
-                Teléfono <span className="text-muted-foreground font-normal">(opcional)</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  id="contacto-telefono"
-                  placeholder="+52 55 1234 5678"
-                  {...field}
-                  value={field.value ?? ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <SensitiveWriteNotice resource="CONTACTO" group="CONTACTO_PRIVADO">
+          <FormField
+            control={form.control}
+            name="telefono"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="contacto-telefono">
+                  Teléfono <span className="text-muted-foreground font-normal">(opcional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    id="contacto-telefono"
+                    placeholder="+52 55 1234 5678"
+                    {...field}
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </SensitiveWriteNotice>
 
         {/* cargo */}
         <FormField

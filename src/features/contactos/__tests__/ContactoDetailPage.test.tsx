@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -11,6 +11,25 @@ import { server } from '@/test/server';
 import { tableroTratosFixture } from '@/mocks/fixtures/tableros';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
 
 function renderWithRouter(
   initialPath: string,

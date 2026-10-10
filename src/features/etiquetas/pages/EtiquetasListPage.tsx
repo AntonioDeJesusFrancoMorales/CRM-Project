@@ -17,6 +17,8 @@ import { useEtiquetas } from '../hooks/useEtiquetas';
 import { EtiquetasTable } from '../components/EtiquetasTable';
 import { EtiquetaFormDialog } from '../components/EtiquetaFormDialog';
 import { EtiquetaDeleteDialog } from '../components/EtiquetaDeleteDialog';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 const TIPOS: { value: TipoEtiqueta; label: string }[] = [
   { value: 'TRATO', label: 'Tratos' },
@@ -26,6 +28,11 @@ const TIPOS: { value: TipoEtiqueta; label: string }[] = [
 export function EtiquetasListPage() {
   const [tipo, setTipo] = useState<TipoEtiqueta>('TRATO');
   const { data: etiquetas, isPending, isError, isFetching, refetch } = useEtiquetas(tipo);
+  const permissions = usePermissions();
+  const canRead = permissions.allows('ETIQUETA', 'LEER');
+  const canCreate = permissions.allows('ETIQUETA', 'CREAR');
+  const canEdit = permissions.allows('ETIQUETA', 'ACTUALIZAR');
+  const canDelete = permissions.allows('ETIQUETA', 'ELIMINAR');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Etiqueta | null>(null);
@@ -33,17 +40,34 @@ export function EtiquetasListPage() {
 
   const total = useMemo(() => etiquetas?.length ?? 0, [etiquetas]);
 
+  if (!canRead) return <AccessDeniedView resource="ETIQUETA" />;
+
+  function openCreate() {
+    if (!canCreate) return;
+    setCreateOpen(true);
+  }
+
+  function openEdit(etiqueta: Etiqueta) {
+    if (!canEdit) return;
+    setEditTarget(etiqueta);
+  }
+
+  function openDelete(etiqueta: Etiqueta) {
+    if (!canDelete) return;
+    setDeleteTarget(etiqueta);
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Etiquetas"
         description="Gestioná las etiquetas que clasifican los tratos y las tareas en los tableros."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nueva etiqueta
-          </Button>
-        }
+        actions={canCreate ? (
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nueva etiqueta
+            </Button>
+          ) : undefined}
       />
 
       {/* Filtro segmentado por tipo */}
@@ -99,15 +123,15 @@ export function EtiquetasListPage() {
 
       {!isPending && !isError && etiquetas && etiquetas.length === 0 && (
         <EmptyState
-          icon={Tag}
-          title="Aún no hay etiquetas"
-          description={`Creá tu primera etiqueta de ${tipo === 'TRATO' ? 'tratos' : 'tareas'} para empezar a clasificar las fichas en los tableros.`}
-          action={
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Nueva etiqueta
-            </Button>
-          }
+           icon={Tag}
+           title="Aún no hay etiquetas"
+           description={`Creá tu primera etiqueta de ${tipo === 'TRATO' ? 'tratos' : 'tareas'} para empezar a clasificar las fichas en los tableros.`}
+           action={canCreate ? (
+             <Button onClick={openCreate}>
+               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+               Nueva etiqueta
+             </Button>
+           ) : undefined}
         />
       )}
 
@@ -115,21 +139,25 @@ export function EtiquetasListPage() {
         <div className="rounded-md border">
           <EtiquetasTable
             etiquetas={etiquetas}
-            onEdit={(e) => setEditTarget(e)}
-            onDelete={(e) => setDeleteTarget(e)}
+            onEdit={openEdit}
+            onDelete={openDelete}
+            canEdit={canEdit}
+            canDelete={canDelete}
           />
         </div>
       )}
 
       {/* Crear — el tipo activo del filtro preselecciona el tipo del form */}
-      <EtiquetaFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        defaultTipo={tipo}
-      />
+      {canCreate && (
+        <EtiquetaFormDialog
+          mode="create"
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          defaultTipo={tipo}
+        />
+      )}
 
-      {editTarget && (
+      {editTarget && canEdit && (
         <EtiquetaFormDialog
           mode="edit"
           open={!!editTarget}
@@ -140,13 +168,15 @@ export function EtiquetasListPage() {
         />
       )}
 
-      <EtiquetaDeleteDialog
-        open={!!deleteTarget}
-        onOpenChange={(v) => {
-          if (!v) setDeleteTarget(null);
-        }}
-        etiqueta={deleteTarget}
-      />
+      {canDelete && (
+        <EtiquetaDeleteDialog
+          open={!!deleteTarget}
+          onOpenChange={(v) => {
+            if (!v) setDeleteTarget(null);
+          }}
+          etiqueta={deleteTarget}
+        />
+      )}
     </div>
   );
 }

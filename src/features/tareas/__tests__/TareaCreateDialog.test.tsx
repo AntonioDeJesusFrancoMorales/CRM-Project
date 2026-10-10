@@ -2,7 +2,7 @@
 // Usa enums del back (GENERAL/SEGUIMIENTO/… y BAJA/MEDIA/ALTA/URGENTE).
 
 import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -56,6 +56,7 @@ describe('TareaCreateDialog — mapeo de error 422', () => {
     await user.type(within(dialog).getByRole('textbox', { name: /título/i }), 'Demo con cliente');
 
     const responsableSelect = within(dialog).getByRole('combobox', { name: /responsable/i });
+    await waitFor(() => expect(responsableSelect).not.toBeDisabled());
     await user.click(responsableSelect);
     await user.click(await screen.findByRole('option', { name: /maría/i }));
 

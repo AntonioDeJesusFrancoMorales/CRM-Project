@@ -24,7 +24,7 @@ export function TratoEditDialog({ open, onOpenChange, trato }: TratoEditDialogPr
 
   const serverErrors =
     isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
+    (mutation.error.status === 400 || mutation.error.status === 422) &&
     mutation.error.details
       ? mutation.error.details
       : undefined;

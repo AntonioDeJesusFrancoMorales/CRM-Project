@@ -12,6 +12,8 @@ import { useTareas } from '@/features/tareas/hooks/useTareas';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { tipoContratoBadgeClass, tipoContratoLabels } from '@/features/tratos/lib/tipoContrato';
 import { prioridadBadgeClass, prioridadLabels } from '@/features/tareas/lib/tareaBadges';
+import { usePermissions } from '@/features/permissions/context';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 import {
   getCustomer360Kpis,
   getEmpresaByContacto,
@@ -38,10 +40,16 @@ function TratoRow({ trato }: { trato: Trato }) {
   return (
     <li className="flex items-center justify-between gap-3 py-2">
       <div className="min-w-0">
-        <Link to={`/tratos/${trato.id}`} className="truncate text-sm font-medium text-primary underline-offset-4 hover:underline focus:underline focus:outline-none">
+         <Link to={`/tratos/${trato.id}`} className="block truncate text-sm font-medium text-primary underline-offset-4 hover:underline focus:underline focus:outline-none">
           {trato.nombre}
         </Link>
-        <p className="text-xs text-muted-foreground">{formatCurrency(trato.valorEstimado)} · cierre {formatDate(trato.fechaCierreEsperada)}</p>
+         <SensitiveField
+           resource="TRATO"
+           group="FINANCIERO"
+           fallback={<span className="block text-xs text-muted-foreground">Finanzas ocultas</span>}
+         >
+          <p className="text-xs text-muted-foreground">{formatCurrency(trato.valorEstimado)} · cierre {formatDate(trato.fechaCierreEsperada)}</p>
+        </SensitiveField>
       </div>
       <Badge variant="outline" className={cn('shrink-0', tipoContratoBadgeClass[trato.tipoContrato])}>
         {tipoContratoLabels[trato.tipoContrato]}
@@ -67,6 +75,8 @@ function TareaRow({ tarea }: { tarea: Tarea }) {
 }
 
 export function Contacto360Tab({ contacto }: { contacto: Contacto }) {
+  const permissions = usePermissions();
+  const canReadFinancial = permissions.canReadGroup('TRATO', 'FINANCIERO');
   const empresasQuery = useEmpresas();
   const tratosQuery = useTratos();
   const tareasQuery = useTareas();
@@ -88,7 +98,12 @@ export function Contacto360Tab({ contacto }: { contacto: Contacto }) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Tratos" value={String(kpis.tratos)} hint={`${kpis.tratosAbiertos} abiertos`} icon={Handshake} loading={isLoading} />
-        <StatCard label="Pipeline abierto" value={formatCurrency(kpis.pipelineAbierto)} icon={Wallet} loading={isLoading} />
+        <StatCard
+          label="Pipeline abierto"
+          value={canReadFinancial ? formatCurrency(kpis.pipelineAbierto) : 'Dato no disponible'}
+          icon={Wallet}
+          loading={isLoading}
+        />
         <StatCard label="Tareas pendientes" value={String(kpis.tareasPendientes)} icon={ListTodo} loading={isLoading} />
         <StatCard label="Tareas totales" value={String(tareas.length)} icon={CheckSquare} loading={isLoading} />
       </div>

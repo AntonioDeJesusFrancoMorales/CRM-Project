@@ -9,6 +9,8 @@ import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { toast } from 'sonner';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import { usePermissions } from '@/features/permissions/context';
+import { KANBAN_MOVE_FICHA_CHECKS } from '../lib/kanbanPermissions';
 import { fichasKeys } from './useFichas';
 
 export interface MoverFichaVars {
@@ -22,13 +24,21 @@ interface MoverFichaContext {
 
 export function useMoverFicha(): UseMutationResult<Ficha, Error, MoverFichaVars, MoverFichaContext> {
   const queryClient = useQueryClient();
+  const permissions = usePermissions();
+  const canMoveFicha = permissions.allowsAll(KANBAN_MOVE_FICHA_CHECKS);
 
   return useMutation<Ficha, Error, MoverFichaVars, MoverFichaContext>({
-    mutationFn: ({ id, targetColumnaId }) =>
-      apiClient.put<Ficha>(endpoints.fichas.moverColumna(id), { targetColumnaId }),
+    mutationFn: ({ id, targetColumnaId }) => {
+      if (!canMoveFicha) {
+        return Promise.reject(new Error('Kanban move permission denied'));
+      }
+      return apiClient.put<Ficha>(endpoints.fichas.moverColumna(id), { targetColumnaId });
+    },
 
     // Optimistic update: actualiza columnaId en cache antes de que responda el servidor
     onMutate: async ({ id, targetColumnaId }) => {
+      if (!canMoveFicha) return { previousQueries: [] };
+
       // Cancelar refetches en vuelo para evitar sobrescribir el optimistic update
       await queryClient.cancelQueries({ queryKey: fichasKeys.all });
 

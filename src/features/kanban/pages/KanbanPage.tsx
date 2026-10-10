@@ -20,6 +20,8 @@ import { KanbanBoard } from '../components/KanbanBoard';
 import { ColumnaCreateDialog } from '../components/ColumnaCreateDialog';
 import type { Tablero } from '../schemas/tablero.schema';
 import type { TipoFicha } from '../schemas/ficha.schema';
+import { usePermissions } from '@/features/permissions/context';
+import { KANBAN_CREATE_COLUMN_CHECKS } from '../lib/kanbanPermissions';
 
 function KanbanDetailStatePanel({
   variant,
@@ -127,6 +129,8 @@ export function KanbanPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [nuevaColumnaOpen, setNuevaColumnaOpen] = useState(false);
+  const permissions = usePermissions();
+  const canCreateColumn = permissions.allowsAll(KANBAN_CREATE_COLUMN_CHECKS);
 
   const { data: tablero, isLoading, error } = useTablero(id);
   const { data: fichas = [] } = useFichas();
@@ -190,7 +194,7 @@ export function KanbanPage() {
   }
 
   return (
-    <KanbanDetailShell tablero={tablero} onNewColumn={() => setNuevaColumnaOpen(true)}>
+    <KanbanDetailShell tablero={tablero} onNewColumn={canCreateColumn ? () => setNuevaColumnaOpen(true) : undefined}>
       {/* Tablero Kanban */}
       {tablero.columnas.length === 0 ? (
         <KanbanDetailStatePanel
@@ -210,13 +214,15 @@ export function KanbanPage() {
       )}
 
       {/* Dialog Nueva columna */}
-      <ColumnaCreateDialog
-        open={nuevaColumnaOpen}
-        onOpenChange={setNuevaColumnaOpen}
-        tableroId={tablero.id}
-        tipoTablero={tipoTableroActual}
-        nombresExistentes={nombresExistentes}
-      />
+      {canCreateColumn && (
+        <ColumnaCreateDialog
+          open={nuevaColumnaOpen}
+          onOpenChange={setNuevaColumnaOpen}
+          tableroId={tablero.id}
+          tipoTablero={tipoTableroActual}
+          nombresExistentes={nombresExistentes}
+        />
+      )}
     </KanbanDetailShell>
   );
 }

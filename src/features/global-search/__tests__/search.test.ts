@@ -103,4 +103,29 @@ describe('global-search/search', () => {
     const groups = buildGlobalSearchResults({ empresas, query: 'demo', limitPerGroup: 2 });
     expect(groups.empresas).toHaveLength(2);
   });
+
+  it('excluye datos privados y financieros del índice cuando no hay permiso de lectura', () => {
+    const privateGroups = buildGlobalSearchResults({
+      empresas: [empresa],
+      contactos: [contacto],
+      tratos: [trato],
+      query: '555-222',
+      includeContactPrivateData: false,
+    });
+    expect(privateGroups.contactos).toHaveLength(0);
+
+    const companyGroups = buildGlobalSearchResults({
+      empresas: [empresa],
+      query: '555-111',
+      includeEmpresaPrivateData: false,
+    });
+    expect(companyGroups.empresas).toHaveLength(0);
+
+    const financialGroups = buildGlobalSearchResults({
+      tratos: [trato],
+      query: '1000',
+      includeFinancialData: false,
+    });
+    expect(financialGroups.tratos).toHaveLength(0);
+  });
 });

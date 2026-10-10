@@ -37,7 +37,7 @@ export function useCreateFicha(
     },
     onError: (error) => {
       if (isHttpError(error)) {
-        if (error.status === 422) return;
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return;
         toast.error(error.message);
       } else {
         toast.error('No fue posible crear la ficha');

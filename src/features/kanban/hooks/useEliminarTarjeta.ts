@@ -16,6 +16,8 @@ import { useDeleteTrato } from '@/features/tratos/hooks/useDeleteTrato';
 import { useDeleteTarea } from '@/features/tareas/hooks/useDeleteTarea';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
 import type { Ficha } from '@/features/kanban/schemas/ficha.schema';
+import { usePermissions } from '@/features/permissions/context';
+import { getKanbanEntityDeletionChecks } from '../lib/kanbanPermissions';
 
 export interface UseEliminarTarjetaResult {
   /** Ejecuta el borrado orquestado. Es un no-op si bloqueado=true. */
@@ -29,8 +31,10 @@ export interface UseEliminarTarjetaResult {
 }
 
 export function useEliminarTarjeta(ficha: Ficha): UseEliminarTarjetaResult {
+  const permissions = usePermissions();
   const deleteTarea = useDeleteTarea();
   const deleteTrato = useDeleteTrato();
+  const canDelete = permissions.allowsAll(getKanbanEntityDeletionChecks(ficha.tipoFicha));
 
   const { data: todasLasTareas } = useTareas();
 
@@ -45,7 +49,7 @@ export function useEliminarTarjeta(ficha: Ficha): UseEliminarTarjetaResult {
   const isPending = deleteTarea.isPending || deleteTrato.isPending;
 
   async function eliminar(): Promise<void> {
-    if (bloqueado) return;
+    if (!canDelete || bloqueado) return;
 
     if (ficha.tipoFicha === 'TAREA') {
       if (!ficha.tareaId) return;

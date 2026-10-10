@@ -5,6 +5,7 @@
 import { Link } from 'react-router';
 import type { Trato } from '@/api/types';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 import { tipoContratoLabels } from '../lib/tipoContrato';
 
 interface FieldProps {
@@ -62,20 +63,30 @@ export function TratoInfoTab({
         {tipoContratoLabels[trato.tipoContrato]}
       </Field>
 
-      <Field label="Valor estimado">{formatCurrency(trato.valorEstimado)}</Field>
+      <Field label="Valor estimado">
+        <SensitiveField resource="TRATO" group="FINANCIERO">
+          {formatCurrency(trato.valorEstimado)}
+        </SensitiveField>
+      </Field>
 
       <Field label="Probabilidad">
-        {trato.probabilidad !== null ? `${trato.probabilidad}%` : '—'}
+        <SensitiveField resource="TRATO" group="FINANCIERO">
+          {trato.probabilidad !== null ? `${trato.probabilidad}%` : '—'}
+        </SensitiveField>
       </Field>
 
       <Field label="Fecha de cierre esperada">
-        {formatDate(trato.fechaCierreEsperada)}
+        <SensitiveField resource="TRATO" group="FINANCIERO">
+          {formatDate(trato.fechaCierreEsperada)}
+        </SensitiveField>
       </Field>
 
       {trato.motivoPerdida != null && (
         <div className="sm:col-span-2">
           <Field label="Motivo de pérdida">
-            <span className="whitespace-pre-wrap">{trato.motivoPerdida}</span>
+            <SensitiveField resource="TRATO" group="FINANCIERO">
+              <span className="whitespace-pre-wrap">{trato.motivoPerdida}</span>
+            </SensitiveField>
           </Field>
         </div>
       )}

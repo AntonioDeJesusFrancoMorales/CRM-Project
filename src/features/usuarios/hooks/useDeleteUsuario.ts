@@ -4,6 +4,7 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import { usuariosKeys } from './useUsuarios';
+import { permissionsKeys } from '@/features/permissions/context';
 
 export function useDeleteUsuario(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
@@ -12,7 +13,8 @@ export function useDeleteUsuario(): UseMutationResult<void, Error, string> {
     mutationFn: (id) => apiClient.delete<void>(endpoints.usuarios.delete(id)),
     onSuccess: (_void, id) => {
       queryClient.removeQueries({ queryKey: usuariosKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: usuariosKeys.list() });
+        void queryClient.invalidateQueries({ queryKey: usuariosKeys.list() });
+        void queryClient.invalidateQueries({ queryKey: permissionsKeys.all });
       toast.success('Usuario eliminado');
     },
     onError: (error) => {
@@ -20,6 +22,7 @@ export function useDeleteUsuario(): UseMutationResult<void, Error, string> {
         if (error.status === 404) {
           toast.message('El usuario ya fue eliminado');
           void queryClient.invalidateQueries({ queryKey: usuariosKeys.list() });
+          void queryClient.invalidateQueries({ queryKey: permissionsKeys.all });
           return;
         }
         toast.error(error.message);

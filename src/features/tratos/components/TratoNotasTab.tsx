@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { Usuario } from '@/api/types';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 import { useNotasTrato, useCrearNotaTrato } from '../hooks/useNotasTrato';
+import { usePermissions } from '@/features/permissions/context';
 
 function formatFecha(iso: string) {
   try {
@@ -21,6 +22,8 @@ function formatFecha(iso: string) {
 }
 
 export function TratoNotasTab({ tratoId }: { tratoId: string }) {
+  const permissions = usePermissions();
+  const canWrite = permissions.allows('TRATO', 'ACTUALIZAR');
   const { data: notas = [], isLoading } = useNotasTrato(tratoId);
   const { data: usuarios = [] } = useUsuarios();
   const crearMut = useCrearNotaTrato(tratoId);
@@ -41,22 +44,24 @@ export function TratoNotasTab({ tratoId }: { tratoId: string }) {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <Textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Escribe una nota sobre esta oportunidad..."
-            rows={3}
-          />
-          <div className="flex justify-end">
-            <Button size="sm" disabled={!texto.trim() || crearMut.isPending || isLocked} onClick={handleGuardar}>
-              {crearMut.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <StickyNote className="h-4 w-4 mr-1" />}
-              Agregar nota
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {canWrite && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <Textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              placeholder="Escribe una nota sobre esta oportunidad..."
+              rows={3}
+            />
+            <div className="flex justify-end">
+              <Button size="sm" disabled={!texto.trim() || crearMut.isPending || isLocked} onClick={handleGuardar}>
+                {crearMut.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <StickyNote className="h-4 w-4 mr-1" />}
+                Agregar nota
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground py-6 text-center">Cargando...</p>

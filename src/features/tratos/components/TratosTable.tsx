@@ -36,6 +36,7 @@ interface TratosTableProps {
   onDelete?: (trato: Trato) => void;
   sort?: SortState;
   onSort?: (sortBy: string) => void;
+  canReadFinancial?: boolean;
 }
 
 function isDateOverdue(value?: string | null) {
@@ -83,6 +84,7 @@ export function TratosTable({
   onDelete,
   sort,
   onSort,
+  canReadFinancial = false,
 }: TratosTableProps) {
   const navigate = useNavigate();
 
@@ -92,6 +94,7 @@ export function TratosTable({
 
   const showActions = !!(onEdit || onDelete);
   const sortable = Boolean(sort && onSort);
+  const columnCount = 4 + (canReadFinancial ? 2 : 0) + (showActions ? 1 : 0);
 
   return (
     <Table>
@@ -104,27 +107,31 @@ export function TratosTable({
           ) : (
             <TableHead>Nombre</TableHead>
           )}
-          {sortable ? (
-            <SortableTableHead
-              align="right"
-              className="text-right"
-              sortDirection={sortDirectionFor(sort!, 'valorEstimado')}
-              onSort={() => onSort!('valorEstimado')}
-            >
-              Valor estimado
-            </SortableTableHead>
-          ) : (
-            <TableHead className="text-right">Valor estimado</TableHead>
+          {canReadFinancial && (
+            sortable ? (
+              <SortableTableHead
+                align="right"
+                className="text-right"
+                sortDirection={sortDirectionFor(sort!, 'valorEstimado')}
+                onSort={() => onSort!('valorEstimado')}
+              >
+                Valor estimado
+              </SortableTableHead>
+            ) : (
+              <TableHead className="text-right">Valor estimado</TableHead>
+            )
           )}
           <TableHead>Tipo de contrato</TableHead>
           <TableHead>Contacto</TableHead>
           <TableHead>Responsable</TableHead>
-          {sortable ? (
-            <SortableTableHead sortDirection={sortDirectionFor(sort!, 'fechaCierreEsperada')} onSort={() => onSort!('fechaCierreEsperada')}>
-              Cierre esperado
-            </SortableTableHead>
-          ) : (
-            <TableHead>Cierre esperado</TableHead>
+          {canReadFinancial && (
+            sortable ? (
+              <SortableTableHead sortDirection={sortDirectionFor(sort!, 'fechaCierreEsperada')} onSort={() => onSort!('fechaCierreEsperada')}>
+                Cierre esperado
+              </SortableTableHead>
+            ) : (
+              <TableHead>Cierre esperado</TableHead>
+            )
           )}
           {showActions && <TableHead className="w-10 text-right" />}
         </TableRow>
@@ -132,7 +139,7 @@ export function TratosTable({
       <TableBody>
         {tratos.length === 0 ? (
           <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={showActions ? 7 : 6} className="h-32 text-center text-muted-foreground">
+            <TableCell colSpan={columnCount} className="h-32 text-center text-muted-foreground">
               No hay tratos para los filtros seleccionados
             </TableCell>
           </TableRow>
@@ -140,8 +147,8 @@ export function TratosTable({
           tratos.map((trato) => {
             const contacto = contactosById.get(trato.contactoId);
             const responsable = usuariosById.get(trato.responsableId);
-            const overdue = isDateOverdue(trato.fechaCierreEsperada);
-            const dueSoon = isDateDueSoon(trato.fechaCierreEsperada);
+            const overdue = canReadFinancial && isDateOverdue(trato.fechaCierreEsperada);
+            const dueSoon = canReadFinancial && isDateDueSoon(trato.fechaCierreEsperada);
             return (
               <TableRow key={trato.id} className="group/row">
                 <TableCell>
@@ -158,17 +165,21 @@ export function TratosTable({
                         <span className={cn('h-1.5 w-1.5 rounded-full', estadoDotClass[trato.estado])} />
                         {trato.estado === 'ABIERTO' ? 'Abierto' : trato.estado === 'GANADO' ? 'Ganado' : 'Perdido'}
                       </span>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {trato.probabilidad ?? 0}%
-                      </span>
+                      {canReadFinancial && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {trato.probabilidad ?? 0}%
+                        </span>
+                      )}
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-sm font-medium tabular-nums text-foreground">
-                    {formatCurrency(trato.valorEstimado)}
-                  </span>
-                </TableCell>
+                {canReadFinancial && (
+                  <TableCell className="text-right">
+                    <span className="text-sm font-medium tabular-nums text-foreground">
+                      {formatCurrency(trato.valorEstimado)}
+                    </span>
+                  </TableCell>
+                )}
                 <TableCell>
                   <span className={cn(tipoContratoBadgeBaseClass, tipoContratoBadgeClass[trato.tipoContrato])}>
                     {tipoContratoLabels[trato.tipoContrato]}
@@ -185,21 +196,23 @@ export function TratosTable({
                 <TableCell>
                   <span className="text-sm text-foreground">{responsable?.nombre ?? '—'}</span>
                 </TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 text-sm tabular-nums',
-                      overdue
-                        ? 'font-medium text-red-600 dark:text-red-400'
-                        : dueSoon
-                          ? 'font-medium text-amber-600 dark:text-amber-400'
-                          : 'text-muted-foreground',
-                    )}
-                  >
-                    {overdue ? <TriangleAlert className="h-3.5 w-3.5" /> : <CalendarClock className="h-3.5 w-3.5" />}
-                    {formatDate(trato.fechaCierreEsperada)}
-                  </span>
-                </TableCell>
+                {canReadFinancial && (
+                  <TableCell>
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 text-sm tabular-nums',
+                        overdue
+                          ? 'font-medium text-red-600 dark:text-red-400'
+                          : dueSoon
+                            ? 'font-medium text-amber-600 dark:text-amber-400'
+                            : 'text-muted-foreground',
+                      )}
+                    >
+                      {overdue ? <TriangleAlert className="h-3.5 w-3.5" /> : <CalendarClock className="h-3.5 w-3.5" />}
+                      {formatDate(trato.fechaCierreEsperada)}
+                    </span>
+                  </TableCell>
+                )}
                 {showActions && (
                   <TableCell className="text-right">
                     <DropdownMenu>

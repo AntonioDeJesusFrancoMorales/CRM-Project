@@ -5,6 +5,25 @@ import type { Empresa } from '@/api/types';
 import { EmpresaForm } from '../components/EmpresaForm';
 import type { EmpresaCreateInput } from '../schemas/empresa.schema';
 
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
+
 const duplicateEmpresa: Empresa = {
   id: 'empresa-1',
   nombre: 'Innovatech Solutions',

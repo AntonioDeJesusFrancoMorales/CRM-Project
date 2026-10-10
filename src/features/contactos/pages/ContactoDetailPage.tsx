@@ -23,6 +23,8 @@ import { ContactoFormDialog } from '../components/ContactoFormDialog';
 import { Contacto360Tab } from '@/features/customer-360/components/Contacto360Tab';
 import { EstadoRelacionSelect } from '../components/EstadoRelacionSelect';
 import { estadoRelacionBadgeClass, estadoRelacionLabels } from '../lib/estadoRelacion';
+import { usePermissions } from '@/features/permissions/context';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -50,6 +52,9 @@ export function ContactoDetailPage() {
   const { data: todosLosContactos } = useContactos();
   const { data: empresas = [] } = useEmpresas();
   const { data: usuarios = [] } = useUsuarios();
+  const permissions = usePermissions();
+  const canEdit = permissions.allows('CONTACTO', 'ACTUALIZAR');
+  const canDelete = permissions.allows('CONTACTO', 'ELIMINAR');
   const cambiarEstadoMutation = useCambiarEstadoContacto();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -155,14 +160,18 @@ export function ContactoDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil data-icon="inline-start" aria-hidden="true" />
-              Editar
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(contacto)}>
-              <Trash2 data-icon="inline-start" aria-hidden="true" />
-              Eliminar
-            </Button>
+             {canEdit && (
+               <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                 <Pencil data-icon="inline-start" aria-hidden="true" />
+                 Editar
+               </Button>
+             )}
+             {canDelete && (
+               <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(contacto)}>
+                 <Trash2 data-icon="inline-start" aria-hidden="true" />
+                 Eliminar
+               </Button>
+             )}
           </div>
         </header>
       </div>
@@ -197,8 +206,22 @@ export function ContactoDetailPage() {
           <Card>
             <CardContent className="grid gap-x-8 gap-y-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
               <InfoField label="Nombre" value={contacto.nombre} />
-              <InfoField label="Correo" value={contacto.correo} />
-              <InfoField label="Teléfono" value={contacto.telefono} />
+               <InfoField
+                 label="Correo"
+                 value={
+                   <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO">
+                     {contacto.correo ?? '—'}
+                   </SensitiveField>
+                 }
+               />
+               <InfoField
+                 label="Teléfono"
+                 value={
+                   <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO">
+                     {contacto.telefono ?? '—'}
+                   </SensitiveField>
+                 }
+               />
               <InfoField label="Cargo" value={contacto.cargo} />
               <InfoField label="Empresa" value={empresaNombre} />
               <InfoField label="Responsable" value={responsableNombre} />
@@ -216,7 +239,7 @@ export function ContactoDetailPage() {
                     tieneTratosActivos={tieneTratosActivos}
                     value={contacto.estadoRelacion}
                     onChange={handleEstadoChange}
-                    disabled={cambiarEstadoMutation.isPending}
+                     disabled={cambiarEstadoMutation.isPending || !canEdit}
                   />
                 </div>
               </div>
@@ -261,23 +284,27 @@ export function ContactoDetailPage() {
         </TabsContent>
       </Tabs>
 
-      <ContactoFormDialog
-        mode="edit"
-        contacto={contacto}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        existingContactos={todosLosContactos}
-      />
+      {canEdit && (
+        <ContactoFormDialog
+          mode="edit"
+          contacto={contacto}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          existingContactos={todosLosContactos}
+        />
+      )}
 
-      <ContactoDeleteDialog
-        contacto={deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-        onSuccess={() => navigate('/contactos', { replace: true })}
-        tratos={tratos}
-        tratosIsFetching={tratosIsFetching}
-      />
+      {canDelete && (
+        <ContactoDeleteDialog
+          contacto={deleteTarget}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          onSuccess={() => navigate('/contactos', { replace: true })}
+          tratos={tratos}
+          tratosIsFetching={tratosIsFetching}
+        />
+      )}
     </div>
   );
 }

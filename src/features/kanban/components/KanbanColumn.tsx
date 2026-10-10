@@ -52,6 +52,11 @@ import { TareaCreateDialog } from '@/features/tareas/components/TareaCreateDialo
 import { ColumnaEditDialog } from './ColumnaEditDialog';
 import { KanbanCard } from './KanbanCard';
 import type { KanbanCardDetalle, KanbanCardBadge, KanbanCardEtiqueta } from './KanbanCard';
+import { usePermissions } from '@/features/permissions/context';
+import {
+  KANBAN_REORDER_COLUMN_CHECKS,
+  getKanbanEntityCreationChecks,
+} from '../lib/kanbanPermissions';
 
 interface KanbanColumnProps {
   columna: ColumnaTablero;
@@ -145,6 +150,13 @@ function prioridadLabel(prioridad: string): string {
 // ---------------------------------------------------------------------------
 
 export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', nombresHermanos = [] }: KanbanColumnProps) {
+  const permissions = usePermissions();
+  const canCreateEntity = permissions.allowsAll(getKanbanEntityCreationChecks(tipoFicha));
+  const canEditColumn = permissions.allows('COLUMNA', 'ACTUALIZAR');
+  const canReorderColumns = permissions.allowsAll(KANBAN_REORDER_COLUMN_CHECKS);
+  const canRemoveColumn = permissions.allowsAll(KANBAN_REORDER_COLUMN_CHECKS);
+  const canReadFinancial = permissions.canReadGroup('TRATO', 'FINANCIERO');
+
   // useSortable para reordenar columnas — el arrastre se activa SOLO desde el GripVertical handle.
   // data: { type: 'columna' } permite discriminar en el onDragEnd del DndContext padre.
   const {
@@ -154,7 +166,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     transform: sortableTransform,
     transition: sortableTransition,
     isDragging: isColumnDragging,
-  } = useSortable({ id: columna.id, data: { type: 'columna' } });
+  } = useSortable({ id: columna.id, disabled: !canReorderColumns, data: { type: 'columna' } });
 
   // useDroppable exclusivo para el área de fichas (zona interna de la columna).
   // Ref independiente del sortable — se aplica al div interior de tarjetas.
@@ -196,7 +208,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
   // Total derivado: solo para tableros TRATOS — suma de valorEstimado de los tratos de las fichas.
   // Tratamos valorEstimado ausente/null como 0. NO usa columna.totalValorEstimado del back.
   const totalDerivado: number | null =
-    tipoFicha === 'TRATO'
+    tipoFicha === 'TRATO' && canReadFinancial
       ? fichas.reduce((acc, ficha) => {
           const trato = tratos?.find((t) => t.id === ficha.tratoId);
           return acc + (trato?.valorEstimado ?? 0);
@@ -211,7 +223,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     columna.limiteWip !== null && fichas.length >= Math.ceil(columna.limiteWip * 0.75);
 
   function handleEliminarColumna() {
-    if (predeterminada || fichas.length > 0 || isQuitando || !acquireDelete()) return;
+    if (predeterminada || fichas.length > 0 || isQuitando || !canRemoveColumn || !acquireDelete()) return;
     quitarColumna(
       { tableroId, columnaId: columna.id },
       { onSettled: () => releaseDelete() },
@@ -267,15 +279,17 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
     let badge: KanbanCardBadge | undefined;
 
     if (trato) {
-      if (trato.valorEstimado != null && trato.valorEstimado !== 0) {
-        detalles.push({ label: 'Valor', value: formatCurrency(trato.valorEstimado) });
-      }
-      if (trato.probabilidad != null) {
-        detalles.push({ label: 'Prob.', value: `${trato.probabilidad}%` });
-      }
-      if (trato.fechaCierreEsperada) {
-        detalles.push({ label: 'Cierre', value: formatDate(trato.fechaCierreEsperada) });
-      }
+       if (canReadFinancial) {
+         if (trato.valorEstimado != null && trato.valorEstimado !== 0) {
+           detalles.push({ label: 'Valor', value: formatCurrency(trato.valorEstimado) });
+         }
+         if (trato.probabilidad != null) {
+           detalles.push({ label: 'Prob.', value: `${trato.probabilidad}%` });
+         }
+         if (trato.fechaCierreEsperada) {
+           detalles.push({ label: 'Cierre', value: formatDate(trato.fechaCierreEsperada) });
+         }
+       }
       // Insignia de cierre: ganado/perdido. Abierto no muestra badge.
       if (trato.estado === 'GANADO') {
         badge = { text: 'Ganado', classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' };
@@ -321,15 +335,19 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       >
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {/* Handle de reordenamiento — SOLO este elemento inicia el drag de columna */}
-            <button
-              type="button"
-              aria-label="Reordenar columna"
-              className="flex-shrink-0 cursor-grab text-muted-foreground hover:text-foreground focus:outline-none"
-              {...sortableAttributes}
-              {...sortableListeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
+            {canReorderColumns ? (
+              <button
+                type="button"
+                aria-label="Reordenar columna"
+                className="flex-shrink-0 cursor-grab text-muted-foreground hover:text-foreground focus:outline-none"
+                {...sortableAttributes}
+                {...sortableListeners}
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+            ) : (
+              <span className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            )}
 
             {/* Indicador de color */}
             <span
@@ -357,23 +375,27 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
             Total: {formatCompactCurrency(totalDerivado)}
           </span>
         )}
-        <DropdownMenu>
+        {(canCreateEntity || canEditColumn || canRemoveColumn) && <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-xs" className="text-muted-foreground" aria-label={`Acciones de la columna ${nombre}`}>
               <MoreHorizontal className="h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuGroup>
-             <DropdownMenuItem onClick={() => setCreateOpen(true)}>
-               <Plus className="mr-2 h-4 w-4" />
-               {tipoFicha === 'TAREA' ? 'Agregar tarea' : 'Agregar trato'}
-             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                 Editar columna
-              </DropdownMenuItem>
-               {!predeterminada && (fichas.length > 0 ? (
+             <DropdownMenuGroup>
+              {canCreateEntity && (
+                <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {tipoFicha === 'TAREA' ? 'Agregar tarea' : 'Agregar trato'}
+                </DropdownMenuItem>
+              )}
+              {canEditColumn && (
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar columna
+                </DropdownMenuItem>
+              )}
+                {canRemoveColumn && !predeterminada && (fichas.length > 0 ? (
                  <span title="No se puede eliminar hasta que la columna no tenga fichas">
                    <DropdownMenuItem
                      className="text-destructive focus:text-destructive"
@@ -397,7 +419,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
                ))}
             </DropdownMenuGroup>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu>}
       </div>
 
       {/* Indicador limiteWip */}
@@ -463,7 +485,7 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
       </div>
 
       {/* Entity creation — the backend creates the ficha; the dialog moves it here afterward. */}
-      {tipoFicha === 'TAREA' ? (
+      {canCreateEntity && (tipoFicha === 'TAREA' ? (
         <TareaCreateDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
@@ -477,15 +499,17 @@ export function KanbanColumn({ columna, fichas, tableroId, tipoFicha = 'TRATO', 
           targetColumnId={columna.id}
           targetColumnName={nombre}
         />
-      )}
+      ))}
 
       {/* ColumnaEditDialog — abierto desde el botón lápiz */}
-      <ColumnaEditDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        columna={columna}
-        nombresExistentes={nombresHermanos}
-      />
+      {canEditColumn && (
+        <ColumnaEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          columna={columna}
+          nombresExistentes={nombresHermanos}
+        />
+      )}
     </div>
   );
 }

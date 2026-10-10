@@ -36,6 +36,7 @@ export const rolesHandlers = [
       nombre: String(body['nombre']),
       descripcion: (body['descripcion'] as string | null | undefined) ?? null,
       activo: true,
+      permisos: Array.isArray(body['permisos']) ? (body['permisos'] as Rol['permisos']) : [],
     };
     rolesFixture.push(nuevo);
     return HttpResponse.json(nuevo, { status: 201 });
@@ -59,6 +60,9 @@ export const rolesHandlers = [
       ...(body['nombre'] !== undefined ? { nombre: String(body['nombre']) } : {}),
       ...(body['descripcion'] !== undefined
         ? { descripcion: (body['descripcion'] as string | null) ?? null }
+        : {}),
+      ...(body['permisos'] !== undefined && Array.isArray(body['permisos'])
+        ? { permisos: body['permisos'] as Rol['permisos'] }
         : {}),
     };
     return HttpResponse.json(rolesFixture[idx]);

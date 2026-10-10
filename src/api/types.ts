@@ -7,6 +7,47 @@ export type TipoTarea = 'GENERAL' | 'SEGUIMIENTO' | 'NEGOCIACION' | 'CIERRE';
 export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 // TipoFicha eliminado — usar tipoFicha de src/features/kanban/schemas/ficha.schema.ts
 
+/** Recursos de autorización CRM definidos por el backend. */
+export type RecursoCRM =
+  | 'TABLERO'
+  | 'COLUMNA'
+  | 'FICHA'
+  | 'TRATO'
+  | 'TAREA'
+  | 'CONTACTO'
+  | 'EMPRESA'
+  | 'ETIQUETA'
+  | 'AGENDA'
+  | 'ROL'
+  | 'USUARIO';
+
+/** Acciones de autorización CRM definidas por el backend. */
+export type AccionPermiso = 'LEER' | 'CREAR' | 'ACTUALIZAR' | 'ELIMINAR' | 'ADMINISTRAR';
+
+/** Alcances de autorización CRM definidos por el backend. */
+export type AlcancePermiso =
+  | 'TODO_COMPARTIDO'
+  | 'PROPIOS_O_ASIGNADOS'
+  | 'TABLEROS_PERMITIDOS';
+
+/** Grupos sensibles que el backend puede devolver para lectura y escritura. */
+export type GrupoSensible = 'FINANCIERO' | 'CONTACTO_PRIVADO';
+
+// Alias cortos para consumidores que trabajan directamente con el dominio de permisos.
+export type Recurso = RecursoCRM;
+export type Accion = AccionPermiso;
+export type Alcance = AlcancePermiso;
+
+/** PermisoRecurso del contrato JSON del backend. */
+export interface PermisoRecurso {
+  recurso: RecursoCRM;
+  acciones: AccionPermiso[];
+  alcance: AlcancePermiso;
+  idsPermitidos: string[] | null;
+  gruposLectura: GrupoSensible[] | null;
+  gruposEscritura: GrupoSensible[] | null;
+}
+
 export interface Usuario {
   id: string;
   nombre: string;
@@ -31,6 +72,7 @@ export interface Rol {            // == RolResponse del back
   nombre: string;
   descripcion: string | null;
   activo: boolean;
+  permisos: PermisoRecurso[];
 }
 
 export interface Empresa {
