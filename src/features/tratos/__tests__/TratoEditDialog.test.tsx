@@ -3,12 +3,31 @@
 // Nota: TratoForm usa useContactos y useUsuarios, por lo que necesita
 // QueryClientProvider + MSW (handlers activos via setupTests.ts).
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import type { Trato } from '@/api/types';
+
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
 
 // Fixture d1111111 con todos los campos necesarios para el pre-fill.
 const trato: Trato = {

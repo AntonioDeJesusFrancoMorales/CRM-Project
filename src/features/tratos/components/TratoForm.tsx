@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+import { SensitiveWriteNotice } from '@/features/permissions/components/PermissionState';
 import {
   tratoSchema,
   TRATO_EMPTY_DEFAULTS,
@@ -233,82 +234,88 @@ export function TratoForm({
           />
 
           {/* Valor estimado */}
-          <FormField
-            control={form.control}
-            name="valorEstimado"
-            render={({ field }) => (
-              <FormItem className="flex flex-col gap-1.5 space-y-0">
-                <FormLabel>
-                  Valor estimado (MXN) <span className="text-muted-foreground font-normal">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    className={dialogInputClass}
-                    type="number"
-                    min={0}
-                    step={1000}
-                    placeholder="0"
-                    value={field.value ?? ''}
-                    onChange={(e) =>
-                      field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="TRATO" group="FINANCIERO">
+            <FormField
+              control={form.control}
+              name="valorEstimado"
+              render={({ field }) => (
+                <FormItem className="flex flex-col gap-1.5 space-y-0">
+                  <FormLabel>
+                    Valor estimado (MXN) <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      className={dialogInputClass}
+                      type="number"
+                      min={0}
+                      step={1000}
+                      placeholder="0"
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           {/* Probabilidad */}
-          <FormField
-            control={form.control}
-            name="probabilidad"
-            render={({ field }) => (
-              <FormItem className="flex flex-col gap-1.5 space-y-0">
-                <FormLabel>
-                  Probabilidad (%) <span className="text-muted-foreground font-normal">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    className={dialogInputClass}
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={5}
-                    placeholder="0 - 100"
-                    value={field.value ?? ''}
-                    onChange={(e) =>
-                      field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="TRATO" group="FINANCIERO">
+            <FormField
+              control={form.control}
+              name="probabilidad"
+              render={({ field }) => (
+                <FormItem className="flex flex-col gap-1.5 space-y-0">
+                  <FormLabel>
+                    Probabilidad (%) <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      className={dialogInputClass}
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={5}
+                      placeholder="0 - 100"
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
 
           {/* Fecha cierre esperada */}
-          <FormField
-            control={form.control}
-            name="fechaCierreEsperada"
-            render={({ field }) => (
-              <FormItem className="flex flex-col gap-1.5 space-y-0">
-                <FormLabel>
-                  Cierre esperado <span className="text-muted-foreground font-normal">(opcional)</span>
-                </FormLabel>
-                <FormControl>
-                  <DatePicker
-                    value={field.value ?? null}
-                    onChange={field.onChange}
-                    minDate={getMexicoCityToday()}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <SensitiveWriteNotice resource="TRATO" group="FINANCIERO">
+            <FormField
+              control={form.control}
+              name="fechaCierreEsperada"
+              render={({ field }) => (
+                <FormItem className="flex flex-col gap-1.5 space-y-0">
+                  <FormLabel>
+                    Cierre esperado <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <DatePicker
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      minDate={getMexicoCityToday()}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
         </div>
 
         <div className="-mx-4 -mb-4 mt-1 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">

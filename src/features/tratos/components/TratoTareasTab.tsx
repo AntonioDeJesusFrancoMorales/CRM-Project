@@ -13,12 +13,17 @@ import { TareasTable } from '@/features/tareas/components/TareasTable';
 import { TareaCreateDialog } from '@/features/tareas/components/TareaCreateDialog';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
+import { usePermissions } from '@/features/permissions/context';
 
 interface TratoTareasTabProps {
   tratoId: string;
 }
 
 export function TratoTareasTab({ tratoId }: TratoTareasTabProps) {
+  const permissions = usePermissions();
+  const canCreateTask = permissions.allows('TAREA', 'CREAR');
+  const canEditTask = permissions.allows('TAREA', 'ACTUALIZAR');
+  const canDeleteTask = permissions.allows('TAREA', 'ELIMINAR');
   const { data: todasLasTareas = [], isLoading, isError } = useTareas();
   const { data: tratos = [] } = useTratos();
   const { data: usuarios = [] } = useUsuarios();
@@ -37,10 +42,12 @@ export function TratoTareasTab({ tratoId }: TratoTareasTabProps) {
     <div className="space-y-4">
       {/* Header con botón crear (siempre visible) */}
       <div className="flex justify-end">
-        <Button onClick={() => setCreateOpen(true)} size="sm">
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Crear tarea
-        </Button>
+        {canCreateTask && (
+          <Button onClick={() => setCreateOpen(true)} size="sm">
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Crear tarea
+          </Button>
+        )}
       </div>
 
       {/* Contenido */}
@@ -61,15 +68,23 @@ export function TratoTareasTab({ tratoId }: TratoTareasTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <TareasTable tareas={tareas} tratosById={tratosById} usuariosById={usuariosById} />
+        <TareasTable
+          tareas={tareas}
+          tratosById={tratosById}
+          usuariosById={usuariosById}
+          canEdit={canEditTask}
+          canDelete={canDeleteTask}
+        />
       )}
 
       {/* Dialog crear tarea — trato fijo (Select disabled) */}
-      <TareaCreateDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        tratoIdFijo={tratoId}
-      />
+      {canCreateTask && (
+        <TareaCreateDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          tratoIdFijo={tratoId}
+        />
+      )}
     </div>
   );
 }

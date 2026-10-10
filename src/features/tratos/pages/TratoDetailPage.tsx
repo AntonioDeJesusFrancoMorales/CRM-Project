@@ -35,6 +35,7 @@ import { TratoNotasTab } from '../components/TratoNotasTab';
 import { TratoEditDialog } from '../components/TratoEditDialog';
 import { TratoDeleteDialog } from '../components/TratoDeleteDialog';
 import { getTratoTaskConflictMessage } from '../lib/tratoDeletion';
+import { usePermissions } from '@/features/permissions/context';
 
 const NOT_FOUND_REDIRECT_DELAY = 1500;
 
@@ -45,6 +46,9 @@ export function TratoDetailPage() {
   const { data: trato, isLoading, error } = useTrato(id);
   const { data: contactos = [] } = useContactos();
   const { data: usuarios = [] } = useUsuarios();
+  const permissions = usePermissions();
+  const canEdit = permissions.allows('TRATO', 'ACTUALIZAR');
+  const canDelete = permissions.allows('TRATO', 'ELIMINAR');
 
   const { data: todasLasTareas = [] } = useTareas();
   const tareasDelTrato = todasLasTareas.filter((t) => t.tratoId === id);
@@ -218,7 +222,7 @@ export function TratoDetailPage() {
 
         {/* Lado derecho: cerrar (ganar/perder, si está abierto) + editar y eliminar */}
         <div className="flex flex-wrap gap-2">
-          {trato.estado === 'ABIERTO' && (
+           {trato.estado === 'ABIERTO' && canEdit && (
             <>
               <Button
                 variant="outline"
@@ -240,24 +244,28 @@ export function TratoDetailPage() {
               </Button>
             </>
           )}
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-            Editar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (tareasDelTrato.length > 0) {
-                toast.error(getTratoTaskConflictMessage(tareasDelTrato.length));
-                return;
-              }
-              setDeleteOpen(true);
-            }}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-            Eliminar
-          </Button>
+           {canEdit && (
+             <Button variant="outline" onClick={() => setEditOpen(true)}>
+               <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
+               Editar
+             </Button>
+           )}
+           {canDelete && (
+             <Button
+               variant="outline"
+               onClick={() => {
+                 if (tareasDelTrato.length > 0) {
+                   toast.error(getTratoTaskConflictMessage(tareasDelTrato.length));
+                   return;
+                 }
+                 setDeleteOpen(true);
+               }}
+               className="text-destructive hover:text-destructive"
+             >
+               <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+               Eliminar
+             </Button>
+           )}
         </div>
       </header>
 
@@ -296,15 +304,17 @@ export function TratoDetailPage() {
       </Tabs>
 
       {/* Dialogs */}
-      <TratoEditDialog open={editOpen} onOpenChange={setEditOpen} trato={trato} />
+       {canEdit && <TratoEditDialog open={editOpen} onOpenChange={setEditOpen} trato={trato} />}
 
-      <TratoDeleteDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        nombre={trato.nombre}
-        onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending || isLocked}
-      />
+       {canDelete && (
+         <TratoDeleteDialog
+           open={deleteOpen}
+           onOpenChange={setDeleteOpen}
+           nombre={trato.nombre}
+           onConfirm={handleConfirmDelete}
+           isDeleting={deleteMutation.isPending || isLocked}
+         />
+       )}
 
       <Dialog open={perderOpen} onOpenChange={handlePerderOpenChange}>
         <DialogContent>

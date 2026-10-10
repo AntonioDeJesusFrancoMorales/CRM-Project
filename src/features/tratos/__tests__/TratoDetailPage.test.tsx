@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -7,6 +7,25 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 
 import { TratoDetailPage } from '../pages/TratoDetailPage';
 import { server } from '@/test/server';
+
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
 
 // IDs del fixture (tratos.ts + contactos.ts)
 // d1111111 → "Implementación CRM Innovatech", contactoId=b1111111 (Carlos, INACTIVO), 2 tareas pendientes

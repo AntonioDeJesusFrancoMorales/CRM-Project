@@ -1,12 +1,31 @@
 // TratoInfoTab — tests de componente presentacional puro (sin hooks, sin MSW).
 // Cubre: display condicional de motivoPerdida (S1 del verify).
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 
 import { TratoInfoTab } from '../components/TratoInfoTab';
 import type { Trato } from '@/api/types';
+
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
 
 // Trato base sin motivoPerdida.
 const tratoBase: Trato = {
