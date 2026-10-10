@@ -18,6 +18,7 @@ const rolFixture: Rol = {
   nombre: 'Administrador',
   descripcion: 'Acceso total al sistema',
   activo: true,
+  permisos: [],
 };
 
 // ── Wrapper ───────────────────────────────────────────────────────────────────

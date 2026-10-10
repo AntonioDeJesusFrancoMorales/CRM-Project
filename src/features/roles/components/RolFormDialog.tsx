@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { rolCreateSchema, type RolCreateInput } from '../schemas/rol.schema';
 import { useCreateRol } from '../hooks/useCreateRol';
 import { useEditRol } from '../hooks/useEditRol';
+import { DEFAULT_PERMISSION_MATRIX, PermissionMatrix } from './PermissionMatrix';
 
 type CreateProps = {
   mode: 'create';
@@ -60,11 +61,19 @@ function RolForm({
   serverErrors,
   submitLabel,
 }: RolFormProps) {
+  const permissionDefaults = defaultValues?.permisos ?? DEFAULT_PERMISSION_MATRIX;
   const form = useForm<RolCreateInput>({
     resolver: zodResolver(rolCreateSchema),
     defaultValues: {
       nombre: '',
       descripcion: '',
+      permisos: permissionDefaults.map((permission) => ({
+        ...permission,
+        acciones: [...permission.acciones],
+        idsPermitidos: permission.idsPermitidos ? [...permission.idsPermitidos] : permission.idsPermitidos,
+        gruposLectura: permission.gruposLectura ? [...permission.gruposLectura] : permission.gruposLectura,
+        gruposEscritura: permission.gruposEscritura ? [...permission.gruposEscritura] : permission.gruposEscritura,
+      })),
       ...(defaultValues ?? {}),
     },
   });
@@ -92,6 +101,19 @@ function RolForm({
               </FormLabel>
               <FormControl>
                 <Input placeholder="Nombre del rol" maxLength={80} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="permisos"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <PermissionMatrix value={field.value} onChange={field.onChange} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -133,7 +155,7 @@ function RolForm({
 }
 
 function serverErrorsFromMutation(error: unknown): Array<{ field: string; message: string }> | undefined {
-  return isHttpError(error) && error.status === 422 && error.details ? error.details : undefined;
+  return isHttpError(error) && [400, 422].includes(error.status) && error.details ? error.details : undefined;
 }
 
 // ─── Create ─────────────────────────────────────────────────────────────────────
@@ -159,7 +181,7 @@ function CreateDialog({ open, onOpenChange }: Pick<CreateProps, 'open' | 'onOpen
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] overflow-y-auto sm:w-[calc(100%-2rem)] sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle>Nuevo rol</DialogTitle>
           <DialogDescription>
@@ -201,7 +223,7 @@ function EditDialog({ open, onOpenChange, rol }: Pick<EditProps, 'open' | 'onOpe
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] overflow-y-auto sm:w-[calc(100%-2rem)] sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle>Editar rol</DialogTitle>
           <DialogDescription>
@@ -209,7 +231,7 @@ function EditDialog({ open, onOpenChange, rol }: Pick<EditProps, 'open' | 'onOpe
           </DialogDescription>
         </DialogHeader>
         <RolForm
-          defaultValues={{ nombre: rol.nombre, descripcion: rol.descripcion ?? '' }}
+          defaultValues={{ nombre: rol.nombre, descripcion: rol.descripcion ?? '', permisos: rol.permisos }}
           onSubmit={handleSubmit}
           onCancel={() => handleOpenChange(false)}
           isSubmitting={mutation.isPending || isLocked}

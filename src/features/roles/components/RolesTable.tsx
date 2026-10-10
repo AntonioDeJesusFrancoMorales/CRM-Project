@@ -25,6 +25,8 @@ interface RolesTableProps {
   roles: Rol[];
   onEdit: (rol: Rol) => void;
   onDelete: (rol: Rol) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 /** Normaliza acentos y mayúsculas para comparación de búsqueda. */
@@ -35,7 +37,7 @@ function normalizar(str: string): string {
     .replace(/[̀-ͯ]/g, '');
 }
 
-export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
+export function RolesTable({ roles, onEdit, onDelete, canEdit = true, canDelete = true }: RolesTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filtered = useMemo(() => {
@@ -89,23 +91,25 @@ export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
+                  {(canEdit || canDelete) && <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" aria-label="Acciones">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(rol)}>Editar</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => onDelete(rol)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        Eliminar
-                      </DropdownMenuItem>
+                       {canEdit && <DropdownMenuItem onClick={() => onEdit(rol)}>Editar</DropdownMenuItem>}
+                       {canEdit && canDelete && <DropdownMenuSeparator />}
+                       {canDelete && (
+                         <DropdownMenuItem
+                           onClick={() => onDelete(rol)}
+                           className="text-destructive focus:text-destructive"
+                         >
+                           Eliminar
+                         </DropdownMenuItem>
+                       )}
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenu>}
                 </TableCell>
               </TableRow>
             ))

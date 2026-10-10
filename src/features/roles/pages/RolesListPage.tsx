@@ -17,6 +17,8 @@ import { useRoles } from '../hooks/useRoles';
 import { RolesTable } from '../components/RolesTable';
 import { RolFormDialog } from '../components/RolFormDialog';
 import { RolDeleteDialog } from '../components/RolDeleteDialog';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 /** KPIs simples calculados con la lista plana de roles. */
 function computeKpis(roles: Rol[]) {
@@ -27,12 +29,17 @@ function computeKpis(roles: Rol[]) {
 
 export function RolesListPage() {
   const { data: roles, isPending, isError, isFetching, refetch } = useRoles();
+  const permissions = usePermissions();
+  const canRead = permissions.allows('ROL', 'LEER');
+  const canAdminister = permissions.allows('ROL', 'ADMINISTRAR');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Rol | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Rol | null>(null);
 
   const kpis = useMemo(() => computeKpis(roles ?? []), [roles]);
+
+  if (!canRead) return <AccessDeniedView resource="ROL" />;
 
   return (
     <div className="space-y-6">
@@ -41,10 +48,12 @@ export function RolesListPage() {
         title="Roles"
         description="Gestiona los roles del CRM y sus descripciones."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo rol
-          </Button>
+           canAdminister && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nuevo rol
+            </Button>
+          )
         }
       />
 
@@ -98,12 +107,12 @@ export function RolesListPage() {
           icon={ShieldCheck}
           title="Aún no hay roles"
           description="Creá tu primer rol para empezar a organizar los permisos y responsabilidades del CRM."
-          action={
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Nuevo rol
-            </Button>
-          }
+            action={canAdminister ? (
+             <Button onClick={() => setCreateOpen(true)}>
+               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+               Nuevo rol
+             </Button>
+           ) : undefined}
         />
       )}
 
@@ -114,6 +123,8 @@ export function RolesListPage() {
             roles={roles}
             onEdit={(rol) => setEditTarget(rol)}
             onDelete={(rol) => setDeleteTarget(rol)}
+             canEdit={canAdminister}
+             canDelete={canAdminister}
           />
         </div>
       )}
@@ -122,10 +133,10 @@ export function RolesListPage() {
       <CambiarPasswordCard />
 
       {/* Dialog crear rol */}
-      <RolFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
+        {canAdminister && <RolFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />}
 
       {/* Dialog editar rol */}
-      {editTarget && (
+        {editTarget && canAdminister && (
         <RolFormDialog
           mode="edit"
           open={!!editTarget}
@@ -137,13 +148,15 @@ export function RolesListPage() {
       )}
 
       {/* Dialog eliminar rol */}
-      <RolDeleteDialog
-        open={!!deleteTarget}
-        onOpenChange={(v) => {
-          if (!v) setDeleteTarget(null);
-        }}
-        rol={deleteTarget}
-      />
+        {canAdminister && (
+         <RolDeleteDialog
+           open={!!deleteTarget}
+           onOpenChange={(v) => {
+             if (!v) setDeleteTarget(null);
+           }}
+           rol={deleteTarget}
+         />
+       )}
     </div>
   );
 }

@@ -17,12 +17,14 @@ const roles: Rol[] = [
     nombre: 'Administrador',
     descripcion: 'Acceso total al sistema',
     activo: true,
+    permisos: [],
   },
   {
     id: 'rol-user-uuid-2222-222222222222',
     nombre: 'Usuario',
     descripcion: 'Acceso estándar de ventas',
     activo: true,
+    permisos: [],
   },
 ];
 
