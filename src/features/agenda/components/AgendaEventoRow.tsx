@@ -10,8 +10,8 @@ import { RECORDATORIO_ESTADO_LABEL } from '../schemas/agenda.schema';
 
 interface AgendaEventoRowProps {
   agenda: Agenda;
-  onEdit: (agenda: Agenda) => void;
-  onDelete: (agenda: Agenda) => void;
+  onEdit?: (agenda: Agenda) => void;
+  onDelete?: (agenda: Agenda) => void;
 }
 
 // Badges con variantes dark (bg-*-50/700 → dark:bg-*-900/40 dark:text-*-300),
@@ -90,24 +90,28 @@ export function AgendaEventoRow({ agenda, onEdit, onDelete }: AgendaEventoRowPro
 
       {/* Acciones */}
       <div className="flex flex-shrink-0 items-center gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          aria-label="Editar evento"
-          onClick={() => onEdit(agenda)}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
-          aria-label="Eliminar evento"
-          onClick={() => onDelete(agenda)}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {onEdit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label="Editar evento"
+            onClick={() => onEdit(agenda)}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            aria-label="Eliminar evento"
+            onClick={() => onDelete(agenda)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
     </article>
   );

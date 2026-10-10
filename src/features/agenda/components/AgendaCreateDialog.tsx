@@ -4,6 +4,7 @@
 
 import { isHttpError } from '@/api/http-error';
 import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
+import { usePermissions } from '@/features/permissions/context';
 import {
   Dialog,
   DialogContent,
@@ -22,16 +23,18 @@ interface AgendaCreateDialogProps {
 }
 
 export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: AgendaCreateDialogProps) {
+  const permissions = usePermissions();
+  const canCreate = permissions.allows('AGENDA', 'CREAR');
   const mutation = useCreateAgenda();
   const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
-    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
+    isHttpError(mutation.error) && (mutation.error.status === 400 || mutation.error.status === 422) && mutation.error.details
       ? mutation.error.details
       : undefined;
 
   function handleSubmit(values: AgendaCreateInput) {
-    if (mutation.isPending) return;
+    if (!canCreate || mutation.isPending) return;
     if (!acquire()) return;
 
     try {
@@ -51,6 +54,8 @@ export function AgendaCreateDialog({ open, onOpenChange, defaultValues }: Agenda
     if (!nextOpen && submissionLock.current) return;
     onOpenChange(nextOpen);
   }
+
+  if (!canCreate) return null;
 
   const initial: Partial<AgendaCreateInput> = {
     ...AGENDA_EMPTY_DEFAULTS,

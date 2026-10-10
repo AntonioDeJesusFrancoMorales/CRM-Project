@@ -22,6 +22,8 @@ import { AgendaCreateDialog } from '../components/AgendaCreateDialog';
 import { AgendaEditDialog } from '../components/AgendaEditDialog';
 import { AgendaDeleteDialog } from '../components/AgendaDeleteDialog';
 import type { Agenda } from '../schemas/agenda.schema';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 function parseLocalDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
@@ -65,6 +67,11 @@ function computeKpis(agendas: Agenda[]) {
 }
 
 export function AgendaListPage() {
+  const permissions = usePermissions();
+  const canRead = permissions.allows('AGENDA', 'LEER');
+  const canCreate = permissions.allows('AGENDA', 'CREAR');
+  const canEdit = permissions.allows('AGENDA', 'ACTUALIZAR');
+  const canDelete = permissions.allows('AGENDA', 'ELIMINAR');
   const { data: agendas = [], isLoading, isError, isFetching, refetch } = useAgendas();
   const deleteMutation = useDeleteAgenda();
   const { acquire, release, isLocked, lockRef: deletionLock } = useSynchronousMutationLock();
@@ -90,9 +97,22 @@ export function AgendaListPage() {
       }));
   }, [agendas]);
 
+  if (!canRead) return <AccessDeniedView resource="AGENDA" />;
+
   function openCreate(date?: string) {
+    if (!canCreate) return;
     setCreateDate(date);
     setCreateOpen(true);
+  }
+
+  function openEdit(agenda: Agenda) {
+    if (!canEdit) return;
+    setEditing(agenda);
+  }
+
+  function openDelete(agenda: Agenda) {
+    if (!canDelete) return;
+    setDeleting(agenda);
   }
 
   function handleCreateOpenChange(open: boolean) {
@@ -101,7 +121,7 @@ export function AgendaListPage() {
   }
 
   function handleConfirmDelete() {
-    if (!deleting || !acquire()) return;
+    if (!canDelete || !deleting || !acquire()) return;
     deleteMutation.mutate(deleting.id, {
       onSettled: (_data, error) => {
         release();
@@ -128,10 +148,12 @@ export function AgendaListPage() {
             onRefresh={() => void refetch()}
             isRefreshing={isFetching}
           />
-          <Button onClick={() => openCreate()}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo evento
-          </Button>
+          {canCreate && (
+            <Button onClick={() => openCreate()}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nuevo evento
+            </Button>
+          )}
         </div>
       </header>
 
@@ -185,7 +207,12 @@ export function AgendaListPage() {
               icon={CalendarClock}
               title="Aún no hay eventos"
               description="Crea tu primera llamada o reunión para empezar a organizar tu agenda."
-              action={<Button onClick={() => openCreate()}><Plus className="mr-2 h-4 w-4" aria-hidden="true" />Nuevo evento</Button>}
+              action={canCreate ? (
+                <Button onClick={() => openCreate()}>
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Nuevo evento
+                </Button>
+              ) : undefined}
             />
           </div>
         )}
@@ -193,7 +220,12 @@ export function AgendaListPage() {
         {!isLoading && !isError && agendas.length > 0 && (
           <>
             <TabsContent value="calendario" className="mt-0">
-              <AgendaCalendarView agendas={agendas} onEdit={setEditing} onDelete={setDeleting} onCreate={openCreate} />
+              <AgendaCalendarView
+                agendas={agendas}
+                onEdit={canEdit ? openEdit : undefined}
+                onDelete={canDelete ? openDelete : undefined}
+                onCreate={canCreate ? openCreate : undefined}
+              />
             </TabsContent>
             <TabsContent value="lista" className="mx-auto mt-0 w-full max-w-[1400px]">
               <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-5">
@@ -204,7 +236,14 @@ export function AgendaListPage() {
                       <span className="text-xs tabular-nums text-muted-foreground">{group.events.length} evento{group.events.length === 1 ? '' : 's'}</span>
                     </div>
                     <div className="space-y-2">
-                      {group.events.map((agenda) => <AgendaEventoRow key={agenda.id} agenda={agenda} onEdit={setEditing} onDelete={setDeleting} />)}
+                      {group.events.map((agenda) => (
+                        <AgendaEventoRow
+                          key={agenda.id}
+                          agenda={agenda}
+                          onEdit={canEdit ? openEdit : undefined}
+                          onDelete={canDelete ? openDelete : undefined}
+                        />
+                      ))}
                     </div>
                   </section>
                 ))}
@@ -214,9 +253,29 @@ export function AgendaListPage() {
         )}
       </Tabs>
 
-      <AgendaCreateDialog open={createOpen} onOpenChange={handleCreateOpenChange} defaultValues={createDate ? { fecha: createDate } : undefined} />
-      {editing && <AgendaEditDialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)} agenda={editing} />}
-      <AgendaDeleteDialog open={Boolean(deleting)} onOpenChange={handleDeleteOpenChange} asunto={deleting?.asunto ?? ''} onConfirm={handleConfirmDelete} isDeleting={deleteMutation.isPending || isLocked} />
+      {canCreate && (
+        <AgendaCreateDialog
+          open={createOpen}
+          onOpenChange={handleCreateOpenChange}
+          defaultValues={createDate ? { fecha: createDate } : undefined}
+        />
+      )}
+      {editing && canEdit && (
+        <AgendaEditDialog
+          open={Boolean(editing)}
+          onOpenChange={(open) => !open && setEditing(null)}
+          agenda={editing}
+        />
+      )}
+      {canDelete && (
+        <AgendaDeleteDialog
+          open={Boolean(deleting)}
+          onOpenChange={handleDeleteOpenChange}
+          asunto={deleting?.asunto ?? ''}
+          onConfirm={handleConfirmDelete}
+          isDeleting={deleteMutation.isPending || isLocked}
+        />
+      )}
     </div>
   );
 }

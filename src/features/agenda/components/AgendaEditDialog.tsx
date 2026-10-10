@@ -5,6 +5,7 @@
 
 import { isHttpError } from '@/api/http-error';
 import { useSynchronousMutationLock } from '@/components/shared/useSynchronousMutationLock';
+import { usePermissions } from '@/features/permissions/context';
 import {
   Dialog,
   DialogContent,
@@ -28,16 +29,18 @@ function toInputTime(hora: string | null): string | null {
 }
 
 export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialogProps) {
+  const permissions = usePermissions();
+  const canEdit = permissions.allows('AGENDA', 'ACTUALIZAR');
   const mutation = useUpdateAgenda();
   const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
 
   const serverErrors =
-    isHttpError(mutation.error) && mutation.error.status === 422 && mutation.error.details
+    isHttpError(mutation.error) && (mutation.error.status === 400 || mutation.error.status === 422) && mutation.error.details
       ? mutation.error.details
       : undefined;
 
   function handleSubmit(values: AgendaEditInput) {
-    if (!acquire()) return;
+    if (!canEdit || !acquire()) return;
     mutation.mutate(
       { id: agenda.id, data: values },
       {
@@ -53,6 +56,8 @@ export function AgendaEditDialog({ open, onOpenChange, agenda }: AgendaEditDialo
     if (!nextOpen && submissionLock.current) return;
     onOpenChange(nextOpen);
   }
+
+  if (!canEdit) return null;
 
   const initial: Partial<AgendaEditInput> = {
     tipo: agenda.tipo,

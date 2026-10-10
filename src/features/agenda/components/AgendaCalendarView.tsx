@@ -50,9 +50,9 @@ function shortTime(value: string | null): string | null {
 
 interface AgendaCalendarViewProps {
   agendas: Agenda[];
-  onEdit: (agenda: Agenda) => void;
-  onDelete: (agenda: Agenda) => void;
-  onCreate: (date?: string) => void;
+  onEdit?: (agenda: Agenda) => void;
+  onDelete?: (agenda: Agenda) => void;
+  onCreate?: (date?: string) => void;
 }
 
 export function AgendaCalendarView({
@@ -201,19 +201,27 @@ export function AgendaCalendarView({
               {selectedEvents.length} evento{selectedEvents.length === 1 ? '' : 's'}
             </p>
           </div>
-          <Button size="icon-sm" onClick={() => onCreate(selected)} aria-label="Nuevo evento en la fecha seleccionada">
-            <Plus />
-          </Button>
+          {onCreate && (
+            <Button size="icon-sm" onClick={() => onCreate(selected)} aria-label="Nuevo evento en la fecha seleccionada">
+              <Plus />
+            </Button>
+          )}
         </div>
 
         {selectedEvents.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => onCreate(selected)}
-            className="w-full rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-          >
-            No hay eventos. Crear uno
-          </button>
+          onCreate ? (
+            <button
+              type="button"
+              onClick={() => onCreate(selected)}
+              className="w-full rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+            >
+              No hay eventos. Crear uno
+            </button>
+          ) : (
+            <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+              No hay eventos.
+            </p>
+          )
         ) : (
           <div className="space-y-3">
             {selectedEvents.map((agenda) => (
@@ -228,12 +236,16 @@ export function AgendaCalendarView({
                     </p>
                   </div>
                   <div className="flex shrink-0">
-                    <Button variant="ghost" size="icon-sm" onClick={() => onEdit(agenda)} aria-label={`Editar ${agenda.asunto}`}>
-                      <Pencil />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(agenda)} aria-label={`Eliminar ${agenda.asunto}`}>
-                      <Trash2 />
-                    </Button>
+                    {onEdit && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => onEdit(agenda)} aria-label={`Editar ${agenda.asunto}`}>
+                        <Pencil />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(agenda)} aria-label={`Eliminar ${agenda.asunto}`}>
+                        <Trash2 />
+                      </Button>
+                    )}
                   </div>
                 </div>
                 {agenda.ubicacion && (
