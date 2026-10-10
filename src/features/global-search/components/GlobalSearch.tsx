@@ -17,6 +17,7 @@ import { useEmpresas } from '@/features/empresas/hooks/useEmpresas';
 import { useContactos } from '@/features/contactos/hooks/useContactos';
 import { useTratos } from '@/features/tratos/hooks/useTratos';
 import { useTareas } from '@/features/tareas/hooks/useTareas';
+import { usePermissions } from '@/features/permissions/context';
 import {
   buildGlobalSearchResults,
   countGlobalSearchResults,
@@ -54,6 +55,7 @@ function ResultButton({ result, onSelect }: { result: GlobalSearchResult; onSele
 
 export function GlobalSearch() {
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -62,6 +64,13 @@ export function GlobalSearch() {
   const contactosQuery = useContactos();
   const tratosQuery = useTratos();
   const tareasQuery = useTareas();
+  const canReadEmpresas = permissions.allows('EMPRESA', 'LEER');
+  const canReadContactos = permissions.allows('CONTACTO', 'LEER');
+  const canReadTratos = permissions.allows('TRATO', 'LEER');
+  const canReadTareas = permissions.allows('TAREA', 'LEER');
+  const canReadContactPrivate = permissions.canReadGroup('CONTACTO', 'CONTACTO_PRIVADO');
+  const canReadEmpresaPrivate = permissions.canReadGroup('EMPRESA', 'CONTACTO_PRIVADO');
+  const canReadFinancial = permissions.canReadGroup('TRATO', 'FINANCIERO');
 
   const isLoading = empresasQuery.isLoading || contactosQuery.isLoading || tratosQuery.isLoading || tareasQuery.isLoading;
   const hasError = empresasQuery.isError || contactosQuery.isError || tratosQuery.isError || tareasQuery.isError;
@@ -69,13 +78,29 @@ export function GlobalSearch() {
 
   const groups = useMemo(
     () => buildGlobalSearchResults({
-      empresas: empresasQuery.data ?? [],
-      contactos: contactosQuery.data ?? [],
-      tratos: tratosQuery.data ?? [],
-      tareas: tareasQuery.data ?? [],
+      empresas: canReadEmpresas ? empresasQuery.data ?? [] : [],
+      contactos: canReadContactos ? contactosQuery.data ?? [] : [],
+      tratos: canReadTratos ? tratosQuery.data ?? [] : [],
+      tareas: canReadTareas ? tareasQuery.data ?? [] : [],
       query,
+      includeContactPrivateData: canReadContactPrivate,
+      includeEmpresaPrivateData: canReadEmpresaPrivate,
+      includeFinancialData: canReadFinancial,
     }),
-    [contactosQuery.data, empresasQuery.data, query, tareasQuery.data, tratosQuery.data],
+    [
+      canReadContactPrivate,
+      canReadContactos,
+      canReadEmpresas,
+      canReadEmpresaPrivate,
+      canReadFinancial,
+      canReadTareas,
+      canReadTratos,
+      contactosQuery.data,
+      empresasQuery.data,
+      query,
+      tareasQuery.data,
+      tratosQuery.data,
+    ],
   );
 
   const totalResults = countGlobalSearchResults(groups);

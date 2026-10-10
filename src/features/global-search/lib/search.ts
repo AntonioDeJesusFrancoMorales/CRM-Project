@@ -26,6 +26,9 @@ interface BuildGlobalSearchResultsInput {
   tareas?: Tarea[];
   query: string;
   limitPerGroup?: number;
+  includeContactPrivateData?: boolean;
+  includeEmpresaPrivateData?: boolean;
+  includeFinancialData?: boolean;
 }
 
 const DEFAULT_LIMIT_PER_GROUP = 5;
@@ -54,39 +57,45 @@ function limit(results: GlobalSearchResult[], limitPerGroup: number): GlobalSear
   return results.slice(0, limitPerGroup);
 }
 
-function buildEmpresaResult(empresa: Empresa): GlobalSearchResult {
+function buildEmpresaResult(empresa: Empresa, includePrivateData: boolean): GlobalSearchResult {
+  const privateFields = includePrivateData
+    ? [
+        empresa.telefono,
+        empresa.paginaWeb,
+        empresa.facebook,
+        empresa.instagram,
+        empresa.twitter,
+        empresa.notas,
+      ]
+    : [];
+
   return {
     id: empresa.id,
     type: 'empresa',
     title: empresa.nombre,
-    subtitle: compact([empresa.sector, empresa.telefono]),
+    subtitle: compact([empresa.sector, includePrivateData ? empresa.telefono : undefined]),
     badge: empresa.estadoRelacion,
     to: `/empresas/${empresa.id}`,
-    haystack: compact([
-      empresa.nombre,
-      empresa.sector,
-      empresa.telefono,
-      empresa.paginaWeb,
-      empresa.facebook,
-      empresa.instagram,
-      empresa.twitter,
-      empresa.notas,
-    ]),
+    haystack: compact([empresa.nombre, empresa.sector, ...privateFields]),
   };
 }
 
-function buildContactoResult(contacto: Contacto): GlobalSearchResult {
+function buildContactoResult(contacto: Contacto, includePrivateData: boolean): GlobalSearchResult {
   return {
     id: contacto.id,
     type: 'contacto',
     title: contacto.nombre,
-    subtitle: compact([contacto.cargo, contacto.correo, contacto.telefono]),
+    subtitle: compact([
+      contacto.cargo,
+      includePrivateData ? contacto.correo : undefined,
+      includePrivateData ? contacto.telefono : undefined,
+    ]),
     badge: contacto.estadoRelacion,
     to: `/contactos/${contacto.id}`,
     haystack: compact([
       contacto.nombre,
-      contacto.correo,
-      contacto.telefono,
+      includePrivateData ? contacto.correo : undefined,
+      includePrivateData ? contacto.telefono : undefined,
       contacto.cargo,
       contacto.comoNosConocio,
       contacto.estadoRelacion,
@@ -94,21 +103,21 @@ function buildContactoResult(contacto: Contacto): GlobalSearchResult {
   };
 }
 
-function buildTratoResult(trato: Trato): GlobalSearchResult {
+function buildTratoResult(trato: Trato, includeFinancialData: boolean): GlobalSearchResult {
   return {
     id: trato.id,
     type: 'trato',
     title: trato.nombre,
-    subtitle: compact([trato.tipoContrato, trato.valorEstimado]),
+    subtitle: compact([trato.tipoContrato, includeFinancialData ? trato.valorEstimado : undefined]),
     badge: trato.estado,
     to: `/tratos/${trato.id}`,
     haystack: compact([
       trato.nombre,
       trato.tipoContrato,
       trato.estado,
-      trato.motivoPerdida,
-      trato.valorEstimado,
-      trato.probabilidad,
+      includeFinancialData ? trato.motivoPerdida : undefined,
+      includeFinancialData ? trato.valorEstimado : undefined,
+      includeFinancialData ? trato.probabilidad : undefined,
     ]),
   };
 }
@@ -138,6 +147,9 @@ export function buildGlobalSearchResults({
   tareas = [],
   query,
   limitPerGroup = DEFAULT_LIMIT_PER_GROUP,
+  includeContactPrivateData = true,
+  includeEmpresaPrivateData = true,
+  includeFinancialData = true,
 }: BuildGlobalSearchResultsInput): GlobalSearchGroups {
   const normalizedQuery = normalizeSearchText(query);
 
@@ -146,9 +158,24 @@ export function buildGlobalSearchResults({
   }
 
   return {
-    empresas: limit(empresas.map(buildEmpresaResult).filter((result) => matches(result, normalizedQuery)), limitPerGroup),
-    contactos: limit(contactos.map(buildContactoResult).filter((result) => matches(result, normalizedQuery)), limitPerGroup),
-    tratos: limit(tratos.map(buildTratoResult).filter((result) => matches(result, normalizedQuery)), limitPerGroup),
+    empresas: limit(
+      empresas
+        .map((empresa) => buildEmpresaResult(empresa, includeEmpresaPrivateData))
+        .filter((result) => matches(result, normalizedQuery)),
+      limitPerGroup,
+    ),
+    contactos: limit(
+      contactos
+        .map((contacto) => buildContactoResult(contacto, includeContactPrivateData))
+        .filter((result) => matches(result, normalizedQuery)),
+      limitPerGroup,
+    ),
+    tratos: limit(
+      tratos
+        .map((trato) => buildTratoResult(trato, includeFinancialData))
+        .filter((result) => matches(result, normalizedQuery)),
+      limitPerGroup,
+    ),
     tareas: limit(tareas.map(buildTareaResult).filter((result) => matches(result, normalizedQuery)), limitPerGroup),
   };
 }
