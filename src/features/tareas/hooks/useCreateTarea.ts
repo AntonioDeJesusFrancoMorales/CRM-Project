@@ -32,7 +32,7 @@ export function useCreateTarea(): UseMutationResult<Tarea, Error, TareaCreateInp
     },
     onError: (error) => {
       if (isHttpError(error)) {
-        if (error.status === 422) return; // El form mapea details inline.
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return;
         toast.error(error.message);
       } else {
         toast.error('No fue posible crear la tarea');

@@ -53,6 +53,8 @@ interface TareasTableProps {
   workflowColumns?: ColumnaTablero[];
   sort?: SortState;
   onSort?: (sortBy: string) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export function TareasTable({
@@ -63,6 +65,8 @@ export function TareasTable({
   workflowColumns = [],
   sort,
   onSort,
+  canEdit = true,
+  canDelete = true,
 }: TareasTableProps) {
   const navigate = useNavigate();
   const [editTarea, setEditTarea] = useState<Tarea | null>(null);
@@ -149,11 +153,13 @@ export function TareasTable({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <TareaEstadoBadge workflowState={workflowState} />
-                    <TareaEstadoMenu
-                      tarea={tarea}
-                      workflowState={workflowState}
-                      workflowColumns={workflowColumns}
-                    />
+                    {canEdit && (
+                      <TareaEstadoMenu
+                        tarea={tarea}
+                        workflowState={workflowState}
+                        workflowColumns={workflowColumns}
+                      />
+                    )}
                   </div>
                 </TableCell>
                 <TableCell><span className="text-sm text-foreground">{usuariosById[tarea.responsableId] ?? '—'}</span></TableCell>
@@ -170,7 +176,7 @@ export function TareasTable({
                   {formatDate(tarea.fechaLimite)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
+                  {(canEdit || canDelete) && <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
@@ -182,20 +188,24 @@ export function TareasTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem onClick={() => setEditTarea(tarea)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeleteTarea(tarea)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
-                      </DropdownMenuItem>
+                      {canEdit && (
+                        <DropdownMenuItem onClick={() => setEditTarea(tarea)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                      )}
+                      {canEdit && canDelete && <DropdownMenuSeparator />}
+                      {canDelete && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarea(tarea)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenu>}
                 </TableCell>
               </TableRow>
               );
@@ -204,7 +214,7 @@ export function TareasTable({
         </TableBody>
       </Table>
 
-      {editTarea && (
+      {editTarea && canEdit && (
         <TareaEditDialog
           open={true}
           onOpenChange={(open) => { if (!open) setEditTarea(null); }}
@@ -212,7 +222,7 @@ export function TareasTable({
         />
       )}
 
-      {deleteTarea && (
+      {deleteTarea && canDelete && (
         <TareaDeleteDialog
           open={true}
           onOpenChange={handleDeleteOpenChange}

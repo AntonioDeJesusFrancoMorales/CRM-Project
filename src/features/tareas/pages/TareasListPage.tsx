@@ -70,6 +70,8 @@ import {
   type TareaFilters,
   type VencimientoTareaFilter,
 } from '../lib/tareaFilters';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 const PRESETS_STORAGE_KEY = 'crm:list-presets:tareas';
 
@@ -91,6 +93,11 @@ function computeKpis(tareas: Tarea[]) {
 }
 
 export function TareasListPage() {
+  const permissions = usePermissions();
+  const canRead = permissions.allows('TAREA', 'LEER');
+  const canCreate = permissions.allows('TAREA', 'CREAR');
+  const canEdit = permissions.allows('TAREA', 'ACTUALIZAR');
+  const canDelete = permissions.allows('TAREA', 'ELIMINAR');
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<TareaFilters>(() =>
     createEmptyTareaFilters({ responsableId: searchParams.get('responsable_id') ?? undefined }),
@@ -137,6 +144,8 @@ export function TareasListPage() {
     [tareasFiltradas],
   );
   const hasFilters = hasActiveTareaFilters(filters);
+
+  if (!canRead) return <AccessDeniedView resource="TAREA" />;
 
   function updateFilters(patch: Partial<TareaFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
@@ -204,10 +213,12 @@ export function TareasListPage() {
             onRefresh={() => void refetch()}
             isRefreshing={isFetching}
           />
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nueva tarea
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Nueva tarea
+            </Button>
+          )}
         </div>
       </div>
 
@@ -494,12 +505,12 @@ export function TareasListPage() {
               icon={ListTodo}
               title="Aún no hay tareas"
               description="Creá tu primera tarea para empezar a darle seguimiento al trabajo del equipo."
-              action={
-                <Button onClick={() => setCreateOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Nueva tarea
-                </Button>
-              }
+              action={canCreate ? (
+                  <Button onClick={() => setCreateOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Nueva tarea
+                  </Button>
+                ) : undefined}
             />
           )}
 
@@ -514,6 +525,8 @@ export function TareasListPage() {
                 workflowColumns={workflowColumns}
                 sort={paging.sort}
                 onSort={paging.setSort}
+                canEdit={canEdit}
+                canDelete={canDelete}
               />
               <ListPagination
                 page={tareasPage.page}
@@ -536,7 +549,7 @@ export function TareasListPage() {
       </Tabs>
 
       {/* Dialog crear tarea — sin tratoIdFijo (Select editable y requerido) */}
-      <TareaCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {canCreate && <TareaCreateDialog open={createOpen} onOpenChange={setCreateOpen} />}
 
       <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
         <DialogContent>
