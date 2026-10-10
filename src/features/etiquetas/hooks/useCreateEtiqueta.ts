@@ -4,22 +4,29 @@ import { apiClient } from '@/api/client';
 import { endpoints } from '@/api/endpoints';
 import { isHttpError } from '@/api/http-error';
 import type { Etiqueta } from '@/api/types';
+import { permissionsKeys, usePermissions } from '@/features/permissions/context';
 import type { EtiquetaCreateInput } from '../schemas/etiqueta.schema';
 import { etiquetasKeys } from './useEtiquetas';
 
 export function useCreateEtiqueta(): UseMutationResult<Etiqueta, Error, EtiquetaCreateInput> {
   const queryClient = useQueryClient();
+  const permissions = usePermissions();
+  const canCreate = permissions.allows('ETIQUETA', 'CREAR');
 
   return useMutation<Etiqueta, Error, EtiquetaCreateInput>({
-    mutationFn: (input) => apiClient.post<Etiqueta>(endpoints.etiquetas.create(), input),
+    mutationFn: (input) => {
+      if (!canCreate) return Promise.reject(new Error('Etiqueta create permission denied'));
+      return apiClient.post<Etiqueta>(endpoints.etiquetas.create(), input);
+    },
     onSuccess: (created) => {
       // Invalida TODAS las listas de etiquetas (catálogo full + filtros por tipo).
       void queryClient.invalidateQueries({ queryKey: etiquetasKeys.all });
+      void queryClient.invalidateQueries({ queryKey: permissionsKeys.all });
       toast.success(`Etiqueta "${created.nombre}" creada`);
     },
     onError: (error) => {
       if (isHttpError(error)) {
-        if (error.status === 422) return; // El form mapea details inline.
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return; // El form mapea details inline.
         // 409: nombre duplicado para ese tipo.
         toast.error(error.message);
       } else {

@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { usePermissions } from '@/features/permissions/context';
 import {
   etiquetaCreateSchema,
   type EtiquetaCreateInput,
@@ -134,7 +135,7 @@ function ColorField({
 }
 
 function serverErrorsFromMutation(error: unknown): Array<{ field: string; message: string }> | undefined {
-  return isHttpError(error) && error.status === 422 && error.details ? error.details : undefined;
+  return isHttpError(error) && (error.status === 400 || error.status === 422) && error.details ? error.details : undefined;
 }
 
 // ─── Create ─────────────────────────────────────────────────────────────────────
@@ -144,6 +145,8 @@ function CreateDialog({
   onOpenChange,
   defaultTipo,
 }: Pick<CreateProps, 'open' | 'onOpenChange' | 'defaultTipo'>) {
+  const permissions = usePermissions();
+  const canCreate = permissions.allows('ETIQUETA', 'CREAR');
   const mutation = useCreateEtiqueta();
   const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   const form = useForm<EtiquetaCreateInput>({
@@ -167,7 +170,7 @@ function CreateDialog({
   }, [serverErrors]);
 
   function handleSubmit(values: EtiquetaCreateInput) {
-    if (!acquire()) return;
+    if (!canCreate || mutation.isPending || !acquire()) return;
     mutation.mutate(values, {
       onSettled: (_data, error) => {
         release();
@@ -180,6 +183,8 @@ function CreateDialog({
     if (!nextOpen && submissionLock.current) return;
     onOpenChange(nextOpen);
   }
+
+  if (!canCreate) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -267,6 +272,8 @@ function CreateDialog({
 // El tipo es INMUTABLE: se muestra como badge de solo lectura, no como campo editable.
 
 function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | 'onOpenChange' | 'etiqueta'>) {
+  const permissions = usePermissions();
+  const canEdit = permissions.allows('ETIQUETA', 'ACTUALIZAR');
   const mutation = useEditEtiqueta(etiqueta.id);
   const { acquire, release, isLocked, lockRef: submissionLock } = useSynchronousMutationLock();
   // El edit solo manda nombre + color; reutilizamos el create schema sin el tipo.
@@ -290,7 +297,7 @@ function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | '
   }, [serverErrors]);
 
   function handleSubmit(values: { nombre: string; color: string }) {
-    if (!acquire()) return;
+    if (!canEdit || mutation.isPending || !acquire()) return;
     mutation.mutate(values, {
       onSettled: (_data, error) => {
         release();
@@ -303,6 +310,8 @@ function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | '
     if (!nextOpen && submissionLock.current) return;
     onOpenChange(nextOpen);
   }
+
+  if (!canEdit) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
