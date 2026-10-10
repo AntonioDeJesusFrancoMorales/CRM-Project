@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -7,6 +7,25 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 
 import { EmpresaDetailPage } from '../pages/EmpresaDetailPage';
 import { server } from '@/test/server';
+
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
 
 function renderWithRouter(initialPath: string) {
   const queryClient = new QueryClient({

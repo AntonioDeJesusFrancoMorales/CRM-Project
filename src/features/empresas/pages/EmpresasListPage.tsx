@@ -48,6 +48,8 @@ import {
   hasActiveEmpresaFilters,
   type EmpresaFilters,
 } from '../lib/empresaFilters';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 const PRESETS_STORAGE_KEY = 'crm:list-presets:empresas';
 
@@ -61,6 +63,12 @@ function computeKpis(empresas: Empresa[]) {
 
 export function EmpresasListPage() {
   const navigate = useNavigate();
+  const permissions = usePermissions();
+  const canRead = permissions.allows('EMPRESA', 'LEER');
+  const canCreate = permissions.allows('EMPRESA', 'CREAR');
+  const canEdit = permissions.allows('EMPRESA', 'ACTUALIZAR');
+  const canDelete = permissions.allows('EMPRESA', 'ELIMINAR');
+  const canReadPrivate = permissions.canReadGroup('EMPRESA', 'CONTACTO_PRIVADO');
   const [filters, setFilters] = useState<EmpresaFilters>(() => createEmptyEmpresaFilters());
   const [presets, setPresets] = useState<Array<ListPreset<EmpresaFilters>>>(() =>
     loadListPresets<EmpresaFilters>(PRESETS_STORAGE_KEY),
@@ -86,8 +94,8 @@ export function EmpresasListPage() {
 
   const kpis = useMemo(() => computeKpis(todasLasEmpresas ?? []), [todasLasEmpresas]);
   const filteredEmpresas = useMemo(
-    () => applyEmpresaFilters(empresas ?? [], filters),
-    [empresas, filters],
+    () => applyEmpresaFilters(empresas ?? [], filters, { includePrivateData: canReadPrivate }),
+    [canReadPrivate, empresas, filters],
   );
   const hasFilters = hasActiveEmpresaFilters(filters);
   const sectorOptions = useMemo(() => {
@@ -98,6 +106,8 @@ export function EmpresasListPage() {
     }
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [todasLasEmpresas]);
+
+  if (!canRead) return <AccessDeniedView resource="EMPRESA" />;
 
   function updateFilters(patch: Partial<EmpresaFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
@@ -146,7 +156,7 @@ export function EmpresasListPage() {
     <div className="flex flex-col gap-5 p-4 sm:p-6">
       <EmpresasHeader
         onRefresh={() => void refetch()}
-        onCreate={() => setCreateOpen(true)}
+        onCreate={canCreate ? () => setCreateOpen(true) : undefined}
         isRefreshing={isFetching}
       />
 
@@ -165,9 +175,10 @@ export function EmpresasListPage() {
           filters={filters}
           presets={presets}
           resultCount={filteredEmpresas.length}
-          totalCount={empresasPage?.totalItems ?? todasLasEmpresas?.length ?? 0}
-          hasActiveFilters={hasFilters}
-          onToggle={() => setFiltersOpen((open) => !open)}
+           totalCount={empresasPage?.totalItems ?? todasLasEmpresas?.length ?? 0}
+           hasActiveFilters={hasFilters}
+           includePrivateData={canReadPrivate}
+           onToggle={() => setFiltersOpen((open) => !open)}
           onChange={updateFilters}
           onApplyPreset={handleApplyPreset}
           onSavePreset={handleSavePreset}
@@ -287,9 +298,11 @@ export function EmpresasListPage() {
           <EmpresasTable
             empresas={filteredEmpresas}
             onView={(empresa) => navigate(`/empresas/${empresa.id}`)}
-            onEdit={(empresa) => setEditing(empresa)}
-            onDelete={(empresa) => setDeleting(empresa)}
-            onCreate={() => setCreateOpen(true)}
+             onEdit={(empresa) => setEditing(empresa)}
+             onDelete={(empresa) => setDeleting(empresa)}
+             onCreate={canCreate ? () => setCreateOpen(true) : undefined}
+             canEdit={canEdit}
+             canDelete={canDelete}
             isEmptyDataset={empresasPage.totalItems === 0}
             sort={paging.sort}
             onSort={paging.setSort}
@@ -308,15 +321,17 @@ export function EmpresasListPage() {
       )}
 
       {/* Dialog crear empresa */}
-      <EmpresaFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        existingEmpresas={todasLasEmpresas}
-      />
+      {canCreate && (
+        <EmpresaFormDialog
+          mode="create"
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          existingEmpresas={todasLasEmpresas}
+        />
+      )}
 
       {/* Dialog editar empresa */}
-      {editing && (
+      {editing && canEdit && (
         <EmpresaFormDialog
           mode="edit"
           empresa={editing}
@@ -329,12 +344,14 @@ export function EmpresasListPage() {
       )}
 
       {/* Dialog eliminar empresa */}
-      <EmpresaDeleteDialog
-        empresa={deleting}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null);
-        }}
-      />
+      {canDelete && (
+        <EmpresaDeleteDialog
+          empresa={deleting}
+          onOpenChange={(open) => {
+            if (!open) setDeleting(null);
+          }}
+        />
+      )}
 
       <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
         <DialogContent>

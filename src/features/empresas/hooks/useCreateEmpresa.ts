@@ -35,7 +35,7 @@ export function useCreateEmpresa(): UseMutationResult<Empresa, Error, EmpresaCre
     },
     onError: (error) => {
       if (isHttpError(error)) {
-        if (error.status === 422) return; // The form renders 422 validation inline.
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return;
         const detail = error.details?.[0];
         toast.error(
           mapEmpresaServerError(detail ?? { field: '', message: error.message }).message,

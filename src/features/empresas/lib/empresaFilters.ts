@@ -8,6 +8,10 @@ export interface EmpresaFilters {
   web?: 'con-web' | 'sin-web';
 }
 
+export interface EmpresaFilterOptions {
+  includePrivateData?: boolean;
+}
+
 export function createEmptyEmpresaFilters(): EmpresaFilters {
   return { search: '' };
 }
@@ -25,12 +29,14 @@ export function hasActiveEmpresaFilters(filters: EmpresaFilters): boolean {
 export function applyEmpresaFilters(
   empresas: Empresa[],
   filters: EmpresaFilters,
+  options: EmpresaFilterOptions = {},
 ): Empresa[] {
   const term = filters.search.trim().toLowerCase();
   const sector = filters.sector?.trim().toLowerCase();
+  const includePrivateData = options.includePrivateData ?? true;
 
   return empresas.filter((empresa) => {
-    if (term && !matchesSearch(empresa, term)) return false;
+    if (term && !matchesSearch(empresa, term, includePrivateData)) return false;
     if (filters.estadoRelacion && empresa.estadoRelacion !== filters.estadoRelacion) return false;
     if (sector && empresa.sector?.toLowerCase() !== sector) return false;
     if (filters.responsableId && empresa.responsableId !== filters.responsableId) return false;
@@ -41,11 +47,12 @@ export function applyEmpresaFilters(
   });
 }
 
-function matchesSearch(empresa: Empresa, term: string): boolean {
+function matchesSearch(empresa: Empresa, term: string, includePrivateData: boolean): boolean {
   return (
     empresa.nombre.toLowerCase().includes(term) ||
     (empresa.sector?.toLowerCase().includes(term) ?? false) ||
-    (empresa.telefono?.toLowerCase().includes(term) ?? false) ||
-    (empresa.paginaWeb?.toLowerCase().includes(term) ?? false)
+    (includePrivateData &&
+      ((empresa.telefono?.toLowerCase().includes(term) ?? false) ||
+        (empresa.paginaWeb?.toLowerCase().includes(term) ?? false)))
   );
 }
