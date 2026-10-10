@@ -37,7 +37,7 @@ export function useUpdateContacto(): UseMutationResult<Contacto, Error, UpdateCo
     },
     onError: (error) => {
       if (isHttpError(error)) {
-        if (error.status === 422) return;
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return;
         const detail = error.details?.[0];
         toast.error(mapContactoServerError(detail ?? { field: '', message: error.message }).message);
       } else {

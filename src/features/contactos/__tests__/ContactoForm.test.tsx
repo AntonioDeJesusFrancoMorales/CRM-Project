@@ -9,6 +9,25 @@ import { CONTACTO_EMPTY_DEFAULTS } from '../schemas/contacto.schema';
 import type { ContactoCreateInput } from '../schemas/contacto.schema';
 import { contactosFixture } from '@/mocks/fixtures/contactos';
 
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: () => ({
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: () => true,
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: () => true,
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  }),
+}));
+
 function renderForm(props: Partial<Parameters<typeof ContactoForm>[0]> = {}) {
   const queryClient = new QueryClient({
     defaultOptions: {

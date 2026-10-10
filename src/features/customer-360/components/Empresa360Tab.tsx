@@ -17,6 +17,8 @@ import {
 } from '@/features/contactos/lib/estadoRelacion';
 import { tipoContratoBadgeClass, tipoContratoLabels } from '@/features/tratos/lib/tipoContrato';
 import { prioridadBadgeClass, prioridadLabels } from '@/features/tareas/lib/tareaBadges';
+import { usePermissions } from '@/features/permissions/context';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 import {
   getContactosByEmpresa,
   getCustomer360Kpis,
@@ -50,9 +52,11 @@ function ContactoRow({ contacto }: { contacto: Contacto }) {
         >
           {contacto.nombre}
         </Link>
-        <p className="truncate text-xs text-muted-foreground">
-          {contacto.correo ?? contacto.telefono ?? 'Sin contacto directo'}
-        </p>
+        <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO">
+          <p className="truncate text-xs text-muted-foreground">
+            {contacto.correo ?? contacto.telefono ?? 'Sin contacto directo'}
+          </p>
+        </SensitiveField>
       </div>
       <Badge
         variant="outline"
@@ -70,13 +74,19 @@ function TratoRow({ trato }: { trato: Trato }) {
       <div className="min-w-0">
         <Link
           to={`/tratos/${trato.id}`}
-          className="truncate text-sm font-medium text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
+          className="block truncate text-sm font-medium text-primary underline-offset-4 hover:underline focus:underline focus:outline-none"
         >
           {trato.nombre}
         </Link>
-        <p className="truncate text-xs text-muted-foreground">
-          {formatCurrency(trato.valorEstimado)} · cierre {formatDate(trato.fechaCierreEsperada)}
-        </p>
+        <SensitiveField
+          resource="TRATO"
+          group="FINANCIERO"
+          fallback={<span className="block text-xs text-muted-foreground">Finanzas ocultas</span>}
+        >
+          <p className="truncate text-xs text-muted-foreground">
+            {formatCurrency(trato.valorEstimado)} · cierre {formatDate(trato.fechaCierreEsperada)}
+          </p>
+        </SensitiveField>
       </div>
       <Badge
         variant="outline"
@@ -113,6 +123,8 @@ function TareaRow({ tarea }: { tarea: Tarea }) {
 }
 
 export function Empresa360Tab({ empresa }: { empresa: Empresa }) {
+  const permissions = usePermissions();
+  const canReadFinancial = permissions.canReadGroup('TRATO', 'FINANCIERO');
   const contactosQuery = useContactos();
   const tratosQuery = useTratos();
   const tareasQuery = useTareas();
@@ -148,7 +160,7 @@ export function Empresa360Tab({ empresa }: { empresa: Empresa }) {
         />
         <PipelineKpiCard
           label="Pipeline abierto"
-          value={formatCurrency(kpis.pipelineAbierto)}
+          value={canReadFinancial ? formatCurrency(kpis.pipelineAbierto) : 'Dato no disponible'}
           icon={Wallet}
           loading={isLoading}
         />
