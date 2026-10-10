@@ -39,6 +39,8 @@ import {
   hasActiveContactoFilters,
   type ContactoFilters,
 } from '../lib/contactoFilters';
+import { usePermissions } from '@/features/permissions/context';
+import { AccessDeniedView } from '@/features/permissions/components/PermissionState';
 
 type EstadoRelacion = 'PROSPECTO' | 'ACTIVO' | 'INACTIVO';
 
@@ -62,6 +64,13 @@ function computeKpis(contactos: Contacto[]) {
 }
 
 export function ContactosPage() {
+  const permissions = usePermissions();
+  const canRead = permissions.allows('CONTACTO', 'LEER');
+  const canCreate = permissions.allows('CONTACTO', 'CREAR');
+  const canEdit = permissions.allows('CONTACTO', 'ACTUALIZAR');
+  const canDelete = permissions.allows('CONTACTO', 'ELIMINAR');
+  const canReadPrivate = permissions.canReadGroup('CONTACTO', 'CONTACTO_PRIVADO');
+  const canWritePrivate = permissions.canWriteGroup('CONTACTO', 'CONTACTO_PRIVADO');
   const [activeTabValue, setActiveTab] = useTabSync(TAB_VALUES, DEFAULT_TAB);
   const activeTab = activeTabValue as EstadoRelacion;
   const [filters, setFilters] = useState<ContactoFilters>(() => createEmptyContactoFilters());
@@ -99,8 +108,8 @@ export function ContactosPage() {
   const contactos = contactosPage?.items ?? EMPTY_CONTACTOS;
   const kpis = useMemo(() => computeKpis(todosLosContactos ?? []), [todosLosContactos]);
   const filteredContactos = useMemo(
-    () => applyContactoFilters(contactos, filters),
-    [contactos, filters],
+    () => applyContactoFilters(contactos, filters, { includePrivateData: canReadPrivate }),
+    [canReadPrivate, contactos, filters],
   );
   const visibleContactos = filteredContactos.filter(
     (contacto) => contacto.estadoRelacion === activeTab,
@@ -115,6 +124,8 @@ export function ContactosPage() {
     }
     return Array.from(values).sort((left, right) => left.localeCompare(right));
   }, [todosLosContactos]);
+
+  if (!canRead) return <AccessDeniedView resource="CONTACTO" />;
 
   function updateFilters(patch: Partial<ContactoFilters>) {
     setFilters((current) => ({ ...current, ...patch }));
@@ -166,9 +177,15 @@ export function ContactosPage() {
   return (
     <div className="flex flex-col gap-5 p-4 sm:p-6">
       <ContactosHeader
-        importExport={<ContactosImportExport contactos={todosLosContactos ?? []} />}
+        importExport={
+          <ContactosImportExport
+            contactos={todosLosContactos ?? []}
+            canImport={canCreate && canReadPrivate && canWritePrivate}
+            canExport={canReadPrivate}
+          />
+        }
         onRefresh={handleRefresh}
-        onCreate={() => setCreateOpen(true)}
+        onCreate={canCreate ? () => setCreateOpen(true) : undefined}
         isRefreshing={isRefreshing}
       />
 
@@ -193,6 +210,7 @@ export function ContactosPage() {
             resultCount={visibleContactos.length}
             totalCount={totalCount}
             hasActiveFilters={hasFilters}
+            includePrivateData={canReadPrivate}
             onToggle={() => setFiltersOpen((open) => !open)}
             onChange={updateFilters}
             onApplyPreset={handleApplyPreset}
@@ -246,7 +264,9 @@ export function ContactosPage() {
                     usuarios={usuarios}
                     onEdit={setEditing}
                     onDelete={setDeleting}
-                    onCreate={() => setCreateOpen(true)}
+                    onCreate={canCreate ? () => setCreateOpen(true) : undefined}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
                     sort={paging.sort}
                     onSort={paging.setSort}
                   />
@@ -292,14 +312,16 @@ export function ContactosPage() {
         </div>
       )}
 
-      <ContactoFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        existingContactos={todosLosContactos}
-      />
+      {canCreate && (
+        <ContactoFormDialog
+          mode="create"
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          existingContactos={todosLosContactos}
+        />
+      )}
 
-      {editing && (
+      {editing && canEdit && (
         <ContactoFormDialog
           mode="edit"
           contacto={editing}
@@ -311,12 +333,14 @@ export function ContactosPage() {
         />
       )}
 
-      <ContactoDeleteDialog
-        contacto={deleting}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null);
-        }}
-      />
+      {canDelete && (
+        <ContactoDeleteDialog
+          contacto={deleting}
+          onOpenChange={(open) => {
+            if (!open) setDeleting(null);
+          }}
+        />
+      )}
 
       <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
         <DialogContent>

@@ -24,6 +24,7 @@ import type { SortState } from '@/components/shared/listPaging';
 import { sortDirectionFor } from '@/components/shared/listPaging';
 import { formatDate } from '@/lib/format';
 import { estadoRelacionBadgeClass, estadoRelacionLabels } from '../lib/estadoRelacion';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
 
 interface ContactosTableProps {
   contactos: Contacto[];
@@ -32,6 +33,8 @@ interface ContactosTableProps {
   onEdit: (contacto: Contacto) => void;
   onDelete: (contacto: Contacto) => void;
   onCreate?: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
   sort?: SortState;
   onSort?: (sortBy: string) => void;
 }
@@ -43,6 +46,8 @@ export function ContactosTable({
   onEdit,
   onDelete,
   onCreate,
+  canEdit = true,
+  canDelete = true,
   sort,
   onSort,
 }: ContactosTableProps) {
@@ -128,15 +133,23 @@ export function ContactosTable({
                       {contacto.nombre}
                     </Link>
                     <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                      <span>{contacto.correo ?? 'Sin correo'}</span>
-                      <span>{contacto.telefono ?? 'Sin teléfono'}</span>
+                      <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO" fallback="Correo no disponible">
+                        <span>{contacto.correo ?? 'Sin correo'}</span>
+                      </SensitiveField>
+                      <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO" fallback="Teléfono no disponible">
+                        <span>{contacto.telefono ?? 'Sin teléfono'}</span>
+                      </SensitiveField>
                     </div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>{empresasById.get(contacto.empresaId)?.nombre ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{contacto.cargo ?? '—'}</TableCell>
-              <TableCell>{contacto.correo ?? '—'}</TableCell>
+               <TableCell>
+                 <SensitiveField resource="CONTACTO" group="CONTACTO_PRIVADO">
+                   {contacto.correo ?? '—'}
+                 </SensitiveField>
+               </TableCell>
               <TableCell>
                 <Badge
                   variant="outline"
@@ -155,7 +168,7 @@ export function ContactosTable({
                 {formatDate(contacto.creadoEn)}
               </TableCell>
               <TableCell className="text-right">
-                <DropdownMenu>
+                {(canEdit || canDelete) && <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
@@ -167,20 +180,24 @@ export function ContactosTable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => onEdit(contacto)}>
-                      <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onDelete(contacto)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                      Eliminar
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(contacto)}>
+                        <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Editar
+                      </DropdownMenuItem>
+                    )}
+                    {canEdit && canDelete && <DropdownMenuSeparator />}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(contacto)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
-                </DropdownMenu>
+                </DropdownMenu>}
               </TableCell>
             </TableRow>
           ))

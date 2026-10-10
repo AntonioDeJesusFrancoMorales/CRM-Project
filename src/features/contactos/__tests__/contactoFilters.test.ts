@@ -53,4 +53,15 @@ describe('contactoFilters', () => {
 
     expect(result.map((contacto) => contacto.id)).toEqual(['contacto-2']);
   });
+
+  it('no usa correo ni teléfono para buscar cuando no se puede leer el grupo privado', () => {
+    expect(
+      applyContactoFilters(contactos, { search: 'martin.gutierrez@example.com' }, {
+        includePrivateData: false,
+      }),
+    ).toEqual([]);
+    expect(
+      applyContactoFilters(contactos, { search: '961 222 0002' }, { includePrivateData: false }),
+    ).toEqual([]);
+  });
 });

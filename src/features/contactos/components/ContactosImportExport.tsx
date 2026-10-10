@@ -117,7 +117,15 @@ function parseCsv(texto: string): FilaCsv[] {
     .filter((f) => f.nombre || f.telefono);
 }
 
-export function ContactosImportExport({ contactos }: { contactos: Contacto[] }) {
+export function ContactosImportExport({
+  contactos,
+  canImport = true,
+  canExport = true,
+}: {
+  contactos: Contacto[];
+  canImport?: boolean;
+  canExport?: boolean;
+}) {
   const queryClient = useQueryClient();
   const { data: empresas = [] } = useEmpresas();
   const [importOpen, setImportOpen] = useState(false);
@@ -179,32 +187,36 @@ export function ContactosImportExport({ contactos }: { contactos: Contacto[] }) 
   return (
     <>
       <TooltipProvider>
-        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-          <Upload data-icon="inline-start" aria-hidden="true" />
-          Importar CSV
-        </Button>
+        {canImport && (
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload data-icon="inline-start" aria-hidden="true" />
+            Importar CSV
+          </Button>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <span tabIndex={contactos.length === 0 ? 0 : undefined}>
+            <span tabIndex={!canExport || contactos.length === 0 ? 0 : undefined}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => exportarCsv(contactos)}
-                disabled={contactos.length === 0}
-                className={contactos.length === 0 ? 'pointer-events-none' : undefined}
+                disabled={!canExport || contactos.length === 0}
+                className={!canExport || contactos.length === 0 ? 'pointer-events-none' : undefined}
               >
                 <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                 Exportar CSV
               </Button>
             </span>
           </TooltipTrigger>
-          {contactos.length === 0 && (
+          {!canExport ? (
+            <TooltipContent>No tenés permiso para exportar datos privados de contactos</TooltipContent>
+          ) : contactos.length === 0 ? (
             <TooltipContent>Agrega contactos primero para poder exportarlos</TooltipContent>
-          )}
+          ) : null}
         </Tooltip>
       </TooltipProvider>
 
-      <Dialog open={importOpen} onOpenChange={handleImportOpenChange}>
+      {canImport && <Dialog open={importOpen} onOpenChange={handleImportOpenChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Importar contactos</DialogTitle>
@@ -264,7 +276,7 @@ export function ContactosImportExport({ contactos }: { contactos: Contacto[] }) 
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </>
   );
 }

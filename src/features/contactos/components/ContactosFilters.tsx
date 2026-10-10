@@ -23,6 +23,7 @@ interface ContactosFiltersProps {
   resultCount: number;
   totalCount: number;
   hasActiveFilters: boolean;
+  includePrivateData: boolean;
   onToggle: () => void;
   onChange: (patch: Partial<ContactoFilters>) => void;
   onApplyPreset: (presetId: string) => void;
@@ -41,6 +42,7 @@ export function ContactosFilters({
   resultCount,
   totalCount,
   hasActiveFilters,
+  includePrivateData,
   onToggle,
   onChange,
   onApplyPreset,
@@ -86,7 +88,11 @@ export function ContactosFilters({
                   type="search"
                   value={filters.search}
                   onChange={(event) => onChange({ search: event.target.value })}
-                  placeholder="Buscar por nombre, correo, teléfono o cargo..."
+                  placeholder={
+                    includePrivateData
+                      ? 'Buscar por nombre, correo, teléfono o cargo...'
+                      : 'Buscar por nombre o cargo...'
+                  }
                   aria-label="Buscar contactos"
                   className="h-8 pl-8"
                 />
