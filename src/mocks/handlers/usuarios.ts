@@ -40,10 +40,7 @@ export const usuariosHandlers = [
     if (!body['rolId']) missing.push({ field: 'rolId', message: 'El rol es requerido' });
     if (!body['initialPassword']) missing.push({ field: 'initialPassword', message: 'La contrasena inicial es requerida' });
     if (missing.length > 0) {
-      return HttpResponse.json(
-        { status: 422, error: 'VALIDATION_ERROR', message: 'Datos invalidos', details: missing },
-        { status: 422 },
-      );
+      return errors.validation(missing);
     }
 
     const nuevo: UsuarioMock = {
@@ -82,10 +79,7 @@ export const usuariosHandlers = [
       details.push({ field: 'correo', message: 'El correo no puede estar vacio' });
     }
     if (details.length > 0) {
-      return HttpResponse.json(
-        { status: 422, error: 'VALIDATION_ERROR', message: 'Datos invalidos', details },
-        { status: 422 },
-      );
+      return errors.validation(details);
     }
 
     // NO se actualiza activo ni se acepta initialPassword

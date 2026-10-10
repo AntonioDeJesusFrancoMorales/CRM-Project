@@ -6,6 +6,8 @@ import { isHttpError } from '@/api/http-error';
 import type { Usuario } from '@/api/types';
 import type { UsuarioCreateInput } from '../schemas/usuario.schema';
 import { usuariosKeys } from './useUsuarios';
+import { permissionsKeys } from '@/features/permissions/context';
+import { USUARIO_DELEGACION_DENEGADA_MSG } from '../lib/authorizationMessages';
 
 export function useCreateUsuario(): UseMutationResult<Usuario, Error, UsuarioCreateInput> {
   const queryClient = useQueryClient();
@@ -14,11 +16,16 @@ export function useCreateUsuario(): UseMutationResult<Usuario, Error, UsuarioCre
     mutationFn: (input) => apiClient.post<Usuario>(endpoints.usuarios.create(), input),
     onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: usuariosKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: permissionsKeys.all });
       toast.success(`Usuario "${created.nombre}" creado`);
     },
     onError: (error) => {
       if (isHttpError(error)) {
-        if (error.status === 422) return; // El form mapea details inline.
+        if (error.status === 403) {
+          toast.error(USUARIO_DELEGACION_DENEGADA_MSG);
+          return;
+        }
+        if ([400, 422].includes(error.status)) return; // El form mapea details inline.
         toast.error(error.message);
       } else {
         toast.error('No fue posible crear el usuario');

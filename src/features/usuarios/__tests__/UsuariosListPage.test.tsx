@@ -83,7 +83,7 @@ describe('UsuariosListPage', () => {
       expect(screen.getByText('Antonio Franco')).toBeInTheDocument(),
     );
 
-    const input = screen.getByPlaceholderText(/buscar por nombre o correo/i);
+    const input = screen.getByPlaceholderText(/buscar por nombre/i);
     await user.type(input, 'antonio');
 
     expect(screen.getByText('Antonio Franco')).toBeInTheDocument();

@@ -40,7 +40,7 @@ function CreateDialog({
 
   const serverErrors =
     isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
+    [400, 422].includes(mutation.error.status) &&
     mutation.error.details
       ? mutation.error.details
       : undefined;
@@ -93,15 +93,15 @@ function EditDialog({
 
   const serverErrors =
     isHttpError(mutation.error) &&
-    mutation.error.status === 422 &&
+    [400, 422].includes(mutation.error.status) &&
     mutation.error.details
       ? mutation.error.details
       : undefined;
 
   const defaultValues: Partial<UsuarioUpdateInput> = {
     nombre: usuario.nombre,
-    correo: usuario.correo,
     rolId: usuario.rolId,
+    ...(usuario.correo == null ? {} : { correo: usuario.correo }),
   };
 
   function handleSubmit(values: UsuarioUpdateInput) {

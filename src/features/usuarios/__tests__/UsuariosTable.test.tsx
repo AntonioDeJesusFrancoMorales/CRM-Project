@@ -19,12 +19,14 @@ const rolesFixture: Rol[] = [
     nombre: 'Administrador',
     descripcion: 'Acceso total',
     activo: true,
+    permisos: [],
   },
   {
     id: 'rol-user-uuid-2222-222222222222',
     nombre: 'Usuario',
     descripcion: 'Acceso estándar',
     activo: true,
+    permisos: [],
   },
 ];
 
@@ -113,5 +115,14 @@ describe('UsuariosTable', () => {
     expect(container.querySelector('[data-value="desactivar"]')).toBeNull();
     expect(screen.queryByText(/^desactivar$/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^reactivar$/i)).not.toBeInTheDocument();
+  });
+
+  it('tolera una proyección de correo nula sin mostrar un valor inventado', () => {
+    renderTable({
+      usuarios: [{ ...usuariosFixture[0]!, correo: null as unknown as string }],
+    });
+
+    expect(screen.getByText('Permiso no disponible')).toBeInTheDocument();
+    expect(screen.queryByText('admin@crm.test')).not.toBeInTheDocument();
   });
 });

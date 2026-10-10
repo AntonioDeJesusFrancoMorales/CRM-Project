@@ -29,6 +29,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Input } from '@/components/ui/input';
 import { formatRelativeDate } from '@/lib/format';
 import { resolveRolNombre } from '../lib/rolLookup';
+import { SensitiveField } from '@/features/permissions/components/PermissionState';
+import { usePermissions } from '@/features/permissions/context';
 import {
   estadoUsuarioBadgeClass,
   estadoUsuarioLabel,
@@ -40,6 +42,8 @@ interface UsuariosTableProps {
   sessionUserId: string;
   onEdit: (usuario: Usuario) => void;
   onDelete: (usuario: Usuario) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 /** Normaliza acentos y mayúsculas para comparación de búsqueda. */
@@ -56,7 +60,10 @@ export function UsuariosTable({
   sessionUserId,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }: UsuariosTableProps) {
+  const canReadPrivate = usePermissions().canReadGroup('USUARIO', 'CONTACTO_PRIVADO');
   const [searchTerm, setSearchTerm] = useState('');
   const [rolFilter, setRolFilter] = useState<string>('todos');
 
@@ -66,14 +73,14 @@ export function UsuariosTable({
       const coincideBusqueda =
         term === '' ||
         normalizar(u.nombre).includes(term) ||
-        normalizar(u.correo).includes(term);
+        (canReadPrivate && normalizar(u.correo ?? '').includes(term));
       const rolNombre = resolveRolNombre(u.rolId, roles);
       const coincideRol =
         rolFilter === 'todos' ||
         normalizar(rolNombre).includes(normalizar(rolFilter));
       return coincideBusqueda && coincideRol;
     });
-  }, [usuarios, roles, searchTerm, rolFilter]);
+  }, [canReadPrivate, usuarios, roles, searchTerm, rolFilter]);
 
   // Build unique role options from the provided roles list
   const rolOptions = useMemo(() => {
@@ -85,7 +92,7 @@ export function UsuariosTable({
       {/* Header: búsqueda + filtro de rol */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
-          placeholder="Buscar por nombre o correo"
+          placeholder={canReadPrivate ? 'Buscar por nombre o correo' : 'Buscar por nombre'}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
@@ -139,7 +146,9 @@ export function UsuariosTable({
                 <TableRow key={usuario.id} className="group">
                   <TableCell className="font-medium">{usuario.nombre}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {usuario.correo}
+                    <SensitiveField resource="USUARIO" group="CONTACTO_PRIVADO">
+                      {usuario.correo ?? '—'}
+                    </SensitiveField>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{rolNombre}</Badge>
@@ -156,7 +165,7 @@ export function UsuariosTable({
                     {formatRelativeDate(usuario.creadoEn)}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
+                    {(canEdit || canDelete) && <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
@@ -167,15 +176,12 @@ export function UsuariosTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {/* Editar — siempre habilitado */}
-                        <DropdownMenuItem onClick={() => onEdit(usuario)}>
-                          Editar
-                        </DropdownMenuItem>
+                        {canEdit && <DropdownMenuItem onClick={() => onEdit(usuario)}>Editar</DropdownMenuItem>}
 
-                        <DropdownMenuSeparator />
+                        {canEdit && canDelete && <DropdownMenuSeparator />}
 
                         {/* Eliminar — bloqueado para cuenta propia */}
-                        {isOwnAccount ? (
+                        {canDelete && isOwnAccount ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span>
@@ -191,16 +197,16 @@ export function UsuariosTable({
                               No puedes realizar esta acción sobre tu propia cuenta
                             </TooltipContent>
                           </Tooltip>
-                        ) : (
+                        ) : canDelete ? (
                           <DropdownMenuItem
                             onClick={() => onDelete(usuario)}
                             className="text-destructive focus:text-destructive"
                           >
                             Eliminar
                           </DropdownMenuItem>
-                        )}
+                        ) : null}
                       </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu>}
                   </TableCell>
                 </TableRow>
               );
