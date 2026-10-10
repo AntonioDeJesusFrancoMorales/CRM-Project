@@ -31,7 +31,7 @@ export function useQuitarColumna(): UseMutationResult<void, Error, QuitarColumna
           toast.error('La columna tiene fichas; muévelas o elimínalas antes de eliminarla');
           return;
         }
-        if (error.status === 422) return;
+        if (error.status === 422 || (error.status === 400 && error.details?.length)) return;
         toast.error(error.message);
       } else {
         toast.error('No fue posible eliminar la columna');

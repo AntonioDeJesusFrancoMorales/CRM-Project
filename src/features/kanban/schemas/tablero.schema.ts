@@ -31,7 +31,7 @@ export const columnaTableroSchema = z.object({
   color: z.string().nullable(),
   limiteWip: z.number().int().nullable(),
   nota: z.string().nullable(),
-  totalValorEstimado: z.number(),
+  totalValorEstimado: z.number().nullable(),
 });
 
 export type ColumnaTablero = z.infer<typeof columnaTableroSchema>;

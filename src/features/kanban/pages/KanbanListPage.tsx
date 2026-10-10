@@ -25,6 +25,7 @@ import { TableroDeleteDialog } from '../components/TableroDeleteDialog';
 import { TableroFormDialog } from '../components/TableroFormDialog';
 import { canDeleteTablero, getBaseTableroIds } from '../lib/tableroPolicy';
 import type { Tablero } from '../schemas/tablero.schema';
+import { usePermissions } from '@/features/permissions/context';
 
 function getTableroHref(tablero: Tablero, baseTableroIds: ReadonlySet<string>): string {
   if (!baseTableroIds.has(tablero.id)) return `/tableros/${tablero.id}`;
@@ -91,6 +92,10 @@ function TablerosStatePanel({
 }
 
 export function KanbanListPage() {
+  const permissions = usePermissions();
+  const canCreate = permissions.allows('TABLERO', 'CREAR');
+  const canEdit = permissions.allows('TABLERO', 'ACTUALIZAR');
+  const canDelete = permissions.allows('TABLERO', 'ELIMINAR');
   const { data: tableros, isLoading, isError, isFetching, refetch } = useTableros();
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Tablero | null>(null);
@@ -117,10 +122,12 @@ export function KanbanListPage() {
             isRefreshing={isFetching}
             size="icon-sm"
           />
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus data-icon="inline-start" aria-hidden="true" />
-            Nuevo tablero
-          </Button>
+           {canCreate && (
+             <Button size="sm" onClick={() => setCreateOpen(true)}>
+               <Plus data-icon="inline-start" aria-hidden="true" />
+               Nuevo tablero
+             </Button>
+           )}
         </div>
       </header>
 
@@ -176,7 +183,7 @@ export function KanbanListPage() {
                 </p>
               </Link>
               <div className="absolute right-3 top-3">
-                <DropdownMenu>
+                 {(canEdit || canDelete) && <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
@@ -189,12 +196,14 @@ export function KanbanListPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
                     <DropdownMenuGroup>
-                      <DropdownMenuItem onSelect={() => setEditing(tablero)}>
-                        <Pencil aria-hidden="true" />
-                        Editar tablero
-                      </DropdownMenuItem>
+                       {canEdit && (
+                         <DropdownMenuItem onSelect={() => setEditing(tablero)}>
+                           <Pencil aria-hidden="true" />
+                           Editar tablero
+                         </DropdownMenuItem>
+                       )}
                     </DropdownMenuGroup>
-                    {canDeleteTablero(tablero, baseTableroIds) && (
+                     {canDelete && canDeleteTablero(tablero, baseTableroIds) && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -207,16 +216,16 @@ export function KanbanListPage() {
                       </>
                     )}
                   </DropdownMenuContent>
-                </DropdownMenu>
+                 </DropdownMenu>}
               </div>
             </li>
           ))}
         </ul>
       )}
 
-      <TableroFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
+       {canCreate && <TableroFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />}
 
-      {editing && (
+       {editing && canEdit && (
         <TableroFormDialog
           key={editing.id}
           mode="edit"
@@ -228,14 +237,16 @@ export function KanbanListPage() {
         />
       )}
 
-      <TableroDeleteDialog
-        tablero={deleting}
-        deletable={deleting ? canDeleteTablero(deleting, baseTableroIds) : true}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null);
-        }}
-        onSuccess={() => setDeleting(null)}
-      />
+       {canDelete && (
+         <TableroDeleteDialog
+           tablero={deleting}
+           deletable={deleting ? canDeleteTablero(deleting, baseTableroIds) : true}
+           onOpenChange={(open) => {
+             if (!open) setDeleting(null);
+           }}
+           onSuccess={() => setDeleting(null)}
+         />
+       )}
     </div>
   );
 }

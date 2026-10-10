@@ -35,6 +35,12 @@ import { cn } from '@/lib/utils';
 import { ArrastreRecienteContext } from './arrastreReciente';
 import { KanbanCardOverlay, type KanbanCardOverlayData } from './KanbanCard';
 import { KanbanColumn } from './KanbanColumn';
+import { usePermissions } from '@/features/permissions/context';
+import {
+  KANBAN_CREATE_COLUMN_CHECKS,
+  KANBAN_MOVE_FICHA_CHECKS,
+  KANBAN_REORDER_COLUMN_CHECKS,
+} from '../lib/kanbanPermissions';
 
 // ---------------------------------------------------------------------------
 // Tipos para buildDragEndHandler
@@ -135,17 +141,23 @@ export function KanbanBoard({
   onAddColumn,
   className,
 }: KanbanBoardProps) {
+  const permissions = usePermissions();
+  const canMoveFicha = permissions.allowsAll(KANBAN_MOVE_FICHA_CHECKS);
+  const canReorderColumns = permissions.allowsAll(KANBAN_REORDER_COLUMN_CHECKS);
+  const canCreateColumn = permissions.allowsAll(KANBAN_CREATE_COLUMN_CHECKS);
   const { mutate } = useMoverFicha();
   const { mutate: reordenarColumnas } = useReordenarColumnas();
   const { acquire: acquireMove, release: releaseMove } = useSynchronousMutationLock();
   const { acquire: acquireReorder, release: releaseReorder } = useSynchronousMutationLock();
 
   function moveFicha(vars: MoverFichaVars) {
+    if (!canMoveFicha) return;
     if (!acquireMove()) return;
     mutate(vars, { onSettled: () => releaseMove() });
   }
 
   function reorderColumns(vars: { tableroId: string; nuevoOrden: string[]; idsActuales: string[] }) {
+    if (!canReorderColumns) return;
     if (!acquireReorder()) return;
     reordenarColumnas(vars, { onSettled: () => releaseReorder() });
   }
@@ -277,7 +289,7 @@ export function KanbanBoard({
                   />
                 );
               })}
-              {onAddColumn && (
+               {onAddColumn && canCreateColumn && (
                 <div className="w-72 shrink-0">
                   <button
                     type="button"
