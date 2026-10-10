@@ -8,6 +8,34 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { server } from '@/test/server';
 import { DashboardPage, normalizeProgress } from '../pages/DashboardPage';
 
+const usePermissionsMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@/features/permissions/context', () => ({
+  usePermissions: usePermissionsMock,
+}));
+
+function createPermissions(overrides: {
+  canAny?: () => boolean;
+  canReadGroup?: (_resource: string, group: string) => boolean;
+} = {}) {
+  return {
+    status: 'resolved',
+    error: undefined,
+    usuario: undefined,
+    rol: undefined,
+    permisos: [],
+    can: () => true,
+    canAny: overrides.canAny ?? (() => true),
+    canAll: () => true,
+    allowsAll: () => true,
+    canReadGroup: overrides.canReadGroup ?? (() => true),
+    canWriteGroup: () => true,
+    allows: () => true,
+    refetch: vi.fn(),
+    providerActive: true,
+  };
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -29,6 +57,7 @@ function renderPage() {
 
 describe('DashboardPage', () => {
   beforeEach(() => {
+    usePermissionsMock.mockReturnValue(createPermissions());
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-06-29T12:00:00.000Z'));
   });
@@ -48,6 +77,29 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Próximas acciones')).toBeInTheDocument();
     expect(screen.getByText('Próximos cierres')).toBeInTheDocument();
     expect(screen.getByText('Salud del CRM')).toBeInTheDocument();
+  });
+
+  it('deniega el Inicio cuando no hay lectura en ningún recurso del dashboard', () => {
+    usePermissionsMock.mockReturnValue(createPermissions({ canAny: () => false }));
+
+    renderPage();
+
+    expect(screen.getByText('Acceso no permitido')).toBeInTheDocument();
+    expect(screen.queryByText('Pipeline abierto')).not.toBeInTheDocument();
+  });
+
+  it('oculta las superficies financieras y deshabilita la exportación sin permiso sensible', async () => {
+    usePermissionsMock.mockReturnValue(
+      createPermissions({ canReadGroup: (_resource, group) => group !== 'FINANCIERO' }),
+    );
+
+    renderPage();
+
+    await screen.findByText('Pipeline abierto');
+
+    expect(screen.queryByText('$250,000')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Sin permiso').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /exportar tratos/i })).toBeDisabled();
   });
 
   it('organiza el resumen comercial en KPIs, cartera, acciones, cierres, alertas y ranking', async () => {
