@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Search } from 'lucide-react';
 import type { Etiqueta } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,78 +51,117 @@ export function EtiquetasTable({ etiquetas, onEdit, onDelete, canEdit = true, ca
   }, [etiquetas, searchTerm]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          placeholder="Buscar por nombre"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-          aria-label="Buscar etiquetas"
-        />
+    <div>
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            type="search"
+            placeholder="Buscar por nombre"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-9 pl-9"
+            aria-label="Buscar etiquetas"
+          />
+        </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>Etiqueta</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Color</TableHead>
-            <TableHead className="w-10" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                No se encontraron etiquetas con esos filtros
-              </TableCell>
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center px-6 py-16 text-center">
+          <Search className="size-8 text-muted-foreground/50" aria-hidden="true" />
+          <p className="mt-3 font-medium">No se encontraron etiquetas con esos filtros</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setSearchTerm('')}
+          >
+            Limpiar búsqueda
+          </Button>
+        </div>
+      ) : (
+        <Table className="min-w-[600px]">
+          <TableHeader className="bg-muted/50 text-left text-xs text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-auto px-4 py-3 font-medium text-muted-foreground">
+                Etiqueta
+              </TableHead>
+              <TableHead className="h-auto px-4 py-3 font-medium text-muted-foreground">
+                Tipo
+              </TableHead>
+              <TableHead className="h-auto px-4 py-3 font-medium text-muted-foreground">
+                Color
+              </TableHead>
+              <TableHead className="h-auto w-12 px-4 py-3 text-right" />
             </TableRow>
-          ) : (
-            filtered.map((etiqueta) => (
-              <TableRow key={etiqueta.id} className="group">
-                <TableCell className="font-medium">
+          </TableHeader>
+          <TableBody>
+            {filtered.map((etiqueta) => (
+              <TableRow key={etiqueta.id} className="group/row hover:bg-muted/30">
+                <TableCell className="px-4 py-3 font-medium">
                   <span className="inline-flex items-center gap-2">
                     <span
-                      className="h-3 w-3 shrink-0 rounded-full border"
+                      className="size-2.5 shrink-0 rounded-full border"
                       style={{ backgroundColor: etiqueta.color, borderColor: etiqueta.color }}
                       aria-hidden="true"
                     />
                     {etiqueta.nombre}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{tipoLabel[etiqueta.tipoEtiqueta]}</Badge>
+                <TableCell className="px-4 py-3">
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted"
+                  >
+                    {tipoLabel[etiqueta.tipoEtiqueta]}
+                  </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">
+                <TableCell className="px-4 py-3 font-mono text-xs text-muted-foreground">
                   {etiqueta.color}
                 </TableCell>
-                <TableCell>
-                  {(canEdit || canDelete) && <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label="Acciones">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                       {canEdit && <DropdownMenuItem onClick={() => onEdit(etiqueta)}>Editar</DropdownMenuItem>}
-                       {canEdit && canDelete && <DropdownMenuSeparator />}
-                       {canDelete && (
-                         <DropdownMenuItem
-                           onClick={() => onDelete(etiqueta)}
-                           className="text-destructive focus:text-destructive"
-                         >
-                           Eliminar
-                         </DropdownMenuItem>
-                       )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>}
+                <TableCell className="w-12 px-4 py-3 text-right">
+                  {(canEdit || canDelete) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Acciones para ${etiqueta.nombre}`}
+                          className="text-muted-foreground"
+                        >
+                          <MoreHorizontal aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        {canEdit && (
+                          <DropdownMenuItem
+                            className="px-2 py-1.5"
+                            onClick={() => onEdit(etiqueta)}
+                          >
+                            Editar
+                          </DropdownMenuItem>
+                        )}
+                        {canEdit && canDelete && <DropdownMenuSeparator />}
+                        {canDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(etiqueta)}
+                            className="px-2 py-1.5 text-destructive focus:text-destructive"
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 }

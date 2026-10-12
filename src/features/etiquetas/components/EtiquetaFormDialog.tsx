@@ -188,72 +188,81 @@ function CreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent
+        overlayClassName="bg-black/50 backdrop-blur-none supports-[backdrop-filter]:backdrop-blur-none"
+        className="flex min-h-0 max-h-[min(720px,calc(100dvh-2rem))] flex-col gap-5 overflow-hidden rounded-xl border bg-card p-5 text-card-foreground shadow-xl sm:max-w-lg"
+      >
+        <DialogHeader className="shrink-0">
           <DialogTitle>Nueva etiqueta</DialogTitle>
           <DialogDescription>
-            Creá una etiqueta de {tipoLabel[defaultTipo].toLowerCase()} para clasificar las fichas.
+            Crea una etiqueta de {tipoLabel[defaultTipo].toLowerCase()} para clasificar las fichas.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" noValidate>
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Nombre <span aria-hidden="true" className="text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre de la etiqueta" maxLength={50} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tipoEtiqueta"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Tipo <span aria-hidden="true" className="text-destructive">*</span>
-                  </FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            noValidate
+          >
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Nombre <span aria-hidden="true" className="text-destructive">*</span>
+                    </FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Elegí un tipo" />
-                      </SelectTrigger>
+                      <Input placeholder="Nombre de la etiqueta" maxLength={50} {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="TRATO">Trato</SelectItem>
-                      <SelectItem value="TAREA">Tarea</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Color <span aria-hidden="true" className="text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <ColorField value={field.value} onChange={field.onChange} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="tipoEtiqueta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Tipo <span aria-hidden="true" className="text-destructive">*</span>
+                    </FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="TRATO">Trato</SelectItem>
+                        <SelectItem value="TAREA">Tarea</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="flex justify-end gap-2 pt-2">
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Color <span aria-hidden="true" className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <ColorField value={field.value} onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="flex shrink-0 justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending || isLocked}>
                 Cancelar
               </Button>
@@ -315,58 +324,67 @@ function EditDialog({ open, onOpenChange, etiqueta }: Pick<EditProps, 'open' | '
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent
+        overlayClassName="bg-black/50 backdrop-blur-none supports-[backdrop-filter]:backdrop-blur-none"
+        className="flex min-h-0 max-h-[min(720px,calc(100dvh-2rem))] flex-col gap-5 overflow-hidden rounded-xl border bg-card p-5 text-card-foreground shadow-xl sm:max-w-lg"
+      >
+        <DialogHeader className="shrink-0">
           <DialogTitle>Editar etiqueta</DialogTitle>
           <DialogDescription>
-            Modificá <strong>{etiqueta.nombre}</strong>. El cambio se refleja en todas las fichas que la usan.
+            Modifica <strong>{etiqueta.nombre}</strong>. El cambio se refleja en todas las fichas que la usan.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" noValidate>
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Nombre <span aria-hidden="true" className="text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre de la etiqueta" maxLength={50} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            noValidate
+          >
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Nombre <span aria-hidden="true" className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre de la etiqueta" maxLength={50} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Tipo inmutable — solo lectura. NO usa Form*: no está atado a un FormField
-                (FormLabel/FormItem requieren contexto de FormField y romperían acá). */}
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <div>
-                <Badge variant="outline">{tipoLabel[etiqueta.tipoEtiqueta]}</Badge>
-                <p className="mt-1 text-xs text-muted-foreground">El tipo no se puede cambiar.</p>
+              {/* Tipo inmutable — solo lectura. NO usa Form*: no está atado a un FormField
+                  (FormLabel/FormItem requieren contexto de FormField y romperían acá). */}
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <div>
+                  <Badge variant="outline">{tipoLabel[etiqueta.tipoEtiqueta]}</Badge>
+                  <p className="mt-1 text-xs text-muted-foreground">El tipo no se puede cambiar.</p>
+                </div>
               </div>
+
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Color <span aria-hidden="true" className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <ColorField value={field.value} onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Color <span aria-hidden="true" className="text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <ColorField value={field.value} onChange={field.onChange} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex shrink-0 justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending || isLocked}>
                 Cancelar
               </Button>
