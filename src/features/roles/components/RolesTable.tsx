@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Search, ShieldCheck } from 'lucide-react';
 import type { Rol } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,71 +51,115 @@ export function RolesTable({ roles, onEdit, onDelete, canEdit = true, canDelete 
   }, [roles, searchTerm]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          placeholder="Buscar por nombre o descripción"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-          aria-label="Buscar roles"
-        />
+    <div>
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            type="search"
+            placeholder="Buscar por nombre o descripción"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-9 pl-9"
+            aria-label="Buscar roles"
+          />
+        </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>Nombre</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="w-10" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                No se encontraron roles con esos filtros
-              </TableCell>
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center px-6 py-16 text-center">
+          <Search className="size-8 text-muted-foreground/50" aria-hidden="true" />
+          <p className="mt-3 font-medium">No se encontraron roles con esos filtros</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setSearchTerm('')}
+          >
+            Limpiar búsqueda
+          </Button>
+        </div>
+      ) : (
+        <Table className="min-w-[700px]">
+          <TableHeader className="bg-muted/50 text-left text-xs text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-auto px-4 py-3 font-medium text-muted-foreground">
+                Nombre
+              </TableHead>
+              <TableHead className="h-auto px-4 py-3 font-medium text-muted-foreground">
+                Descripción
+              </TableHead>
+              <TableHead className="h-auto px-4 py-3 font-medium text-muted-foreground">
+                Estado
+              </TableHead>
+              <TableHead className="h-auto w-12 px-4 py-3 text-right" />
             </TableRow>
-          ) : (
-            filtered.map((rol) => (
-              <TableRow key={rol.id} className="group">
-                <TableCell className="font-medium">{rol.nombre}</TableCell>
-                <TableCell className="text-muted-foreground">
+          </TableHeader>
+          <TableBody>
+            {filtered.map((rol) => (
+              <TableRow key={rol.id} className="group/row hover:bg-muted/30">
+                <TableCell className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <ShieldCheck className="size-4" aria-hidden="true" />
+                    </span>
+                    <span className="font-medium">{rol.nombre}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-4 py-3 text-muted-foreground">
                   {rol.descripcion ?? '—'}
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={estadoRolBadgeClass(rol.activo)}>
+                <TableCell className="px-4 py-3">
+                  <Badge
+                    variant="outline"
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${estadoRolBadgeClass(rol.activo)}`}
+                  >
                     {estadoRolLabel(rol.activo)}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  {(canEdit || canDelete) && <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label="Acciones">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                       {canEdit && <DropdownMenuItem onClick={() => onEdit(rol)}>Editar</DropdownMenuItem>}
-                       {canEdit && canDelete && <DropdownMenuSeparator />}
-                       {canDelete && (
-                         <DropdownMenuItem
-                           onClick={() => onDelete(rol)}
-                           className="text-destructive focus:text-destructive"
-                         >
-                           Eliminar
-                         </DropdownMenuItem>
-                       )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>}
+                <TableCell className="w-12 px-4 py-3 text-right">
+                  {(canEdit || canDelete) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Acciones para ${rol.nombre}`}
+                          className="text-muted-foreground"
+                        >
+                          <MoreHorizontal aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        {canEdit && (
+                          <DropdownMenuItem
+                            className="px-2 py-1.5"
+                            onClick={() => onEdit(rol)}
+                          >
+                            Editar
+                          </DropdownMenuItem>
+                        )}
+                        {canEdit && canDelete && <DropdownMenuSeparator />}
+                        {canDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(rol)}
+                            className="px-2 py-1.5 text-destructive focus:text-destructive"
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 }
