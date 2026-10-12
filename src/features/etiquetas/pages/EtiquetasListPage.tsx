@@ -3,14 +3,15 @@
 // una ficha solo acepta etiquetas de su mismo tipo. El tipo activo preselecciona el
 // tipo al crear. KPIs derivados de la lista. TableSkeleton en loading, EmptyState rico.
 
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Plus, Tag, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { Card } from '@/components/ui/card';
 import { RefreshIcon } from '@/components/shared/RefreshButton';
-import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Etiqueta, TipoEtiqueta } from '@/api/types';
 import { useEtiquetas } from '../hooks/useEtiquetas';
@@ -25,7 +26,19 @@ const TIPOS: { value: TipoEtiqueta; label: string }[] = [
   { value: 'TAREA', label: 'Tareas' },
 ];
 
-export function EtiquetasListPage() {
+interface EtiquetasListPageProps {
+  /** Renderiza solo el contenido cuando el encabezado vive en Configuración. */
+  embedded?: boolean;
+  /** Permite que Configuración controle la apertura del diálogo superior. */
+  createOpen?: boolean;
+  onCreateOpenChange?: (open: boolean) => void;
+}
+
+export function EtiquetasListPage({
+  embedded = false,
+  createOpen,
+  onCreateOpenChange,
+}: EtiquetasListPageProps = {}) {
   const [tipo, setTipo] = useState<TipoEtiqueta>('TRATO');
   const { data: etiquetas, isPending, isError, isFetching, refetch } = useEtiquetas(tipo);
   const permissions = usePermissions();
@@ -34,9 +47,11 @@ export function EtiquetasListPage() {
   const canEdit = permissions.allows('ETIQUETA', 'ACTUALIZAR');
   const canDelete = permissions.allows('ETIQUETA', 'ELIMINAR');
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [internalCreateOpen, setInternalCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Etiqueta | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Etiqueta | null>(null);
+  const isCreateControlled = createOpen !== undefined && onCreateOpenChange !== undefined;
+  const effectiveCreateOpen = isCreateControlled ? createOpen : internalCreateOpen;
 
   const total = useMemo(() => etiquetas?.length ?? 0, [etiquetas]);
 
@@ -44,7 +59,15 @@ export function EtiquetasListPage() {
 
   function openCreate() {
     if (!canCreate) return;
-    setCreateOpen(true);
+    setCreateDialogOpen(true);
+  }
+
+  function setCreateDialogOpen(open: boolean) {
+    if (isCreateControlled) {
+      onCreateOpenChange(open);
+    } else {
+      setInternalCreateOpen(open);
+    }
   }
 
   function openEdit(etiqueta: Etiqueta) {
@@ -58,40 +81,54 @@ export function EtiquetasListPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Etiquetas"
-        description="Gestioná las etiquetas que clasifican los tratos y las tareas en los tableros."
-        actions={canCreate ? (
-            <Button onClick={openCreate}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+    <div className={embedded ? 'space-y-6' : 'flex flex-col gap-6 p-4 sm:p-6'}>
+      {!embedded && (
+        <header className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Etiquetas</h1>
+            <p className="text-sm text-muted-foreground">
+              Gestiona las etiquetas que clasifican los tratos y las tareas en los tableros.
+            </p>
+          </div>
+          {canCreate && (
+            <Button className="w-full sm:w-auto" onClick={openCreate}>
+              <Plus data-icon="inline-start" aria-hidden="true" />
               Nueva etiqueta
             </Button>
-          ) : undefined}
-      />
+          )}
+        </header>
+      )}
 
       {/* Filtro segmentado por tipo */}
-      <div className="inline-flex rounded-md border p-0.5" role="tablist" aria-label="Filtrar por tipo">
-        {TIPOS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            role="tab"
-            aria-selected={tipo === t.value}
-            onClick={() => setTipo(t.value)}
-            className={cn(
-              'rounded px-4 py-1.5 text-sm font-medium transition-colors',
-              tipo === t.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="mx-auto w-full max-w-[1400px]">
+        <div
+          className="inline-flex rounded-md border border-border bg-muted/40 p-1"
+          role="tablist"
+          aria-label="Filtrar por tipo"
+        >
+          {TIPOS.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              role="tab"
+              aria-selected={tipo === t.value}
+              onClick={() => setTipo(t.value)}
+              className={cn(
+                'rounded px-3 py-1.5 text-sm font-medium transition-colors',
+                tipo === t.value
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {!isError && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard
+        <div className="mx-auto w-full max-w-[1400px]">
+          <EtiquetasKpiCard
             label={`Etiquetas de ${tipo === 'TRATO' ? 'tratos' : 'tareas'}`}
             value={String(total)}
             icon={Tags}
@@ -101,13 +138,13 @@ export function EtiquetasListPage() {
       )}
 
       {isPending && (
-        <div className="rounded-md border">
+        <Card className="mx-auto w-full max-w-[1400px] rounded-lg p-0 shadow-none">
           <TableSkeleton columns={4} rows={5} />
-        </div>
+        </Card>
       )}
 
       {isError && (
-        <div className="py-12 text-center space-y-3">
+        <div className="mx-auto w-full max-w-[1400px] space-y-3 py-16 text-center">
           <p className="text-sm text-destructive">No fue posible cargar las etiquetas.</p>
           <Button
             variant="outline"
@@ -122,21 +159,26 @@ export function EtiquetasListPage() {
       )}
 
       {!isPending && !isError && etiquetas && etiquetas.length === 0 && (
-        <EmptyState
-           icon={Tag}
-           title="Aún no hay etiquetas"
-           description={`Creá tu primera etiqueta de ${tipo === 'TRATO' ? 'tratos' : 'tareas'} para empezar a clasificar las fichas en los tableros.`}
-           action={canCreate ? (
-             <Button onClick={openCreate}>
-               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-               Nueva etiqueta
-             </Button>
-           ) : undefined}
-        />
+        <Card className="mx-auto w-full max-w-[1400px] rounded-lg p-0 shadow-none">
+          <EmptyState
+            icon={Tag}
+            title="Aún no hay etiquetas"
+            description={`Crea tu primera etiqueta de ${tipo === 'TRATO' ? 'tratos' : 'tareas'} para empezar a clasificar las fichas en los tableros.`}
+            action={
+              canCreate ? (
+                <Button onClick={openCreate}>
+                  <Plus data-icon="inline-start" aria-hidden="true" />
+                  Nueva etiqueta
+                </Button>
+              ) : undefined
+            }
+            className="rounded-none border-0"
+          />
+        </Card>
       )}
 
       {!isPending && !isError && etiquetas && etiquetas.length > 0 && (
-        <div className="rounded-md border">
+        <Card className="mx-auto w-full max-w-[1400px] rounded-lg p-0 shadow-none">
           <EtiquetasTable
             etiquetas={etiquetas}
             onEdit={openEdit}
@@ -144,15 +186,15 @@ export function EtiquetasListPage() {
             canEdit={canEdit}
             canDelete={canDelete}
           />
-        </div>
+        </Card>
       )}
 
       {/* Crear — el tipo activo del filtro preselecciona el tipo del form */}
       {canCreate && (
         <EtiquetaFormDialog
           mode="create"
-          open={createOpen}
-          onOpenChange={setCreateOpen}
+          open={effectiveCreateOpen}
+          onOpenChange={setCreateDialogOpen}
           defaultTipo={tipo}
         />
       )}
@@ -178,5 +220,32 @@ export function EtiquetasListPage() {
         />
       )}
     </div>
+  );
+}
+
+interface EtiquetasKpiCardProps {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  loading: boolean;
+}
+
+function EtiquetasKpiCard({ label, value, icon: Icon, loading }: EtiquetasKpiCardProps) {
+  return (
+    <Card className="rounded-lg shadow-none">
+      <div className="flex items-start justify-between gap-3 p-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          {loading ? (
+            <Skeleton className="mt-1 h-8 w-16" />
+          ) : (
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+          )}
+        </div>
+        <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Icon className="size-5" aria-hidden="true" />
+        </div>
+      </div>
+    </Card>
   );
 }
