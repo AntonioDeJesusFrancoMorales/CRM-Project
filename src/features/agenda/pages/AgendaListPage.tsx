@@ -201,23 +201,7 @@ export function AgendaListPage() {
           </div>
         )}
 
-        {!isLoading && !isError && agendas.length === 0 && (
-          <div className="mx-auto w-full max-w-[1400px]">
-            <EmptyState
-              icon={CalendarClock}
-              title="Aún no hay eventos"
-              description="Crea tu primera llamada o reunión para empezar a organizar tu agenda."
-              action={canCreate ? (
-                <Button onClick={() => openCreate()}>
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Nuevo evento
-                </Button>
-              ) : undefined}
-            />
-          </div>
-        )}
-
-        {!isLoading && !isError && agendas.length > 0 && (
+        {!isLoading && !isError && (
           <>
             <TabsContent value="calendario" className="mt-0">
               <AgendaCalendarView
@@ -228,26 +212,40 @@ export function AgendaListPage() {
               />
             </TabsContent>
             <TabsContent value="lista" className="mx-auto mt-0 w-full max-w-[1400px]">
-              <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-5">
-                {groups.map((group) => (
-                  <section key={group.date} className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-sm font-semibold capitalize text-foreground">{groupLabel(group.date)}</h2>
-                      <span className="text-xs tabular-nums text-muted-foreground">{group.events.length} evento{group.events.length === 1 ? '' : 's'}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {group.events.map((agenda) => (
-                        <AgendaEventoRow
-                          key={agenda.id}
-                          agenda={agenda}
-                          onEdit={canEdit ? openEdit : undefined}
-                          onDelete={canDelete ? openDelete : undefined}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
+              {agendas.length === 0 ? (
+                <EmptyState
+                  icon={CalendarClock}
+                  title="Aún no hay eventos"
+                  description="Crea tu primera llamada o reunión para empezar a organizar tu agenda."
+                  action={canCreate ? (
+                    <Button onClick={() => openCreate()}>
+                      <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Nuevo evento
+                    </Button>
+                  ) : undefined}
+                />
+              ) : (
+                <div className="space-y-6 rounded-xl border border-border bg-card p-4 sm:p-5">
+                  {groups.map((group) => (
+                    <section key={group.date} className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-semibold capitalize text-foreground">{groupLabel(group.date)}</h2>
+                        <span className="text-xs tabular-nums text-muted-foreground">{group.events.length} evento{group.events.length === 1 ? '' : 's'}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {group.events.map((agenda) => (
+                          <AgendaEventoRow
+                            key={agenda.id}
+                            agenda={agenda}
+                            onEdit={canEdit ? openEdit : undefined}
+                            onDelete={canDelete ? openDelete : undefined}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </>
         )}
