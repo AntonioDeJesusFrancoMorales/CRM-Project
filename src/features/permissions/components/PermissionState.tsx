@@ -19,7 +19,7 @@ export function AccessDeniedView({ resource }: { resource?: RecursoCRM }) {
       <div className="max-w-md space-y-2 text-center">
         <h1 className="text-lg font-semibold">Acceso no permitido</h1>
         <p className="text-sm text-muted-foreground">
-          No tenés permiso CRM para leer{resource ? ` ${resource}` : ' este recurso'}. El backend sigue siendo la autoridad.
+          No tienes permiso CRM para leer{resource ? ` ${resource}` : ' este recurso'}. El backend sigue siendo la autoridad.
         </p>
       </div>
     </div>
@@ -101,7 +101,7 @@ export function SensitiveWriteNotice({
   const notice = fallback ?? (
     <p className="text-xs text-muted-foreground">
       {permissions.status === 'resolved'
-        ? 'No tenés permiso de escritura para este grupo sensible.'
+        ? 'No tienes permiso de escritura para este grupo sensible.'
         : 'No se pudo verificar el permiso de escritura; el dato sensible queda bloqueado.'}
     </p>
   );

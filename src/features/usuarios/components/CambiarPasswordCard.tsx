@@ -18,18 +18,18 @@ export function CambiarPasswordCard() {
   const { mutate, isPending } = useRequestPasswordChange();
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="rounded-lg shadow-none">
+      <CardHeader className="p-5 pb-0">
         <CardTitle className="flex items-center gap-2">
           <KeyRound className="h-4 w-4" aria-hidden="true" />
           Seguridad
         </CardTitle>
         <CardDescription>
-          Cambiá la contraseña de tu cuenta. Te enviaremos un correo con un enlace seguro
-          para definir la nueva contraseña.
+          Cambia la contraseña de tu cuenta. Recibirás un correo con un enlace seguro para
+          definir una nueva contraseña.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5 pt-4">
         <Button
           variant="outline"
           onClick={() => mutate()}
