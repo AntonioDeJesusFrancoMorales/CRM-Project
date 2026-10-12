@@ -82,47 +82,116 @@ function CreateForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-4"
+        className="flex min-h-0 flex-1 flex-col"
         noValidate
         autoComplete="off"
       >
-        {/* Nombre completo */}
-        <FormField
-          control={form.control}
-          name="nombre"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Nombre completo{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="Nombre completo del usuario" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Correo electrónico */}
-        <SensitiveWriteNotice resource="USUARIO" group="CONTACTO_PRIVADO">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-1">
+          {/* Nombre completo */}
           <FormField
             control={form.control}
-            name="correo"
+            name="nombre"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="space-y-1.5">
                 <FormLabel>
-                  Correo electrónico{' '}
+                  Nombre completo{' '}
+                  <span aria-hidden="true" className="text-destructive">
+                    *
+                  </span>
+                </FormLabel>
+                <FormControl>
+                  <Input className="h-9" placeholder="Nombre completo del usuario" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Correo electrónico */}
+          <SensitiveWriteNotice resource="USUARIO" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="correo"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel>
+                    Correo electrónico{' '}
+                    <span aria-hidden="true" className="text-destructive">
+                      *
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      className="h-9"
+                      type="email"
+                      placeholder="correo@ejemplo.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
+
+          {/* Rol — select dinámico */}
+          <FormField
+            control={form.control}
+            name="rolId"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>
+                  Rol{' '}
+                  <span aria-hidden="true" className="text-destructive">
+                    *
+                  </span>
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value ?? ''}
+                  disabled={rolesLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-9" aria-label="Rol">
+                      <SelectValue
+                        placeholder={rolesLoading ? 'Cargando roles...' : 'Selecciona un rol'}
+                      />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {roles.map((rol) => (
+                      <SelectItem key={rol.id} value={rol.id}>
+                        {rol.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Asignar un rol distinto puede requerir USUARIO.ADMINISTRAR y puede ser rechazado
+                  por el backend con 403.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Contraseña inicial */}
+          <FormField
+            control={form.control}
+            name="initialPassword"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>
+                  Contraseña inicial{' '}
                   <span aria-hidden="true" className="text-destructive">
                     *
                   </span>
                 </FormLabel>
                 <FormControl>
                   <Input
-                    type="email"
-                    placeholder="correo@ejemplo.com"
+                    className="h-9"
+                    type="password"
+                    placeholder="Contraseña temporal del usuario"
                     {...field}
                   />
                 </FormControl>
@@ -130,82 +199,11 @@ function CreateForm({
               </FormItem>
             )}
           />
-        </SensitiveWriteNotice>
+        </div>
 
-        {/* Rol — select dinámico */}
-        <FormField
-          control={form.control}
-          name="rolId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Rol{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? ''}
-                disabled={rolesLoading}
-              >
-                <FormControl>
-                  <SelectTrigger aria-label="Rol">
-                    <SelectValue
-                      placeholder={
-                        rolesLoading ? 'Cargando roles...' : 'Selecciona un rol'
-                      }
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {roles.map((rol) => (
-                    <SelectItem key={rol.id} value={rol.id}>
-                      {rol.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Asignar un rol distinto puede requerir USUARIO.ADMINISTRAR y puede ser rechazado por el backend con 403.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Contraseña inicial */}
-        <FormField
-          control={form.control}
-          name="initialPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Contraseña inicial{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Contraseña temporal del usuario"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="!mt-6 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
           {onCancel && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancelar
             </Button>
           )}
@@ -250,106 +248,103 @@ function EditForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-4"
+        className="flex min-h-0 flex-1 flex-col"
         noValidate
         autoComplete="off"
       >
-        {/* Nombre completo */}
-        <FormField
-          control={form.control}
-          name="nombre"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Nombre completo{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="Nombre completo del usuario" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Correo electrónico */}
-        <SensitiveWriteNotice resource="USUARIO" group="CONTACTO_PRIVADO">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-1">
+          {/* Nombre completo */}
           <FormField
             control={form.control}
-            name="correo"
+            name="nombre"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="space-y-1.5">
                 <FormLabel>
-                  Correo electrónico{' '}
+                  Nombre completo{' '}
                   <span aria-hidden="true" className="text-destructive">
                     *
                   </span>
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    {...field}
-                  />
+                  <Input className="h-9" placeholder="Nombre completo del usuario" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </SensitiveWriteNotice>
 
-        {/* Rol — select dinámico */}
-        <FormField
-          control={form.control}
-          name="rolId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Rol{' '}
-                <span aria-hidden="true" className="text-destructive">
-                  *
-                </span>
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? ''}
-                disabled={rolesLoading}
-              >
-                <FormControl>
-                  <SelectTrigger aria-label="Rol">
-                    <SelectValue
-                      placeholder={
-                        rolesLoading ? 'Cargando roles...' : 'Selecciona un rol'
-                      }
+          {/* Correo electrónico */}
+          <SensitiveWriteNotice resource="USUARIO" group="CONTACTO_PRIVADO">
+            <FormField
+              control={form.control}
+              name="correo"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel>
+                    Correo electrónico{' '}
+                    <span aria-hidden="true" className="text-destructive">
+                      *
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      className="h-9"
+                      type="email"
+                      placeholder="correo@ejemplo.com"
+                      {...field}
                     />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {roles.map((rol) => (
-                    <SelectItem key={rol.id} value={rol.id}>
-                      {rol.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Asignar un rol distinto puede requerir USUARIO.ADMINISTRAR y puede ser rechazado por el backend con 403.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </SensitiveWriteNotice>
 
-        <div className="flex justify-end gap-2 pt-2">
+          {/* Rol — select dinámico */}
+          <FormField
+            control={form.control}
+            name="rolId"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>
+                  Rol{' '}
+                  <span aria-hidden="true" className="text-destructive">
+                    *
+                  </span>
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value ?? ''}
+                  disabled={rolesLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-9" aria-label="Rol">
+                      <SelectValue
+                        placeholder={rolesLoading ? 'Cargando roles...' : 'Selecciona un rol'}
+                      />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {roles.map((rol) => (
+                      <SelectItem key={rol.id} value={rol.id}>
+                        {rol.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Asignar un rol distinto puede requerir USUARIO.ADMINISTRAR y puede ser rechazado
+                  por el backend con 403.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="!mt-6 flex shrink-0 justify-end gap-2 border-t border-border pt-4">
           {onCancel && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancelar
             </Button>
           )}
