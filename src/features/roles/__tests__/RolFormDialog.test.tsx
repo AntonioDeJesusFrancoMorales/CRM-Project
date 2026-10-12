@@ -4,11 +4,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import type { ReactNode } from 'react';
+import { http, HttpResponse } from 'msw';
 import type { Rol } from '@/api/types';
+import { tableroTratosFixture } from '@/mocks/fixtures/tableros';
+import { server } from '@/test/server';
 import { RolFormDialog } from '../components/RolFormDialog';
 
 // ── Fixture ───────────────────────────────────────────────────────────────────
@@ -20,6 +24,22 @@ const rolFixture: Rol = {
   activo: true,
   permisos: [],
 };
+
+const rolWithSelectedBoard: Rol = {
+  ...rolFixture,
+  permisos: [
+    {
+      recurso: 'TABLERO',
+      acciones: ['LEER'],
+      alcance: 'TABLEROS_PERMITIDOS',
+      idsPermitidos: [tableroTratosFixture.id],
+      gruposLectura: [],
+      gruposEscritura: [],
+    },
+  ],
+};
+
+const VALID_BOARD_ID = '11111111-1111-4111-8111-111111111111';
 
 // ── Wrapper ───────────────────────────────────────────────────────────────────
 
@@ -120,5 +140,67 @@ describe('RolFormDialog — mode=edit', () => {
     const dialog = screen.getByRole('dialog');
     const input = within(dialog).getByPlaceholderText(/nombre del rol/i);
     expect(input).toHaveValue(rolFixture.nombre);
+  });
+
+  it('preselecciona el tablero nombrado para un UUID permitido existente', async () => {
+    const Wrapper = makeWrapper();
+    render(
+      <RolFormDialog mode="edit" open={true} onOpenChange={() => {}} rol={rolWithSelectedBoard} />,
+      { wrapper: Wrapper },
+    );
+
+    const dialog = screen.getByRole('dialog');
+    const checkbox = await within(dialog).findByRole('checkbox', {
+      name: `Permitir tablero ${tableroTratosFixture.nombre}`,
+    });
+    expect(checkbox).toBeChecked();
+  });
+
+  it('conserva idsPermitidos como UUIDs al enviar un tablero seleccionado', async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    server.use(
+      http.get('/api/tableros/get-all', () =>
+        HttpResponse.json([{ ...tableroTratosFixture, id: VALID_BOARD_ID }]),
+      ),
+      http.post('/api/roles/create', async ({ request }) => {
+        requestBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          id: 'rol-created-uuid-3333-333333333333',
+          nombre: 'Vendedor',
+          descripcion: null,
+          activo: true,
+          permisos: [],
+        });
+      }),
+    );
+
+    const user = userEvent.setup();
+    const Wrapper = makeWrapper();
+    render(
+      <RolFormDialog mode="create" open={true} onOpenChange={() => {}} />,
+      { wrapper: Wrapper },
+    );
+
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByPlaceholderText('Nombre del rol'), 'Vendedor');
+    await user.selectOptions(
+      within(dialog).getByRole('combobox', { name: 'Alcance de Tableros' }),
+      'TABLEROS_PERMITIDOS',
+    );
+    await user.click(
+      await within(dialog).findByRole('checkbox', {
+        name: `Permitir tablero ${tableroTratosFixture.nombre}`,
+      }),
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Crear rol' }));
+
+    await waitFor(() => expect(requestBody).toBeDefined());
+    const permisos = requestBody?.['permisos'] as Array<{
+      recurso: string;
+      idsPermitidos: string[] | null;
+    }>;
+    expect(permisos.find((permiso) => permiso.recurso === 'TABLERO')?.idsPermitidos).toEqual([
+      VALID_BOARD_ID,
+    ]);
   });
 });
