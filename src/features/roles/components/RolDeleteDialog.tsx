@@ -42,8 +42,8 @@ export function RolDeleteDialog({ open, onOpenChange, rol }: RolDeleteDialogProp
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent className="w-[calc(100%-2rem)] rounded-xl border bg-card p-5 text-card-foreground shadow-xl sm:max-w-lg">
+        <AlertDialogHeader className="space-y-2 text-left">
           <AlertDialogTitle>¿Eliminar rol?</AlertDialogTitle>
           <AlertDialogDescription>
             {rol && (
@@ -53,7 +53,7 @@ export function RolDeleteDialog({ open, onOpenChange, rol }: RolDeleteDialogProp
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className="gap-2 border-t border-border pt-4">
           <AlertDialogCancel disabled={mutation.isPending || isLocked}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
