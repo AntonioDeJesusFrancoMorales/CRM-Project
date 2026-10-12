@@ -2,14 +2,15 @@
 // KPIs derivados de la lista: Total, Activos. Se ocultan en isError para no mostrar
 // ceros engañosos. TableSkeleton durante loading. EmptyState rico cuando vacío.
 
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Plus, UserCheck, Users, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { Card } from '@/components/ui/card';
 import { RefreshIcon } from '@/components/shared/RefreshButton';
-import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/TableSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { Usuario } from '@/api/types';
 import { useAuthStore } from '@/store/authStore';
 import { useUsuarios } from '../hooks/useUsuarios';
@@ -46,29 +47,31 @@ export function UsuariosListPage() {
   if (!canRead) return <AccessDeniedView resource="USUARIO" />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Usuarios"
-        description="Gestiona los usuarios y sus permisos en el sistema."
-        actions={canCreate ? (
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Nuevo usuario
-            </Button>
-          ) : undefined}
-      />
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <header className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Usuarios</h1>
+          <p className="text-sm text-muted-foreground">
+            Gestiona los usuarios y sus permisos en el sistema.
+          </p>
+        </div>
+        {canCreate && (
+          <Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
+            <Plus data-icon="inline-start" aria-hidden="true" />
+            Nuevo usuario
+          </Button>
+        )}
+      </header>
 
-      {/* Fila de KPIs del directorio (oculta en error de carga) */}
       {!isError && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-3 sm:grid-cols-2">
+          <UsuariosKpiCard
             label="Total de usuarios"
             value={String(kpis.total)}
             icon={UsersRound}
             loading={isPending}
           />
-          <StatCard
+          <UsuariosKpiCard
             label="Activos"
             value={String(kpis.activos)}
             hint="Con cuenta activa"
@@ -78,19 +81,15 @@ export function UsuariosListPage() {
         </div>
       )}
 
-      {/* Loading: esqueleto de tabla en vez de texto plano */}
       {isPending && (
-        <div className="rounded-md border">
+        <Card className="mx-auto w-full max-w-[1400px] rounded-lg p-0 shadow-none">
           <TableSkeleton columns={6} rows={5} />
-        </div>
+        </Card>
       )}
 
-      {/* Error state */}
       {isError && (
-        <div className="py-12 text-center space-y-3">
-          <p className="text-sm text-destructive">
-            No fue posible cargar los usuarios.
-          </p>
+        <div className="mx-auto w-full max-w-[1400px] space-y-3 py-16 text-center">
+          <p className="text-sm text-destructive">No fue posible cargar los usuarios.</p>
           <Button
             variant="outline"
             onClick={() => void refetch()}
@@ -103,24 +102,27 @@ export function UsuariosListPage() {
         </div>
       )}
 
-      {/* Empty state rico: no hay usuarios registrados */}
       {!isPending && !isError && usuarios && usuarios.length === 0 && (
-        <EmptyState
-          icon={Users}
-          title="Aún no hay usuarios"
-          description="Aún no hay usuarios registrados."
-           action={canCreate ? (
-             <Button onClick={() => setCreateOpen(true)}>
-               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-               Crear primer usuario
-             </Button>
-           ) : undefined}
-        />
+        <Card className="mx-auto w-full max-w-[1400px] rounded-lg p-0 shadow-none">
+          <EmptyState
+            icon={Users}
+            title="Aún no hay usuarios"
+            description="Aún no hay usuarios registrados."
+            action={
+              canCreate ? (
+                <Button onClick={() => setCreateOpen(true)}>
+                  <Plus data-icon="inline-start" aria-hidden="true" />
+                  Crear primer usuario
+                </Button>
+              ) : undefined
+            }
+            className="rounded-none border-0"
+          />
+        </Card>
       )}
 
-      {/* Tabla con datos */}
       {!isPending && !isError && usuarios && usuarios.length > 0 && (
-        <div className="rounded-md border">
+        <Card className="mx-auto w-full max-w-[1400px] rounded-lg p-0 shadow-none">
           <UsuariosTable
             usuarios={usuarios}
             roles={roles}
@@ -130,16 +132,12 @@ export function UsuariosListPage() {
             canEdit={canEdit}
             canDelete={canDelete}
           />
-        </div>
+        </Card>
       )}
 
       {/* Dialog: Crear usuario */}
       {canCreate && (
-        <UsuarioFormDialog
-          mode="create"
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-        />
+        <UsuarioFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
       )}
 
       {/* Dialog: Editar usuario */}
@@ -166,5 +164,34 @@ export function UsuariosListPage() {
         />
       )}
     </div>
+  );
+}
+
+interface UsuariosKpiCardProps {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: LucideIcon;
+  loading: boolean;
+}
+
+function UsuariosKpiCard({ label, value, hint, icon: Icon, loading }: UsuariosKpiCardProps) {
+  return (
+    <Card className="rounded-lg shadow-none">
+      <div className="flex items-start justify-between gap-3 p-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          {loading ? (
+            <Skeleton className="mt-1 h-8 w-16" />
+          ) : (
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+          )}
+          {hint && !loading && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+        </div>
+        <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Icon className="size-5" aria-hidden="true" />
+        </div>
+      </div>
+    </Card>
   );
 }
