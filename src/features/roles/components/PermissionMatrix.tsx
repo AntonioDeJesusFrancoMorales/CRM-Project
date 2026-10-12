@@ -1,6 +1,5 @@
 import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import type { AccionPermiso, GrupoSensible, PermisoRecurso, RecursoCRM } from '@/api/types';
 import {
   ACCIONES_PERMISO,
@@ -14,6 +13,7 @@ import {
   supportsScope,
   type PermissionTemplate,
 } from '@/features/permissions/lib/permissions';
+import type { Tablero } from '@/features/kanban/schemas/tablero.schema';
 import type { PermisoRecursoInput } from '../schemas/rol.schema';
 
 const recursoLabels: Record<RecursoCRM, string> = {
@@ -67,6 +67,10 @@ interface PermissionMatrixProps {
   value?: PermisoRecursoInput[];
   onChange: (value: PermisoRecursoInput[]) => void;
   disabled?: boolean;
+  tableros?: Tablero[];
+  isLoading?: boolean;
+  isError?: boolean;
+  refetch?: () => Promise<unknown> | unknown;
 }
 
 function asInput(permission: PermisoRecurso): PermisoRecursoInput {
@@ -90,11 +94,147 @@ function normalizeMatrix(value: PermisoRecursoInput[] | undefined): PermisoRecur
   });
 }
 
-function idsToString(ids: string[] | null): string {
-  return ids?.join(', ') ?? '';
+interface PermissionCheckboxProps {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
 }
 
-export function PermissionMatrix({ value, onChange, disabled = false }: PermissionMatrixProps) {
+function PermissionCheckbox({ checked, disabled, label, onChange }: PermissionCheckboxProps) {
+  return (
+    <span className="relative inline-flex size-4 shrink-0">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.checked)}
+        className="peer absolute inset-0 z-10 size-4 cursor-pointer opacity-0 disabled:cursor-not-allowed"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-[4px] border border-input bg-background transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:opacity-50 after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-[10px] after:font-bold after:text-primary-foreground after:content-['✓'] after:opacity-0 peer-checked:after:opacity-100"
+      />
+    </span>
+  );
+}
+
+interface BoardSelectionProps {
+  recurso: RecursoCRM;
+  idsPermitidos: string[] | null;
+  tableros: Tablero[];
+  isLoading: boolean;
+  isError: boolean;
+  refetch?: () => Promise<unknown> | unknown;
+  disabled: boolean;
+  onChange: (ids: string[]) => void;
+}
+
+function boardTypeLabel(tipoTablero: Tablero['tipoTablero']): string {
+  return tipoTablero === 'TRATOS' ? 'Tratos' : 'Tareas';
+}
+
+function BoardSelection({
+  recurso,
+  idsPermitidos,
+  tableros,
+  isLoading,
+  isError,
+  refetch,
+  disabled,
+  onChange,
+}: BoardSelectionProps) {
+  const selectedIds = idsPermitidos ?? [];
+  const availableIds = new Set(tableros.map((tablero) => tablero.id));
+  const unavailableIds = [...new Set(selectedIds.filter((id) => !availableIds.has(id)))];
+
+  function handleBoardChange(id: string, checked: boolean) {
+    const nextIds = checked
+      ? [...new Set([...selectedIds, id])]
+      : selectedIds.filter((currentId) => currentId !== id);
+    onChange(nextIds);
+  }
+
+  return (
+    <fieldset className="mt-3 space-y-2 rounded-md border border-border p-3">
+      <legend className="px-1 text-xs font-medium text-muted-foreground">
+        Tableros permitidos para {recursoLabels[recurso]}
+      </legend>
+
+      {isError && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/30 p-2 text-xs">
+          <span>No fue posible cargar los tableros.</span>
+          <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => void refetch?.()}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
+      <div className="max-h-56 overflow-y-auto rounded-md border border-border">
+        {isLoading ? (
+          <div role="status" aria-busy="true" className="p-3 text-xs text-muted-foreground">
+            Cargando tableros…
+          </div>
+        ) : (
+          <>
+            {!isError && tableros.length === 0 && unavailableIds.length === 0 && (
+              <div className="p-3 text-xs text-muted-foreground">No hay tableros disponibles</div>
+            )}
+
+            {tableros.map((tablero) => (
+              <label
+                key={tablero.id}
+                className="flex items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0"
+              >
+                <PermissionCheckbox
+                  checked={selectedIds.includes(tablero.id)}
+                  disabled={disabled}
+                  label={`Permitir tablero ${tablero.nombre}`}
+                  onChange={(checked) => handleBoardChange(tablero.id, checked)}
+                />
+                <span className="min-w-0 flex-1 truncate">{tablero.nombre}</span>
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {boardTypeLabel(tablero.tipoTablero)}
+                </span>
+              </label>
+            ))}
+
+            {unavailableIds.map((id) => (
+              <div
+                key={id}
+                className="border-b bg-muted/40 px-3 py-2 text-sm text-muted-foreground last:border-b-0"
+              >
+                <label className="flex items-start gap-2">
+                  <PermissionCheckbox
+                    checked
+                    disabled={disabled}
+                    label={`Permitir tablero seleccionado no disponible ${id}`}
+                    onChange={(checked) => handleBoardChange(id, checked)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">Tablero seleccionado no disponible</span>
+                    <span className="block break-all font-mono text-[10px]">ID: {id}</span>
+                  </span>
+                </label>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </fieldset>
+  );
+}
+
+export function PermissionMatrix({
+  value,
+  onChange,
+  disabled = false,
+  tableros = [],
+  isLoading = false,
+  isError = false,
+  refetch,
+}: PermissionMatrixProps) {
   const matrix = normalizeMatrix(value);
 
   function updatePermission(recurso: RecursoCRM, patch: Partial<PermisoRecursoInput>) {
@@ -138,20 +278,12 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
     });
   }
 
-  function handleIdsChange(recurso: RecursoCRM, event: ChangeEvent<HTMLInputElement>) {
-    const ids = event.target.value
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean);
-    updatePermission(recurso, { idsPermitidos: ids });
-  }
-
   function setTemplate(template: PermissionTemplate) {
     onChange(applyPermissionTemplate(template).map(asInput));
   }
 
   return (
-    <section className="space-y-4 rounded-lg border bg-muted/20 p-3" aria-label="Matriz de permisos CRM">
+    <section className="space-y-4 rounded-lg border bg-muted/20 p-4" aria-label="Matriz de permisos CRM">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-medium">Permisos CRM</h3>
@@ -166,6 +298,7 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
               type="button"
               variant="outline"
               size="sm"
+              className="rounded-md"
               disabled={disabled}
               onClick={() => setTemplate(template)}
             >
@@ -175,9 +308,10 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
         </div>
       </div>
 
-      <div className="space-y-3">
-        {matrix.map((permission) => (
-          <div key={permission.recurso} className="rounded-md border bg-background p-3">
+      <div className="overflow-x-auto rounded-md border border-border">
+        <div className="min-w-[760px] space-y-2 p-1">
+          {matrix.map((permission) => (
+            <div key={permission.recurso} className="rounded-md border bg-background p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-36">
                 <p className="font-medium">{recursoLabels[permission.recurso]}</p>
@@ -187,11 +321,11 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
               <div className="flex flex-1 flex-wrap gap-x-4 gap-y-2">
                 {ACCIONES_PERMISO.map((accion) => (
                   <label key={accion} className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
                       checked={permission.acciones.includes(accion)}
                       disabled={disabled}
-                      onChange={(event) => updateAction(permission.recurso, accion, event.target.checked)}
+                      label={`${recursoLabels[permission.recurso]} ${accionLabels[accion]}`}
+                      onChange={(checked) => updateAction(permission.recurso, accion, checked)}
                     />
                     {accionLabels[accion]}
                   </label>
@@ -217,17 +351,16 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
             </div>
 
             {permission.alcance === 'TABLEROS_PERMITIDOS' && (
-              <label className="mt-3 block space-y-1 text-xs">
-                <span className="font-medium text-muted-foreground">IDs de tableros permitidos</span>
-                <Input
-                  value={idsToString(permission.idsPermitidos)}
-                  disabled={disabled}
-                  onChange={(event) => handleIdsChange(permission.recurso, event)}
-                  placeholder="UUID-1, UUID-2"
-                  aria-label={`IDs permitidos de ${recursoLabels[permission.recurso]}`}
-                />
-                <span className="text-muted-foreground">Separá los IDs con comas. El backend valida el alcance por fila.</span>
-              </label>
+              <BoardSelection
+                recurso={permission.recurso}
+                idsPermitidos={permission.idsPermitidos}
+                tableros={tableros}
+                isLoading={isLoading}
+                isError={isError}
+                refetch={refetch}
+                disabled={disabled}
+                onChange={(ids) => updatePermission(permission.recurso, { idsPermitidos: ids })}
+              />
             )}
 
             <div className="mt-3 grid gap-3 border-t pt-3 md:grid-cols-2">
@@ -256,11 +389,11 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
                       <div className="flex flex-wrap gap-x-4 gap-y-2">
                         {GRUPOS_SENSIBLES.map((grupo) => (
                           <label key={grupo} className="inline-flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
+                            <PermissionCheckbox
                               checked={groups.includes(grupo)}
                               disabled={disabled}
-                              onChange={(event) => updateGroup(permission.recurso, field, grupo, event.target.checked)}
+                              label={`${recursoLabels[permission.recurso]} ${grupoLabels[grupo]}`}
+                              onChange={(checked) => updateGroup(permission.recurso, field, grupo, checked)}
                             />
                             {grupoLabels[grupo]}
                           </label>
@@ -271,8 +404,9 @@ export function PermissionMatrix({ value, onChange, disabled = false }: Permissi
                 );
               })}
             </div>
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

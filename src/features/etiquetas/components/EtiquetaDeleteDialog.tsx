@@ -61,8 +61,8 @@ export function EtiquetaDeleteDialog({ open, onOpenChange, etiqueta }: EtiquetaD
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent className="w-[calc(100%-2rem)] rounded-xl border bg-card p-5 text-card-foreground shadow-xl sm:max-w-lg">
+        <AlertDialogHeader className="space-y-2 text-left">
           <AlertDialogTitle>
             {requiresConfirm ? 'La etiqueta está en uso' : '¿Eliminar etiqueta?'}
           </AlertDialogTitle>
@@ -73,17 +73,17 @@ export function EtiquetaDeleteDialog({ open, onOpenChange, etiqueta }: EtiquetaD
               </>
             )}
             {etiqueta && requiresConfirm && (
-              <span className="flex items-start gap-2 text-destructive">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>
-                  <strong>{etiqueta.nombre}</strong> está asignada a una o más fichas. Si continuás,
-                  se quitará de todas ellas. ¿Eliminar de todos modos?
-                </span>
+                <span className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 dark:text-amber-200">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                   <strong>{etiqueta.nombre}</strong> está asignada a una o más fichas. Si continúas,
+                   se quitará de todas ellas. ¿Eliminar de todos modos?
+                  </span>
               </span>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className="gap-2 border-t border-border pt-4">
           <AlertDialogCancel disabled={mutation.isPending || isLocked}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
