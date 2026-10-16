@@ -13,9 +13,11 @@ import { TareasListPage } from '../pages/TareasListPage';
 import { server } from '@/test/server';
 import { tableroTareasFixture, fichasFixture, columnasFixture } from '@/mocks/fixtures/tableros';
 import { tareasFixture } from '@/mocks/fixtures/tareas';
+import { usuariosFixture } from '@/mocks/fixtures/usuarios';
 
 const PRESETS_STORAGE_KEY = 'crm:list-presets:tareas';
 const LIST_RENDER_TIMEOUT = 3000;
+const ANA_TORRES_ID = usuariosFixture.find((usuario) => usuario.nombre === 'Ana Torres')!.id;
 
 beforeEach(() => {
   localStorage.removeItem(PRESETS_STORAGE_KEY);
@@ -101,9 +103,12 @@ describe('TareasListPage — render y tabla', () => {
     renderPage('/tareas?tab=lista');
 
     // El fixture tiene 7 tareas; comprobamos algunas
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
     expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
   });
 
@@ -111,9 +116,15 @@ describe('TareasListPage — render y tabla', () => {
     const user = userEvent.setup();
     renderPage('/tareas?tab=lista');
 
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+        expect(
+          screen.getByRole('status', { name: /mostrando todas las tareas, 7 tareas/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
 
     const tituloBtn = screen.getByRole('button', { name: 'Demo presencial con CTO' });
     await user.click(tituloBtn);
@@ -121,6 +132,42 @@ describe('TareasListPage — render y tabla', () => {
     await waitFor(() => {
       expect(screen.getByText('Detalle de la tarea')).toBeInTheDocument();
     });
+  });
+});
+
+describe('TareasListPage — resumen visible de alcance', () => {
+  it('muestra todas las tareas y el conteo con los filtros cerrados', async () => {
+    renderPage('/tareas');
+
+    expect(screen.getByRole('button', { name: /mostrar filtros/i })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+
+    await waitFor(() => {
+      const summary = screen.getByRole('status', { name: /mostrando todas las tareas/i });
+      expect(summary).toHaveTextContent('7 tareas');
+    });
+  });
+
+  it('muestra el nombre del responsable resuelto desde la URL de Mis tareas', async () => {
+    renderPage(`/tareas?responsable_id=${ANA_TORRES_ID}`);
+
+    await waitFor(() => {
+      const summary = screen.getByRole('status', { name: /mostrando tareas de ana torres/i });
+      expect(summary).toHaveTextContent('4 tareas');
+    });
+  });
+
+  it('muestra 0 tareas cuando el responsable seleccionado no tiene coincidencias', async () => {
+    renderPage('/tareas?tab=lista&responsable_id=responsable-sin-coincidencias');
+
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument(), {
+      timeout: LIST_RENDER_TIMEOUT,
+    });
+
+    const summary = screen.getByRole('status', { name: /responsable seleccionado/i });
+    expect(summary).toHaveTextContent('0 tareas');
   });
 });
 
@@ -181,7 +228,7 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
     await openFilters(user);
     const selectResponsable = screen.getByRole('combobox', { name: /responsable/i });
     await user.click(selectResponsable);
-    const opcionAdmin = await screen.findByRole('option', { name: /antonio franco/i });
+    const opcionAdmin = await screen.findByRole('option', { name: /ana torres/i });
     await user.click(opcionAdmin);
 
     // Dar tiempo para refetches potenciales
@@ -238,10 +285,13 @@ describe('TareasListPage — búsqueda client-side', () => {
     const input = screen.getByPlaceholderText(/buscar por título/i);
     await user.type(input, 'llamada');
 
-    await waitFor(() => {
-      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
-      expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+        expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
   });
 });
 
@@ -250,17 +300,23 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
     const user = userEvent.setup();
     renderPage('/tareas?tab=lista');
 
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
 
     await openFilters(user);
     await user.type(screen.getByPlaceholderText(/buscar por título/i), 'llamada');
 
-    await waitFor(() => {
-      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
-      expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+        expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
 
     await user.click(screen.getByRole('button', { name: /guardar vista/i }));
     const dialog = await screen.findByRole('dialog');
@@ -270,17 +326,23 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
     expect(localStorage.getItem(PRESETS_STORAGE_KEY)).toContain('Vista llamadas');
 
     await user.click(screen.getByRole('button', { name: /limpiar filtros/i }));
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
 
     await user.click(screen.getByRole('combobox', { name: /vistas guardadas/i }));
     await user.click(await screen.findByRole('option', { name: /vista llamadas/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
-      expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+        expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
 
     await user.click(screen.getByRole('button', { name: /eliminar vista vista llamadas/i }));
     expect(localStorage.getItem(PRESETS_STORAGE_KEY)).toBe('[]');
@@ -292,9 +354,12 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
 
     renderPage('/tareas?tab=lista');
 
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
     await openFilters(user);
     expect(screen.getByRole('combobox', { name: /vistas guardadas/i })).toBeInTheDocument();
   });
@@ -310,18 +375,24 @@ describe('TareasListPage — presets y Kanban filtrado', () => {
 
     renderPage('/tareas');
 
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
     expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
 
     await openFilters(user);
     await user.type(screen.getByPlaceholderText(/buscar por título/i), 'llamada');
 
-    await waitFor(() => {
-      expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
-      expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
+        expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
     expectCount('Mostrando 1 de 7 tareas');
     expect(screen.getByText('Pendiente')).toBeInTheDocument();
     expect(screen.getByText('En Curso')).toBeInTheDocument();
@@ -352,9 +423,12 @@ describe('TareasListPage — creación (enums del back)', () => {
     const user = userEvent.setup();
     renderPage('/tareas?tab=lista');
 
-    await waitFor(() => {
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
-    }, { timeout: LIST_RENDER_TIMEOUT });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument();
+      },
+      { timeout: LIST_RENDER_TIMEOUT },
+    );
 
     await user.click(screen.getByRole('button', { name: /nueva tarea/i }));
 
@@ -418,7 +492,9 @@ describe('TareasListPage — creación (enums del back)', () => {
     // Seleccionar trato
     const selectTrato = within(dialog).getByRole('combobox', { name: /trato/i });
     await user.click(selectTrato);
-    const tratoOption = await screen.findByRole('option', { name: /implementación crm innovatech/i });
+    const tratoOption = await screen.findByRole('option', {
+      name: /implementación crm innovatech/i,
+    });
     await user.click(tratoOption);
 
     // Completar título
@@ -442,7 +518,7 @@ describe('TareasListPage — creación (enums del back)', () => {
     });
     const selectResponsable = within(dialog).getByRole('combobox', { name: /responsable/i });
     await user.click(selectResponsable);
-    const responsableOption = await screen.findByRole('option', { name: /antonio franco/i });
+    const responsableOption = await screen.findByRole('option', { name: /ana torres/i });
     await user.click(responsableOption);
 
     // Fecha límite (requerida) — despliega el DateTimePicker inline y elige un día (hora default 09:00).
@@ -453,14 +529,14 @@ describe('TareasListPage — creación (enums del back)', () => {
 
     // Submit
     await user.click(within(dialog).getByRole('button', { name: /crear tarea/i }));
-  
+
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.objectContaining({
             titulo: 'Demo con cliente',
-            tipo: 'GENERAL',     // enum del back, NO 'demo'
-            prioridad: 'MEDIA',  // enum del back, NO 1
+            tipo: 'GENERAL', // enum del back, NO 'demo'
+            prioridad: 'MEDIA', // enum del back, NO 1
           }),
         }),
       );
@@ -484,9 +560,9 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
 
     // Tab Kanban debe estar activo por defecto
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // Tab Lista presente pero no activo
@@ -513,18 +589,18 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
 
     // Esperar que cargue y esté en Kanban
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     await user.click(screen.getByRole('tab', { name: /lista/i }));
 
     // Tab Lista ahora activo
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // URL debe tener ?tab=lista
@@ -555,24 +631,21 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
     renderPageWithLocation('/tareas?tab=lista');
 
     // Inicialmente tab Lista activo, tabla visible
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-      { timeout: LIST_RENDER_TIMEOUT },
-    );
+    await waitFor(() => expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(), {
+      timeout: LIST_RENDER_TIMEOUT,
+    });
 
     await user.click(screen.getByRole('tab', { name: /kanban/i }));
 
     // Tab Kanban ahora activo
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // URL debe quedar limpia (sin ?tab= — kanban es el fallback)
-    await waitFor(() =>
-      expect(screen.getByTestId('location-search').textContent).toBe(''),
-    );
+    await waitFor(() => expect(screen.getByTestId('location-search').textContent).toBe(''));
 
     // La tabla ya no es visible
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
@@ -588,10 +661,9 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
     renderPage('/tareas?tab=lista');
 
     // Tab Lista debe estar activo desde el inicio
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-      { timeout: LIST_RENDER_TIMEOUT },
-    );
+    await waitFor(() => expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(), {
+      timeout: LIST_RENDER_TIMEOUT,
+    });
 
     const tabLista = screen.getByRole('tab', { name: /lista/i });
     expect(tabLista.getAttribute('aria-selected')).toBe('true');
@@ -604,7 +676,9 @@ describe('TareasListPage — tabs Lista/Kanban', () => {
     expect(screen.getByRole('combobox', { name: /estado/i })).toBeInTheDocument();
 
     // Tab Kanban no activo
-    expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe('false');
+    expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+      'false',
+    );
   });
 });
 
@@ -624,15 +698,13 @@ describe('TareasListPage — coexistencia ?tab= y ?responsable_id=', () => {
     // Empezamos en Lista explícita con ?responsable_id=
     renderPageWithLocation('/tareas?tab=lista&responsable_id=user-1');
 
-    await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /lista/i })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole('tab', { name: /lista/i })).toBeInTheDocument());
 
     // Aseguramos que Lista está activo
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     await user.click(screen.getByRole('tab', { name: /kanban/i }));
@@ -661,9 +733,9 @@ describe('TareasListPage — coexistencia ?tab= y ?responsable_id=', () => {
 
     // Kanban activo por defecto
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     await user.click(screen.getByRole('tab', { name: /lista/i }));
@@ -689,9 +761,9 @@ describe('TareasListPage — coexistencia ?tab= y ?responsable_id=', () => {
 
     // Tab Kanban activo desde carga inicial (es el fallback/default)
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // La URL no tiene ?tab= (kanban es default) pero sí ?responsable_id=

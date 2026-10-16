@@ -15,7 +15,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { useAuthStore } from '@/store/authStore';
 
 // ── IDs de fixtures ────────────────────────────────────────────────────────────
-const USUARIO_ID = '22222222-2222-2222-2222-222222222222';
+const USUARIO_ID = 'b2000000-0000-4000-8000-000000000003';
 const TAREA_ID = 'e1111111-eeee-1111-eeee-111111111111'; // "Demo presencial con CTO"
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -42,8 +42,8 @@ beforeEach(() => {
     token: 'fake-token',
     usuario: {
       subject: 'sub-test',
-      username: 'María González',
-      email: 'maria@crm.test',
+      username: 'Andrés Navarro',
+      email: 'ventas@pipely.local',
       usuario_id: USUARIO_ID,
       super_usuario_id: 'super-uuid-001',
       roles: ['SUPER_USUARIO'],
@@ -77,21 +77,14 @@ describe('Routing tareas', () => {
     );
 
     // TareaDetailPage muestra el título de la tarea del fixture para TAREA_ID
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument());
   });
 
   it('(c) NavItem "Mis tareas" existe en el sidebar con href que contiene responsable_id del usuario logueado', () => {
     renderRoute(
       '/tareas',
       <Routes>
-        <Route
-          path="*"
-          element={
-            <Sidebar />
-          }
-        />
+        <Route path="*" element={<Sidebar />} />
       </Routes>,
     );
 
@@ -114,10 +107,10 @@ describe('Routing tareas', () => {
 
     // Esperar que la página cargue y que el trigger del Select de responsable
     // muestre el nombre del usuario una vez que los usuarios del fixture estén disponibles.
-    // María González está en el fixture de usuarios (id 22222222)
+    // Andrés Navarro está en el fixture de usuarios (id b200...003)
     await waitFor(() => {
       const responsableTrigger = screen.getByRole('combobox', { name: /responsable/i });
-      expect(responsableTrigger).toHaveTextContent('María González');
+      expect(responsableTrigger).toHaveTextContent('Andrés Navarro');
     });
   });
 });

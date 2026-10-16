@@ -38,11 +38,11 @@ beforeEach(() => {
   useAuthStore.setState({
     token: 'fake-token',
     usuario: {
-      subject: 'sub-admin',
-      username: 'admin_user',
-      email: 'admin@crm.test',
-      usuario_id: '11111111-1111-1111-1111-111111111111',
-      super_usuario_id: 'super-uuid-001',
+      subject: '8b43ac67-3c03-4804-ab09-40e3b7476940',
+      username: 'admin@pipely.local',
+      email: 'admin@pipely.local',
+      usuario_id: 'b2000000-0000-4000-8000-000000000001',
+      super_usuario_id: '4ab7b99c-d50a-47f2-a6ce-aac0dca34996',
       roles: ['SUPER_USUARIO'],
     },
   });
@@ -69,11 +69,9 @@ describe('RolesListPage', () => {
     const Wrapper = makeWrapper();
     render(<RolesListPage />, { wrapper: Wrapper });
 
-    // MSW responde con rolesFixture → 'Administrador' y 'Usuario'
-    await waitFor(() =>
-      expect(screen.getByText('Administrador')).toBeInTheDocument(),
-    );
-    expect(screen.getByText('Usuario')).toBeInTheDocument();
+    // MSW responde con rolesFixture → 'Administrador' y 'Consulta'
+    await waitFor(() => expect(screen.getByText('Administrador')).toBeInTheDocument());
+    expect(screen.getByText('Consulta')).toBeInTheDocument();
   });
 
   it('al click en "Nuevo rol" abre el diálogo con heading "Nuevo rol"', async () => {
@@ -82,16 +80,12 @@ describe('RolesListPage', () => {
     render(<RolesListPage />, { wrapper: Wrapper });
 
     // Esperar que carguen los datos antes de interactuar
-    await waitFor(() =>
-      expect(screen.getByText('Administrador')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Administrador')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /nuevo rol/i }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(
-      screen.getByRole('heading', { name: /nuevo rol/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /nuevo rol/i })).toBeInTheDocument();
     expect(dialog).toBeInTheDocument();
   });
 });

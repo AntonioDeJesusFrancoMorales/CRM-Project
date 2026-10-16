@@ -9,7 +9,7 @@ const API = '/api';
 
 // Usuario "logueado" del mock (coincide con creadoPor de las fixtures). En el back real
 // el filtro por usuario sale del JWT; acá devolvemos toda la fixture como "mi agenda".
-const MOCK_USUARIO_ID = '550e8400-e29b-41d4-a716-446655440001';
+const MOCK_USUARIO_ID = 'b2000000-0000-4000-8000-000000000001';
 
 export const agendaHandlers = [
   // GET /api/agendas/get-all-by-user — agenda del usuario autenticado (mock: toda la fixture)

@@ -34,7 +34,7 @@ describe('tratoFilters', () => {
     const result = applyTratoFilters(tratosFixture, {
       search: '',
       tipoContrato: 'LICENCIA',
-      responsableId: '22222222-2222-2222-2222-222222222222',
+      responsableId: 'b2000000-0000-4000-8000-000000000003',
     });
 
     expect(result).toHaveLength(1);

@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-const USUARIO_ID = '11111111-1111-1111-1111-111111111111';
+const USUARIO_ID = 'b2000000-0000-4000-8000-000000000001';
 const NONEXISTENT_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 
 describe('GET /api/usuarios/get-all — retorna lista con campos del back', () => {
@@ -96,7 +96,11 @@ describe('PUT /api/usuarios/edit?id= — actualiza usuario con PUT y query param
     const res = await fetch(`/api/usuarios/edit?id=${USUARIO_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: 'Actualizado', correo: 'admin@crm.test', rolId: 'rol-admin-uuid' }),
+      body: JSON.stringify({
+        nombre: 'Actualizado',
+        correo: 'admin@pipely.local',
+        rolId: 'rol-admin-uuid',
+      }),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as { id: string; nombre: string };

@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 
 // Roles del fixture — ambos tienen usuarios asignados (regla 409 al borrar).
-const ROL_CON_USUARIOS = 'rol-admin-uuid-1111-111111111111';
+const ROL_CON_USUARIOS = 'a022c4fb-c079-4072-a4e8-dd7e4f5789df';
 const NONEXISTENT_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 
 describe('GET /api/roles/get-all — retorna lista de roles', () => {

@@ -57,7 +57,9 @@ describe('tareasFixture — invariantes (nuevo contrato camelCase)', () => {
     const tratos = new Set(tareasFixture.map((t) => t.tratoId));
     expect(tratos.has('d1111111-dddd-1111-dddd-111111111111')).toBe(true);
     expect(tratos.has('d2222222-dddd-2222-dddd-222222222222')).toBe(true);
-    expect(tareasFixture.filter((t) => t.tratoId === 'd3333333-dddd-3333-dddd-333333333333')).toHaveLength(0);
+    expect(
+      tareasFixture.filter((t) => t.tratoId === 'd3333333-dddd-3333-dddd-333333333333'),
+    ).toHaveLength(0);
   });
 });
 
@@ -123,7 +125,7 @@ describe('POST /api/tareas/create — crea tarea con tratoId en el body', () => 
   it('responde 201 y retorna la tarea creada; tratoId viene del body (no del path)', async () => {
     const body = {
       tratoId: TRATO_ID,
-      responsableId: '11111111-1111-1111-1111-111111111111',
+      responsableId: 'b2000000-0000-4000-8000-000000000001',
       titulo: 'Tarea nueva',
       tipo: 'GENERAL',
       prioridad: 'ALTA',
@@ -169,8 +171,12 @@ describe('PUT /api/tareas/edit?id= — actualiza tarea con PUT', () => {
 
 describe('DELETE /api/tareas/delete?id= — elimina tarea', () => {
   it('responde 204 al eliminar tarea existente', async () => {
-    // Usamos una tarea del fixture sin invariante crítica
-    const res = await fetch(`/api/tareas/delete?id=${TAREA_ID}`, {
+    // Usamos una copia desechable para no mutar la tarea canónica compartida
+    // con los tests de dashboard, listado y detalle.
+    const disposableId = 'delete-only-tarea-fixture';
+    tareasFixture.push({ ...tareasFixture[0]!, id: disposableId });
+
+    const res = await fetch(`/api/tareas/delete?id=${disposableId}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(204);

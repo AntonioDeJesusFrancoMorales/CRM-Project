@@ -7,7 +7,7 @@ import { usuariosKeys } from '../hooks/useUsuarios';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
-const EXISTING_ID = '11111111-1111-1111-1111-111111111111';
+const EXISTING_ID = 'b2000000-0000-4000-8000-000000000001';
 
 describe('useDeleteUsuario', () => {
   it('envia DELETE /api/usuarios/delete?id= (id como query param, no path)', async () => {
@@ -47,9 +47,7 @@ describe('useDeleteUsuario', () => {
 
   it('muestra toast "Usuario eliminado" en éxito', async () => {
     // Forzamos 204 para que el test no dependa del estado mutable del fixture.
-    server.use(
-      http.delete('/api/usuarios/delete', () => new HttpResponse(null, { status: 204 })),
-    );
+    server.use(http.delete('/api/usuarios/delete', () => new HttpResponse(null, { status: 204 })));
 
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useDeleteUsuario(), { wrapper: Wrapper });

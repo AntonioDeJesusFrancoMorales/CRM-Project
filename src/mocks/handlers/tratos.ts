@@ -109,7 +109,7 @@ export const tratosHandlers = [
     const nota: NotaTrato = {
       id: crypto.randomUUID(),
       tratoId,
-      autorId: 'b0000001-0000-0000-0000-000000000001',
+      autorId: 'b2000000-0000-4000-8000-000000000001',
       tipo: 'NOTA',
       contenido: body.contenido ?? '',
       creadoEn: nowIso(),

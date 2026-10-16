@@ -20,7 +20,7 @@ export const comentariosHandlers = [
     const c: Comentario = {
       id: crypto.randomUUID(),
       ficha_id: String(params['id']),
-      usuario_id: '11111111-1111-1111-1111-111111111111',
+      usuario_id: 'b2000000-0000-4000-8000-000000000001',
       contenido: String(body.contenido ?? ''),
       creado_en: nowIso(),
     };

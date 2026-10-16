@@ -102,12 +102,12 @@ describe('TratoDetailPage', () => {
       ).toBeInTheDocument(),
     );
 
-    // d1111111 tiene contactoId=b1111111 (Carlos) y responsableId=22222222 (María González)
+    // d1111111 tiene contactoId=b1111111 (Carlos) y responsableId=b200...003 (Andrés Navarro)
     // Contacto y responsable resuelven en queries async distintas: ambas aserciones
     // van dentro del MISMO waitFor para no depender de que resuelvan en el mismo tick.
     await waitFor(() => {
       expect(screen.getByText('Carlos')).toBeInTheDocument();
-      expect(screen.getByText('María González')).toBeInTheDocument();
+      expect(screen.getByText('Andrés Navarro')).toBeInTheDocument();
     });
   });
 
@@ -173,9 +173,7 @@ describe('TratoDetailPage', () => {
 
     await user.click(screen.getByRole('tab', { name: /tareas/i }));
 
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument());
     expect(screen.getByText('Llamada de seguimiento post-demo')).toBeInTheDocument();
   });
 
@@ -212,7 +210,7 @@ describe('TratoDetailPage', () => {
           {
             id: 'e9999999-eeee-9999-eeee-999999999999',
             tratoId: TRATO_D1,
-            responsableId: '22222222-2222-2222-2222-222222222222',
+            responsableId: 'b2000000-0000-4000-8000-000000000003',
             titulo: 'Tarea desde tab',
             descripcion: null,
             tipo: 'GENERAL',
@@ -247,8 +245,8 @@ describe('TratoDetailPage', () => {
 
     const responsableSelect = within(dialog).getByRole('combobox', { name: /responsable/i });
     await user.click(responsableSelect);
-    const opcionMaria = await screen.findByRole('option', { name: /maría/i });
-    await user.click(opcionMaria);
+    const opcionAndres = await screen.findByRole('option', { name: /andrés/i });
+    await user.click(opcionAndres);
 
     const tipoSelect = within(dialog).getByRole('combobox', { name: /tipo/i });
     await user.click(tipoSelect);
@@ -284,9 +282,7 @@ describe('TratoDetailPage', () => {
     const tabTareas = screen.getByRole('tab', { name: /tareas/i });
     expect(tabTareas.getAttribute('aria-selected')).toBe('true');
 
-    await waitFor(() =>
-      expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Demo presencial con CTO')).toBeInTheDocument());
   });
 
   // ── (k) click tab Tareas → URL refleja ?tab=tareas ────────────────────────
@@ -306,9 +302,9 @@ describe('TratoDetailPage', () => {
     await user.click(screen.getByRole('tab', { name: /tareas/i }));
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /tareas/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /tareas/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
   });
 

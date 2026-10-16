@@ -14,10 +14,12 @@ vi.mock('@/features/permissions/context', () => ({
   usePermissions: usePermissionsMock,
 }));
 
-function createPermissions(overrides: {
-  canAny?: () => boolean;
-  canReadGroup?: (_resource: string, group: string) => boolean;
-} = {}) {
+function createPermissions(
+  overrides: {
+    canAny?: () => boolean;
+    canReadGroup?: (_resource: string, group: string) => boolean;
+  } = {},
+) {
   return {
     status: 'resolved',
     error: undefined,
@@ -152,11 +154,11 @@ describe('DashboardPage', () => {
     if (!close) throw new Error('Expected the upcoming-close link');
     await waitFor(() => {
       expect(close).toHaveTextContent('Carlos');
-      expect(close).toHaveTextContent('María González');
+      expect(close).toHaveTextContent('Andrés Navarro');
     });
     expect(close).toHaveAttribute('href', '/tratos/d1111111-dddd-1111-dddd-111111111111');
     expect(close).toHaveTextContent('Carlos');
-    expect(close).toHaveTextContent('María González');
+    expect(close).toHaveTextContent('Andrés Navarro');
     expect(close).toHaveTextContent('70%');
     expect(close).toHaveTextContent('$250,000');
 

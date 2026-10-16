@@ -3,8 +3,8 @@
  * T5.1 RED → T5.2 GREEN (Strict TDD — Lote C)
  *
  * Fixtures:
- *  - usr_admin: id='11111111-1111-1111-1111-111111111111', nombre='Antonio Franco', rol_sistema='admin', activo=true
- *  - usr_vendedor: id='22222222-2222-2222-2222-222222222222', nombre='María González', rol_sistema='usuario', activo=true
+ *  - usr_admin: id='b2000000-0000-4000-8000-000000000001', nombre='Ana Torres', rol_sistema='admin', activo=true
+ *  - usr_consulta: id='b2000000-0000-4000-8000-000000000002', nombre='Laura Méndez', rol_sistema='usuario', activo=true
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -22,7 +22,7 @@ import { UsuariosListPage } from '../pages/UsuariosListPage';
 
 // ─── IDs de los fixtures ──────────────────────────────────────────────────────
 
-const ADMIN_ID = '11111111-1111-1111-1111-111111111111';
+const ADMIN_ID = 'b2000000-0000-4000-8000-000000000001';
 
 // ─── Wrapper con TooltipProvider ─────────────────────────────────────────────
 
@@ -52,8 +52,8 @@ beforeEach(() => {
     token: 'fake-token',
     usuario: {
       subject: 'sub-admin',
-      username: 'Antonio Franco',
-      email: 'admin@crm.test',
+      username: 'Ana Torres',
+      email: 'admin@pipely.local',
       usuario_id: ADMIN_ID,
       super_usuario_id: 'super-uuid-001',
       roles: ['SUPER_USUARIO'],
@@ -68,10 +68,8 @@ describe('UsuariosListPage', () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Antonio Franco')).toBeInTheDocument(),
-    );
-    expect(screen.getByText('María González')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Ana Torres')).toBeInTheDocument());
+    expect(screen.getByText('Laura Méndez')).toBeInTheDocument();
   });
 
   it('filtra usuarios al escribir en el campo de búsqueda', async () => {
@@ -79,24 +77,20 @@ describe('UsuariosListPage', () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Antonio Franco')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Ana Torres')).toBeInTheDocument());
 
     const input = screen.getByPlaceholderText(/buscar por nombre/i);
-    await user.type(input, 'antonio');
+    await user.type(input, 'ana torres');
 
-    expect(screen.getByText('Antonio Franco')).toBeInTheDocument();
-    expect(screen.queryByText('María González')).not.toBeInTheDocument();
+    expect(screen.getByText('Ana Torres')).toBeInTheDocument();
+    expect(screen.queryByText('Laura Méndez')).not.toBeInTheDocument();
   });
 
   it('filtra por rol al cambiar el select de filtro a "Administrador"', async () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Antonio Franco')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Ana Torres')).toBeInTheDocument());
 
     // El Select de Radix no soporta userEvent.click en jsdom (hasPointerCapture no disponible).
     // Disparamos el evento de cambio directamente sobre el botón del select usando fireEvent.
@@ -107,15 +101,13 @@ describe('UsuariosListPage', () => {
     fireEvent.keyDown(selectTrigger, { key: 'ArrowDown' });
 
     // El select muestra las opciones con nombres reales del fixture de roles:
-    //   'Administrador' (rolId de Antonio) y 'Usuario' (rolId de María)
+    //   'Administrador' (rolId de Ana) y 'Consulta' (rolId de Laura)
     const adminOption = await screen.findByRole('option', { name: /^administrador$/i });
     fireEvent.click(adminOption);
 
-    // Solo debe quedar Antonio (Administrador); María (Usuario) debe desaparecer
-    await waitFor(() =>
-      expect(screen.queryByText('María González')).not.toBeInTheDocument(),
-    );
-    expect(screen.getByText('Antonio Franco')).toBeInTheDocument();
+    // Solo debe quedar Ana (Administrador); Laura (Consulta) debe desaparecer
+    await waitFor(() => expect(screen.queryByText('Laura Méndez')).not.toBeInTheDocument());
+    expect(screen.getByText('Ana Torres')).toBeInTheDocument();
   });
 
   it('abre el diálogo "Nuevo usuario" al hacer click en el botón', async () => {
@@ -123,16 +115,12 @@ describe('UsuariosListPage', () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Antonio Franco')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Ana Torres')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /nuevo usuario/i }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByRole('heading', { name: /nuevo usuario/i }),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: /nuevo usuario/i })).toBeInTheDocument();
   });
 
   it('abre el diálogo "Editar usuario" con datos precargados', async () => {
@@ -140,13 +128,11 @@ describe('UsuariosListPage', () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('María González')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Laura Méndez')).toBeInTheDocument());
 
-    // Abre el DropdownMenu de la fila de María González
+    // Abre el DropdownMenu de la fila de Laura Méndez
     const actionButtons = screen.getAllByRole('button', { name: /acciones/i });
-    // La segunda fila es María González (índice 1)
+    // La segunda fila es Laura Méndez (índice 1)
     await user.click(actionButtons[1]!);
 
     // Click en "Editar"
@@ -155,13 +141,11 @@ describe('UsuariosListPage', () => {
 
     // Debe aparecer el dialog de edición con datos precargados
     const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByRole('heading', { name: /editar usuario/i }),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: /editar usuario/i })).toBeInTheDocument();
 
-    // El input nombre debe tener el valor de María González
+    // El input nombre debe tener el valor de Laura Méndez
     const nombreInput = within(dialog).getByLabelText(/nombre completo/i);
-    expect(nombreInput).toHaveValue('María González');
+    expect(nombreInput).toHaveValue('Laura Méndez');
   });
 
   it('bloquea "Eliminar" en la fila de la cuenta propia (no hay Desactivar/Reactivar)', async () => {
@@ -169,11 +153,9 @@ describe('UsuariosListPage', () => {
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
-    await waitFor(() =>
-      expect(screen.getByText('Antonio Franco')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Ana Torres')).toBeInTheDocument());
 
-    // La primera fila es Antonio Franco (cuenta propia — ADMIN_ID)
+    // La primera fila es Ana Torres (cuenta propia — ADMIN_ID)
     const actionButtons = screen.getAllByRole('button', { name: /acciones/i });
     await user.click(actionButtons[0]!);
 
@@ -188,21 +170,15 @@ describe('UsuariosListPage', () => {
 
   // W1 — empty state: handler retorna [] → muestra texto real del componente
   it('muestra empty state cuando el listado está vacío', async () => {
-    server.use(
-      http.get('/api/usuarios/get-all', () => HttpResponse.json([], { status: 200 })),
-    );
+    server.use(http.get('/api/usuarios/get-all', () => HttpResponse.json([], { status: 200 })));
 
     const Wrapper = makeWrapper();
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
     await waitFor(() =>
-      expect(
-        screen.getByText('Aún no hay usuarios registrados.'),
-      ).toBeInTheDocument(),
+      expect(screen.getByText('Aún no hay usuarios registrados.')).toBeInTheDocument(),
     );
-    expect(
-      screen.getByRole('button', { name: /crear primer usuario/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /crear primer usuario/i })).toBeInTheDocument();
   });
 
   // W2 — error 500: muestra estado de error con botón "Reintentar"
@@ -220,9 +196,7 @@ describe('UsuariosListPage', () => {
     render(<UsuariosListPage />, { wrapper: Wrapper });
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /reintentar/i }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument(),
     );
     // La tabla NO debe renderizarse en estado de error
     expect(screen.queryByRole('table')).not.toBeInTheDocument();

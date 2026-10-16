@@ -8,7 +8,7 @@ export const tratosFixture: Trato[] = [
   {
     id: 'd1111111-dddd-1111-dddd-111111111111',
     contactoId: 'b1111111-bbbb-1111-bbbb-111111111111',
-    responsableId: '22222222-2222-2222-2222-222222222222',
+    responsableId: 'b2000000-0000-4000-8000-000000000003',
     nombre: 'Implementación CRM Innovatech',
     valorEstimado: 250000,
     probabilidad: 70,
@@ -22,7 +22,7 @@ export const tratosFixture: Trato[] = [
   {
     id: 'd2222222-dddd-2222-dddd-222222222222',
     contactoId: 'c1111111-cccc-1111-cccc-111111111111',
-    responsableId: '22222222-2222-2222-2222-222222222222',
+    responsableId: 'b2000000-0000-4000-8000-000000000003',
     nombre: 'Renovación licencia anual Innovatech',
     valorEstimado: 180000,
     probabilidad: 90,
@@ -36,7 +36,7 @@ export const tratosFixture: Trato[] = [
   {
     id: 'd3333333-dddd-3333-dddd-333333333333',
     contactoId: 'c2222222-cccc-2222-cccc-222222222222',
-    responsableId: '11111111-1111-1111-1111-111111111111',
+    responsableId: 'b2000000-0000-4000-8000-000000000001',
     nombre: 'Consultoría procesos Maya',
     valorEstimado: 95000,
     probabilidad: 50,
@@ -50,7 +50,7 @@ export const tratosFixture: Trato[] = [
   {
     id: 'd4444444-dddd-4444-dddd-444444444444',
     contactoId: 'c1111111-cccc-1111-cccc-111111111111',
-    responsableId: '22222222-2222-2222-2222-222222222222',
+    responsableId: 'b2000000-0000-4000-8000-000000000003',
     nombre: 'Portal B2B Innovatech',
     valorEstimado: 320000,
     probabilidad: 100,
@@ -64,7 +64,7 @@ export const tratosFixture: Trato[] = [
   {
     id: 'd5555555-dddd-5555-dddd-555555555555',
     contactoId: 'b1111111-bbbb-1111-bbbb-111111111111',
-    responsableId: '11111111-1111-1111-1111-111111111111',
+    responsableId: 'b2000000-0000-4000-8000-000000000001',
     nombre: 'Automatización logística Maya',
     valorEstimado: 75000,
     probabilidad: 0,

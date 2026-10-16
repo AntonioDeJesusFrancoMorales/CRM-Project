@@ -144,6 +144,16 @@ export function TareasListPage() {
     [tareasFiltradas],
   );
   const hasFilters = hasActiveTareaFilters(filters);
+  const responsableNombre = filters.responsableId
+    ? usuariosById[filters.responsableId]
+    : undefined;
+  const scopeSummary = filters.responsableId
+    ? responsableNombre
+      ? `Mostrando tareas de ${responsableNombre}`
+      : 'Mostrando tareas del responsable seleccionado'
+    : 'Mostrando todas las tareas';
+  const filteredTaskCount = tareasFiltradas.length;
+  const filteredTaskCountLabel = `${filteredTaskCount} ${filteredTaskCount === 1 ? 'tarea' : 'tareas'}`;
 
   if (!canRead) return <AccessDeniedView resource="TAREA" />;
 
@@ -265,6 +275,22 @@ export function TareasListPage() {
           )}
           {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
         </Button>
+      </div>
+
+      <div className="mx-auto w-full max-w-[1400px]">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={`${scopeSummary}, ${filteredTaskCountLabel}`}
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+        >
+          <span>{scopeSummary}</span>
+          <span aria-hidden="true" className="text-muted-foreground">
+            ·
+          </span>
+          <span className="font-medium tabular-nums text-foreground">{filteredTaskCountLabel}</span>
+        </div>
       </div>
 
       <div

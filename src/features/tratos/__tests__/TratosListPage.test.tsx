@@ -115,9 +115,7 @@ describe('TratosListPage', () => {
 
     await user.click(screen.getByText('Implementación CRM Innovatech'));
 
-    await waitFor(() =>
-      expect(screen.getByText('Detalle del trato')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Detalle del trato')).toBeInTheDocument());
   });
 
   it('búsqueda por nombre filtra client-side', async () => {
@@ -162,9 +160,7 @@ describe('TratosListPage', () => {
 
     await user.click(screen.getByRole('button', { name: /nuevo trato/i }));
 
-    await waitFor(() =>
-      expect(screen.getByRole('dialog')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: /nuevo trato/i })).toBeInTheDocument();
   });
 
@@ -180,9 +176,9 @@ describe('TratosListPage', () => {
 
     // Tab Kanban activo por defecto — esperar que cargue
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // Sin toggle de tipo button — el control de vista usa tabs (role="tab"), no buttons
@@ -231,7 +227,7 @@ describe('TratosListPage — filtros avanzados y presets', () => {
 
     await openFilters(user);
     await user.click(screen.getByRole('combobox', { name: /responsable/i }));
-    await user.click(await screen.findByRole('option', { name: /antonio franco/i }));
+    await user.click(await screen.findByRole('option', { name: /ana torres/i }));
 
     await waitFor(() =>
       expect(screen.queryByText('Implementación CRM Innovatech')).not.toBeInTheDocument(),
@@ -334,9 +330,9 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
 
     // Tab Kanban debe estar activo por defecto
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // Tab Lista presente pero no activo
@@ -361,18 +357,18 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
 
     // Esperar que cargue y esté en Kanban
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     await user.click(screen.getByRole('tab', { name: /lista/i }));
 
     // Tab Lista ahora activo
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /lista/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // URL debe tener ?tab=lista
@@ -399,23 +395,19 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
     renderPageWithLocation('/tratos?tab=lista');
 
     // Inicialmente tab Lista activo
-    await waitFor(() =>
-      expect(screen.getByRole('table')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
 
     await user.click(screen.getByRole('tab', { name: /kanban/i }));
 
     // Tab Kanban ahora activo
     await waitFor(() =>
-      expect(
-        screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected'),
-      ).toBe('true'),
+      expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
     );
 
     // URL debe quedar limpia (sin ?tab= — kanban es el fallback)
-    await waitFor(() =>
-      expect(screen.getByTestId('location-search').textContent).toBe(''),
-    );
+    await waitFor(() => expect(screen.getByTestId('location-search').textContent).toBe(''));
 
     // La tabla ya no es visible
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
@@ -436,6 +428,8 @@ describe('TratosListPage — tabs Lista/Kanban', () => {
     expect(screen.getByRole('table')).toBeInTheDocument();
 
     // Tab Kanban no activo
-    expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe('false');
+    expect(screen.getByRole('tab', { name: /kanban/i }).getAttribute('aria-selected')).toBe(
+      'false',
+    );
   });
 });

@@ -7,7 +7,7 @@ import { rolesKeys } from '../hooks/useRoles';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
-const ROL_ID = 'rol-admin-uuid-1111-111111111111';
+const ROL_ID = 'a022c4fb-c079-4072-a4e8-dd7e4f5789df';
 
 describe('useEditRol', () => {
   it('envia PUT /api/roles/edit?id= (id como query param, no path)', async () => {

@@ -7,7 +7,7 @@ import { usuariosKeys } from '../hooks/useUsuarios';
 import { setupTestWrapper } from '@/test/wrappers';
 import { server } from '@/test/server';
 
-const USUARIO_ID = '11111111-1111-1111-1111-111111111111';
+const USUARIO_ID = 'b2000000-0000-4000-8000-000000000001';
 
 describe('useEditUsuario', () => {
   it('envia PUT /api/usuarios/edit?id= con id como query param (no path)', async () => {
@@ -21,8 +21,8 @@ describe('useEditUsuario', () => {
         return HttpResponse.json({
           id: USUARIO_ID,
           nombre: 'Carlos Lopez',
-          correo: 'admin@crm.test',
-          rolId: 'rol-admin-uuid-1111-111111111111',
+          correo: 'admin@pipely.local',
+          rolId: 'a022c4fb-c079-4072-a4e8-dd7e4f5789df',
           creadoEn: '2026-01-15T10:00:00Z',
           activo: true,
           keycloakId: null,
@@ -33,7 +33,11 @@ describe('useEditUsuario', () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useEditUsuario(USUARIO_ID), { wrapper: Wrapper });
 
-    result.current.mutate({ nombre: 'Carlos Lopez', correo: 'admin@crm.test', rolId: 'rol-admin-uuid-1111-111111111111' });
+    result.current.mutate({
+      nombre: 'Carlos Lopez',
+      correo: 'admin@pipely.local',
+      rolId: 'a022c4fb-c079-4072-a4e8-dd7e4f5789df',
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -51,8 +55,8 @@ describe('useEditUsuario', () => {
         return HttpResponse.json({
           id: USUARIO_ID,
           nombre: 'Test',
-          correo: 'admin@crm.test',
-          rolId: 'rol-admin-uuid-1111-111111111111',
+          correo: 'admin@pipely.local',
+          rolId: 'a022c4fb-c079-4072-a4e8-dd7e4f5789df',
           creadoEn: '2026-01-15T10:00:00Z',
           activo: true,
           keycloakId: null,
@@ -63,7 +67,11 @@ describe('useEditUsuario', () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useEditUsuario(USUARIO_ID), { wrapper: Wrapper });
 
-    result.current.mutate({ nombre: 'Test', correo: 'admin@crm.test', rolId: 'rol-admin-uuid-1111-111111111111' });
+    result.current.mutate({
+      nombre: 'Test',
+      correo: 'admin@pipely.local',
+      rolId: 'a022c4fb-c079-4072-a4e8-dd7e4f5789df',
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -80,7 +88,11 @@ describe('useEditUsuario', () => {
 
     const { result } = renderHook(() => useEditUsuario(USUARIO_ID), { wrapper: Wrapper });
 
-    result.current.mutate({ nombre: 'Updated', correo: 'admin@crm.test', rolId: 'rol-admin-uuid-1111-111111111111' });
+    result.current.mutate({
+      nombre: 'Updated',
+      correo: 'admin@pipely.local',
+      rolId: 'a022c4fb-c079-4072-a4e8-dd7e4f5789df',
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -106,7 +118,11 @@ describe('useEditUsuario', () => {
     const { Wrapper } = setupTestWrapper();
     const { result } = renderHook(() => useEditUsuario(USUARIO_ID), { wrapper: Wrapper });
 
-    result.current.mutate({ nombre: 'X', correo: 'dup@dup.com', rolId: 'rol-admin-uuid-1111-111111111111' });
+    result.current.mutate({
+      nombre: 'X',
+      correo: 'dup@dup.com',
+      rolId: 'a022c4fb-c079-4072-a4e8-dd7e4f5789df',
+    });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 

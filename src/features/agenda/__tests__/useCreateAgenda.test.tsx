@@ -28,7 +28,7 @@ describe('useCreateAgenda', () => {
             tratoId: null,
             ubicacion: null,
             linkVideollamada: null,
-            creadoPor: '550e8400-e29b-41d4-a716-446655440001',
+            creadoPor: 'b2000000-0000-4000-8000-000000000001',
             creadoEn: '2026-06-06T00:00:00.000Z',
             actualizadoEn: '2026-06-06T00:00:00.000Z',
             recordatorioHabilitado: true,

@@ -1,122 +1,191 @@
-# Pipely — CRM Frontend
+# Pipely — CRM local
 
-CRM en React + TypeScript desarrollado como proyecto de residencia profesional universitaria. Frontend desacoplado del backend mediante un contrato de API simulado con MSW (Mock Service Worker), lo que permite desarrollar la SPA en paralelo a la implementación del backend en Spring.
+Guía breve para levantar el frontend React y el backend Spring del CRM desde cero. El frontend vive en este repositorio y el backend se mantiene en el repositorio hermano `AR-CRM`.
 
-## Stack técnico
+> **Solo desarrollo local:** las cuentas de demo y sus contraseñas están documentadas en [`docs/credenciales-demo.md`](docs/credenciales-demo.md). Son ficticias, no son secretos de producción y nunca deben reutilizarse fuera de un entorno local.
 
-- **Framework**: React 18 + Vite + TypeScript estricto
-- **Estado servidor**: TanStack Query v5
-- **Estado cliente**: Zustand (con `persist` para sesión)
-- **Routing**: React Router v7
-- **UI**: TailwindCSS + shadcn/ui (Radix primitives)
-- **Formularios**: React Hook Form + Zod (validación tipada)
-- **Mock backend**: MSW v2 con fixtures y handlers por dominio
-- **Testing**: Vitest + Testing Library + jsdom
-- **Calidad**: ESLint + Prettier + type-check
+## 1. Requisitos
 
-## Estructura del proyecto
+- Node.js **20 o superior**.
+- pnpm **10.33.2** (el `package.json` fija esta versión mediante `packageManager`).
+- Java **21** para el backend.
+- Docker Desktop con Docker Compose.
+- Git.
 
-```
-src/
-├── api/                    # Cliente HTTP, contrato de tipos, errores normalizados
-├── components/
-│   ├── layout/             # AppShell, ProtectedRoute, RoleGuard, Sidebar
-│   └── ui/                 # Primitives shadcn (table, dialog, form, etc.)
-├── features/               # Feature-first (screaming architecture)
-│   ├── auth/               # Login + persistencia de sesión
-│   └── empresas/           # CRUD de empresas + prospectos/clientes vinculados
-│       ├── components/     # Componentes presentacionales puros
-│       ├── hooks/          # TanStack Query hooks (query keys + mutations)
-│       ├── pages/          # Páginas que componen la feature
-│       ├── schemas/        # Validadores Zod
-│       └── __tests__/      # Tests por hook y por página
-├── lib/                    # Helpers compartidos (format, form-utils)
-├── mocks/                  # MSW handlers + fixtures
-├── routes/                 # Definición del router
-├── stores/                 # Stores Zustand
-└── test/                   # Setup de Vitest + wrappers de testing
-```
-
-## Requisitos
-
-- **Node.js** ≥ 20
-- **pnpm** ≥ 9 (`corepack enable` recomendado)
-
-## Puesta en marcha
+Comprueba las herramientas antes de continuar:
 
 ```bash
-pnpm install
-cp .env.example .env.development   # solo si no existe — el repo ya lo incluye
-pnpm dev                            # abre http://localhost:5173
+node --version
+pnpm --version
+java --version
+docker-compose --version
 ```
 
-### Credenciales del mock para login
+## 2. Clonar y organizar los repositorios
 
-| Email                 | Contraseña | Rol      |
-| --------------------- | ---------- | -------- |
-| `admin@pipely.test`   | `admin123` | admin    |
-| `usuario@pipely.test` | `user123`  | usuario  |
+El backend no es una subcarpeta de este repositorio. Usa una carpeta de trabajo común para que ambos queden como hermanos:
 
-## Modo de backend
+```bash
+mkdir pipely-local
+cd pipely-local
+git clone https://github.com/AntonioDeJesusFrancoMorales/CRM-Project.git CRM-Project
+git clone https://github.com/ARTECTEAM/AR-CRM.git AR-CRM
+cd CRM-Project
+```
 
-El frontend funciona contra el mock (MSW) por defecto, pero puede apuntar al backend Spring real cambiando `.env.development`:
+Resultado esperado:
 
-**Modo mock (default — recomendado para desarrollo)**:
+```text
+pipely-local/
+├── CRM-Project/   # frontend React + Vite
+└── AR-CRM/        # backend Spring Boot + Docker Compose
+```
+
+## 3. Instalar el frontend
+
+Desde `CRM-Project/`:
+
+```bash
+corepack enable
+corepack prepare pnpm@10.33.2 --activate
+pnpm install
+```
+
+El repositorio sólo incluye `.env.development.example`; el archivo `.env.development` se crea localmente a partir de esa plantilla:
+
+```bash
+cp .env.development.example .env.development
+```
+
+En PowerShell, usa `Copy-Item .env.development.example .env.development`.
+
+## 4. Levantar la infraestructura local
+
+Desde `AR-CRM/`:
+
+```bash
+docker-compose up -d postgres keycloak-db keycloak
+docker-compose ps
+```
+
+Si tu instalación sólo reconoce el plugin moderno, reemplaza `docker-compose` por `docker compose` en estos comandos.
+
+Espera a que PostgreSQL y `keycloak-db` estén saludables y confirma que el realm responde:
+
+```bash
+curl -fsS http://localhost:8180/realms/crm2-local/.well-known/openid-configuration
+```
+
+Con el `docker-compose.yml` local actual, `crm2-keycloak` puede aparecer como `unhealthy` aunque este endpoint responda `200`: el healthcheck consulta `/health/ready` en el puerto HTTP `8180`, mientras la imagen expone ese endpoint en su interfaz de gestión. Para esta guía, toma como señales operativas el endpoint `.well-known` y un inicio de sesión correcto; no borres los volúmenes por ese estado.
+
+La configuración local usa PostgreSQL en `localhost:5433`, Keycloak en `localhost:8180` y el backend en `localhost:8080`. No uses `docker-compose down -v` salvo que quieras borrar deliberadamente los volúmenes locales.
+
+## 5. Preparar y arrancar el backend
+
+El backend usa los valores locales de `AR-CRM/boot/src/main/resources/application.yml`. Con la infraestructura arriba, desde `AR-CRM/` ejecuta:
+
+```powershell
+.\mvnw.cmd -pl boot -am spring-boot:run
+```
+
+En macOS/Linux:
+
+```bash
+./mvnw -pl boot -am spring-boot:run
+```
+
+Verifica que responde:
+
+```bash
+curl -i http://localhost:8080/v3/api-docs
+```
+
+### Datos de demo
+
+El clon no contiene una migración ni un seed reproducible para las cinco cuentas, roles, permisos y filas de negocio de esta demo. La guía de credenciales presupone que el runtime local ya fue provisionado; si una instalación nueva no tiene los datos, hay que provisionarlos en el runtime local antes de iniciar sesión. No copies esta configuración a producción.
+
+## 6. Elegir mock o backend real en el frontend
+
+### API simulada con MSW
+
+Úsala para trabajar la interfaz sin consumir los endpoints Spring:
 
 ```env
 VITE_ENABLE_MSW=true
-VITE_API_BASE_URL=/api/v1
+VITE_API_BASE_URL=/api
+VITE_KEYCLOAK_URL=http://localhost:8180
+VITE_KEYCLOAK_REALM=crm2-local
+VITE_KEYCLOAK_CLIENT_ID=crm2-frontend
 ```
 
-**Modo backend real**:
+Los fixtures de MSW contienen perfiles realistas, pero MSW no simula Keycloak: el flujo actual del navegador sigue usando Keycloak salvo que se habilite explícitamente el bypass de autenticación de desarrollo.
+
+### Backend Spring real
 
 ```env
 VITE_ENABLE_MSW=false
 VITE_API_BASE_URL=http://localhost:8080/api
+VITE_KEYCLOAK_URL=http://localhost:8180
+VITE_KEYCLOAK_REALM=crm2-local
+VITE_KEYCLOAK_CLIENT_ID=crm2-frontend
 ```
 
-> El archivo `.env.example` permanece siempre en modo mock como plantilla segura del repositorio.
+No uses `/api/v1`: el contrato actual del backend comienza en `/api`.
 
-## Scripts disponibles
+## 7. Iniciar el frontend y entrar
 
-| Script              | Propósito                                    |
-| ------------------- | -------------------------------------------- |
-| `pnpm dev`          | Servidor de desarrollo con HMR               |
-| `pnpm build`        | Build de producción                          |
-| `pnpm preview`      | Servir el build localmente                   |
-| `pnpm test`         | Tests en modo watch                          |
-| `pnpm test:run`     | Tests en una corrida (CI)                    |
-| `pnpm test:ui`      | UI interactiva de Vitest                     |
-| `pnpm type-check`   | `tsc --noEmit` (validación de tipos)         |
-| `pnpm lint`         | ESLint en todo el proyecto                   |
-| `pnpm format`       | Aplicar Prettier                             |
-| `pnpm format:check` | Verificar formato sin modificar archivos     |
+Desde `CRM-Project/`:
 
-## Convenciones de desarrollo
+```bash
+pnpm dev
+```
 
-- **Feature-first** con capas internas `schemas → hooks → components → pages` (screaming architecture).
-- **Container-presentational**: las páginas orquestan; los componentes son puros.
-- **Strict TDD** para hooks críticos y páginas: tests escritos antes de la implementación.
-- **Conventional commits** en español para mensajes de commit.
-- **Contrato de API** como única fuente de verdad: tipos en `src/api/types.ts`; los handlers de MSW reflejan exactamente las rutas que expondrá el backend.
+Abre <http://localhost:5173> y utiliza una cuenta de [`docs/credenciales-demo.md`](docs/credenciales-demo.md). El backend real necesita que la cuenta exista simultáneamente en Keycloak y en PostgreSQL.
 
-## Spec-Driven Development
+## 8. Verificación y pruebas
 
-El proyecto utiliza un flujo SDD (Spec-Driven Development) cuyos artefactos viven en `openspec/changes/`. Cada cambio significativo pasa por las fases: exploración → propuesta → especificación → diseño → tasks → implementación → verificación → archivo.
+Desde `CRM-Project/`:
 
-## Estado del proyecto
+```bash
+pnpm type-check
+pnpm test:run
+pnpm format:check
+```
 
-| Change | Feature                       | Estado     |
-| ------ | ----------------------------- | ---------- |
-| 1      | Foundation + Login            | ✅ Completo |
-| 2      | Empresas CRUD                 | ✅ Completo |
-| 3      | Usuarios (solo admin)         | ⏳ Pendiente |
-| 4      | Prospectos                    | ⏳ Pendiente |
-| 5      | Clientes                      | ⏳ Pendiente |
-| 6      | Tratos + Tareas               | ⏳ Pendiente |
-| 7      | Tableros Kanban genéricos     | ⏳ Pendiente |
-| 8      | Etiquetas + Comentarios       | ⏳ Pendiente |
+Otros comandos útiles:
 
-## Licencia
+```bash
+pnpm lint
+pnpm build
+pnpm preview
+```
 
-Proyecto académico — sin licencia pública definida. Contactar al autor para permisos de uso.
+Para revisar únicamente el estado de la infraestructura:
+
+```bash
+cd ../AR-CRM
+docker-compose ps
+```
+
+## 9. Solución de problemas
+
+| Síntoma                               | Comprobación                                                                                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Keycloak redirige o devuelve `401`    | Confirma el realm `crm2-local`, `VITE_KEYCLOAK_URL`, el cliente `crm2-frontend` y que el endpoint `.well-known` responda 200. Cierra una sesión vieja del navegador si cambiaste una contraseña. |
+| El backend no inicia                  | Comprueba Java 21, que PostgreSQL y Keycloak estén arriba y que los puertos `5433`, `8180` y `8080` estén disponibles.                                                                           |
+| La SPA devuelve `404` para la API     | Usa `VITE_API_BASE_URL=/api` con MSW o `http://localhost:8080/api` con backend real; no agregues `/v1`.                                                                                          |
+| No aparecen las cuentas de demo       | El provisionamiento de datos no se ejecuta al clonar. Verifica que estés usando el runtime local provisionado y que los contenedores conserven sus volúmenes.                                    |
+| Docker muestra un contenedor detenido | Ejecuta `docker-compose ps` y `docker-compose logs <servicio>` desde `AR-CRM/`; no borres volúmenes como primer intento.                                                                         |
+
+## Estructura principal
+
+```text
+src/api/          # tipos y cliente del contrato HTTP
+src/features/     # funcionalidades por dominio
+src/mocks/        # handlers y fixtures MSW
+src/components/   # layout y primitives UI
+src/routes/       # router de la SPA
+docs/             # guías de demo y QA
+```
+
+La documentación de perfiles, permisos y credenciales está en [`docs/credenciales-demo.md`](docs/credenciales-demo.md).

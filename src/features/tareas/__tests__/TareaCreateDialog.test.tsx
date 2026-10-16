@@ -58,7 +58,7 @@ describe('TareaCreateDialog — mapeo de error 422', () => {
     const responsableSelect = within(dialog).getByRole('combobox', { name: /responsable/i });
     await waitFor(() => expect(responsableSelect).not.toBeDisabled());
     await user.click(responsableSelect);
-    await user.click(await screen.findByRole('option', { name: /maría/i }));
+    await user.click(await screen.findByRole('option', { name: /andrés/i }));
 
     // Tipo — opciones en español: General, Seguimiento, Negociación, Cierre
     const tipoSelect = within(dialog).getByRole('combobox', { name: /tipo/i });
@@ -80,8 +80,6 @@ describe('TareaCreateDialog — mapeo de error 422', () => {
     await user.click(within(dialog).getByRole('button', { name: /crear tarea/i }));
 
     // El field error del 422 debe quedar mapeado y visible en el campo título.
-    expect(
-      await screen.findByText('Ya existe una tarea con ese título'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Ya existe una tarea con ese título')).toBeInTheDocument();
   });
 });

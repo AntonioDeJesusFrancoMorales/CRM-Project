@@ -15,7 +15,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e1111111-eeee-1111-eeee-111111111111',
     tratoId: 'd1111111-dddd-1111-dddd-111111111111',
-    responsableId: '22222222-2222-2222-2222-222222222222',
+    responsableId: 'b2000000-0000-4000-8000-000000000003',
     titulo: 'Demo presencial con CTO',
     descripcion: 'Preparar demo con casos reales del sector.',
     tipo: 'CIERRE',
@@ -28,7 +28,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e2222222-eeee-2222-eeee-222222222222',
     tratoId: 'd1111111-dddd-1111-dddd-111111111111',
-    responsableId: '22222222-2222-2222-2222-222222222222',
+    responsableId: 'b2000000-0000-4000-8000-000000000003',
     titulo: 'Llamada de seguimiento post-demo',
     descripcion: null,
     tipo: 'SEGUIMIENTO',
@@ -43,7 +43,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e3333333-eeee-3333-eeee-333333333333',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
-    responsableId: '11111111-1111-1111-1111-111111111111',
+    responsableId: 'b2000000-0000-4000-8000-000000000001',
     titulo: 'Análisis de requerimientos inicial',
     descripcion: 'Levantamiento de procesos con equipo de TI.',
     tipo: 'GENERAL',
@@ -56,7 +56,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e4444444-eeee-4444-eeee-444444444444',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
-    responsableId: '22222222-2222-2222-2222-222222222222',
+    responsableId: 'b2000000-0000-4000-8000-000000000003',
     titulo: 'Preparar propuesta de renovación',
     descripcion: null,
     tipo: 'NEGOCIACION',
@@ -69,7 +69,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e5555555-eeee-5555-eeee-555555555555',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
-    responsableId: '11111111-1111-1111-1111-111111111111',
+    responsableId: 'b2000000-0000-4000-8000-000000000001',
     titulo: 'Revisar contrato de retainer',
     descripcion: 'Verificar cláusulas de confidencialidad.',
     tipo: 'SEGUIMIENTO',
@@ -82,7 +82,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e6666666-eeee-6666-eeee-666666666666',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
-    responsableId: '11111111-1111-1111-1111-111111111111',
+    responsableId: 'b2000000-0000-4000-8000-000000000001',
     titulo: 'Taller de capacitación de procesos',
     descripcion: 'Capacitar al equipo de Innovatech en la nueva metodología.',
     tipo: 'GENERAL',
@@ -95,7 +95,7 @@ export const tareasFixture: Tarea[] = [
   {
     id: 'e7777777-eeee-7777-eeee-777777777777',
     tratoId: 'd2222222-dddd-2222-dddd-222222222222',
-    responsableId: '11111111-1111-1111-1111-111111111111',
+    responsableId: 'b2000000-0000-4000-8000-000000000001',
     titulo: 'Kick-off del proyecto de renovación',
     descripcion: null,
     tipo: 'GENERAL',
