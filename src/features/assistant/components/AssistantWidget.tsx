@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Bot, Loader2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -128,7 +128,32 @@ export function AssistantWidget() {
   const stickToBottomRef = useRef(true);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const sendingRef = useRef(false);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
   const sendMutation = useSendAssistantMessage();
+
+  useLayoutEffect(() => {
+    const textarea = draftRef.current;
+    if (!textarea || !open) return;
+
+    function resizeDraft() {
+      if (!textarea) return;
+      textarea.style.height = '0px';
+      const height = Math.max(42, textarea.scrollHeight + 2);
+      textarea.style.height = `${Math.min(height, 192)}px`;
+      textarea.style.overflowY = height > 192 ? 'auto' : 'hidden';
+    }
+
+    resizeDraft();
+    // The dialog animates its width, so wrapping can change without draft edits.
+    let previousWidth = textarea.clientWidth;
+    const widthObserver = new ResizeObserver(() => {
+      if (textarea.clientWidth === previousWidth) return;
+      previousWidth = textarea.clientWidth;
+      resizeDraft();
+    });
+    widthObserver.observe(textarea);
+    return () => widthObserver.disconnect();
+  }, [draft, open]);
 
   useEffect(() => {
     stickToBottomRef.current = true;
@@ -255,12 +280,12 @@ export function AssistantWidget() {
           type="button"
           size="icon-lg"
           className={cn(
-            'fixed bottom-4 right-4 z-40 h-14 w-14 rounded-2xl shadow-lg shadow-primary/25 transition-[transform,opacity] duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 [&_svg]:size-7',
+            'fixed bottom-4 right-4 z-40 h-16 w-16 rounded-2xl border-2 border-blue-500 shadow-lg shadow-primary/25 transition-[transform,opacity] duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 [&_svg]:size-10',
             buttonVisible ? 'scale-100 opacity-100' : 'pointer-events-none scale-0 opacity-0',
           )}
           aria-label={open ? 'Cerrar asistente' : 'Abrir asistente de chat'}
         >
-          <Bot className="h-7 w-7" />
+          <Bot className="h-10 w-10" />
         </Button>
       </DialogTrigger>
 
@@ -294,7 +319,7 @@ export function AssistantWidget() {
 
         <div
           className={cn(
-            'flex max-h-0 w-full origin-bottom-right scale-y-0 flex-col overflow-hidden rounded-2xl border bg-popover/95 text-popover-foreground shadow-2xl shadow-black/20 backdrop-blur transition-[max-height,transform,opacity,margin] [transition-duration:600ms] [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] will-change-[max-height,transform,opacity]',
+            'relative flex max-h-0 w-full origin-bottom-right scale-y-0 flex-col overflow-hidden rounded-2xl border-2 border-blue-500 bg-popover/95 text-popover-foreground shadow-2xl shadow-black/20 backdrop-blur transition-[max-height,transform,opacity,margin] [transition-duration:600ms] [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] will-change-[max-height,transform,opacity]',
             open
               ? 'pointer-events-auto mt-2 max-h-[calc(100vh-96px)] scale-y-100 opacity-100 [transition-delay:750ms]'
               : 'pointer-events-none max-h-0 scale-y-0 opacity-0 delay-0',
@@ -307,11 +332,11 @@ export function AssistantWidget() {
               open ? 'translate-y-0 opacity-100 [transition-delay:1000ms]' : 'translate-y-2 opacity-0 delay-0',
             )}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Bot className="h-5 w-5" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Bot className="h-8 w-8" />
             </div>
             <div>
-              <DialogTitle className="text-base font-medium">Asistente</DialogTitle>
+              <DialogTitle className="text-base font-medium">Pipely IA</DialogTitle>
               <DialogDescription>
                 Consulta la información disponible en tu CRM.
               </DialogDescription>
@@ -392,20 +417,21 @@ export function AssistantWidget() {
           )}
 
           <form
-            className="flex items-end gap-2 border-t bg-muted/30 p-3"
+            className="flex shrink-0 items-end gap-2 border-t bg-muted/30 p-3"
             onSubmit={(event) => {
               event.preventDefault();
               submitDraft();
             }}
           >
             <Textarea
+              ref={draftRef}
               value={draft}
               maxLength={MAX_MESSAGE_LENGTH}
-              rows={2}
+              rows={1}
               disabled={sendMutation.isPending}
               aria-label="Mensaje para el asistente"
               placeholder="Escribe un mensaje..."
-              className="min-h-[42px] max-h-32 flex-1 resize-none rounded-xl border bg-transparent px-3 py-2 text-sm shadow-sm outline-none transition-shadow placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="chat-scroll-container min-h-[42px] max-h-48 flex-1 resize-none overscroll-contain rounded-xl border bg-transparent px-3 py-2 text-sm shadow-sm outline-none transition-shadow placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleKeyDown}
             />

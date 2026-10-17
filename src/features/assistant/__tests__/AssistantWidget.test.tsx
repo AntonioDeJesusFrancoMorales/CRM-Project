@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/server';
 import { setupTestWrapper } from '@/test/wrappers';
 import { AssistantWidget } from '../components/AssistantWidget';
+import styles from '@/styles/globals.css?raw';
 
 function renderWidget() {
   const user = userEvent.setup();
@@ -19,12 +20,18 @@ async function openWidget(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('AssistantWidget', () => {
+  it('does not include decorative flashing or orbit animations', () => {
+    expect(styles).not.toContain('assistant-panel-flash');
+    expect(styles).not.toContain('offset-path');
+    expect(styles).not.toContain('assistant-border-orbit');
+  });
+
   it('opens the chat popup from the accessible floating button', async () => {
     const { user } = renderWidget();
 
     await openWidget(user);
 
-    expect(screen.getByRole('heading', { name: 'Asistente' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pipely IA' })).toBeInTheDocument();
     expect(screen.getByText('¡Hola! ¿En qué puedo ayudarte?')).toBeInTheDocument();
   });
 
@@ -38,18 +45,45 @@ describe('AssistantWidget', () => {
     const { user } = renderWidget();
     const trigger = screen.getByRole('button', { name: /abrir asistente de chat/i });
 
-    expect(trigger).toHaveClass('fixed', 'h-14', 'w-14');
-    expect(trigger.querySelector('svg')).toHaveClass('h-7', 'w-7');
+    expect(trigger).toHaveClass('fixed', 'h-16', 'w-16');
+    expect(trigger.querySelector('svg')).toHaveClass('h-10', 'w-10');
+    expect(trigger).not.toHaveClass('assistant-panel-flash');
 
     await openWidget(user);
 
     const overlay = document.querySelector('[data-state="open"].inset-0');
+    const panel = screen.getByRole('textbox', { name: /mensaje para el asistente/i }).closest('form')?.parentElement;
+    expect(panel).not.toHaveClass('assistant-panel-flash');
+    expect(panel).toHaveClass('relative');
+    expect(panel).toHaveClass('border-2', 'border-blue-500');
+    expect(panel).not.toHaveClass('h-[min(680px,calc(100dvh-3rem))]');
+    expect(panel).toHaveClass('max-h-[calc(100vh-96px)]');
+    expect(screen.getByRole('dialog')).toHaveClass('sm:!w-[420px]');
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveClass(
       'bg-transparent',
       'backdrop-blur-none',
       'supports-[backdrop-filter]:backdrop-blur-none',
     );
+  });
+
+  it('grows the draft up to its limit and then uses the CRM scrollbar', async () => {
+    const { user } = renderWidget();
+    await openWidget(user);
+    const textarea = screen.getByRole('textbox', { name: /mensaje para el asistente/i });
+
+    Object.defineProperty(textarea, 'scrollHeight', { configurable: true, value: 96 });
+    fireEvent.change(textarea, { target: { value: 'First line\nSecond line' } });
+    expect(textarea).toHaveStyle({ height: '98px', overflowY: 'hidden' });
+
+    Object.defineProperty(textarea, 'scrollHeight', { configurable: true, value: 300 });
+    fireEvent.change(textarea, { target: { value: 'Many lines\n'.repeat(20) } });
+    expect(textarea).toHaveStyle({ height: '192px', overflowY: 'auto' });
+    expect(textarea).toHaveClass('chat-scroll-container');
+
+    Object.defineProperty(textarea, 'scrollHeight', { configurable: true, value: 40 });
+    fireEvent.change(textarea, { target: { value: '' } });
+    expect(textarea).toHaveStyle({ height: '42px', overflowY: 'hidden' });
   });
 
   it('sends with the button and Enter, while Shift+Enter only adds a newline', async () => {
