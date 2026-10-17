@@ -21,6 +21,7 @@ export const REFRESH_INTERVAL = 60_000;   // ms — tick del refresh proactivo
 let keycloakInitPromise: Promise<boolean> | null = null;
 
 export interface KeycloakUser {
+  displayName?: string;
   subject: string;           // token.sub
   username: string;          // token.preferred_username
   email: string;             // token.email
@@ -49,6 +50,7 @@ export function getKeycloakUserFromToken(): KeycloakUser | null {
   if (!token) return null;
 
   return {
+    displayName: token.name?.trim() || [token.given_name, token.family_name].filter(Boolean).join(' ').trim() || undefined,
     subject: token.sub ?? keycloak.subject ?? '',
     username: token.preferred_username || token.email || 'unknown',
     email: token.email || '',

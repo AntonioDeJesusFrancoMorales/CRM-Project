@@ -82,15 +82,25 @@ describe('Topbar — getInitials maneja username de una sola palabra', () => {
   });
 });
 
-describe('Topbar — dropdown muestra email', () => {
-  it('(d) el dropdown label muestra el email del usuario al abrir el menú', async () => {
+describe('Topbar profile menu', () => {
+  it('shows the display name instead of an email username and keeps only working actions', async () => {
     const user = userEvent.setup();
-    useAuthStore.setState({ token: 'tok', usuario: usuarioNombre });
+    useAuthStore.setState({ token: 'tok', usuario: { ...usuarioNombre, username: 'juan@crm.test', displayName: 'Juan Perez' } });
     renderTopbar();
     // Abrir el dropdown del avatar — tiene texto con el username del usuario
-    const trigger = screen.getByRole('button', { name: /juan pérez/i });
+    const trigger = screen.getByRole('button', { name: /juan perez/i });
     await user.click(trigger);
     // El contenido del dropdown ahora está en el DOM
-    expect(screen.getByText('juan@crm.test')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /cerrar sesión/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+    expect(screen.queryByText('juan@crm.test')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Juan Perez')).toHaveLength(2);
+  });
+
+  it('does not expose an email when a legacy session has no display name', () => {
+    useAuthStore.setState({ usuario: { ...usuarioNombre, username: 'juan@crm.test' } });
+    renderTopbar();
+    expect(screen.getByRole('button', { name: /usuario/i })).toBeInTheDocument();
+    expect(screen.queryByText('juan@crm.test')).not.toBeInTheDocument();
   });
 });

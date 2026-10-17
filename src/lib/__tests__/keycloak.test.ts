@@ -18,6 +18,14 @@ vi.mock('keycloak-js', () => {
 import { keycloak, getKeycloakUserFromToken } from '../keycloak';
 
 describe('getKeycloakUserFromToken', () => {
+  it.each([
+    [{ name: 'Ana Torres', given_name: 'Ana', family_name: 'Torres' }, 'Ana Torres'],
+    [{ given_name: 'Ana', family_name: 'Torres' }, 'Ana Torres'],
+  ])('extracts the display name without changing identity claims: %j', (claims, expected) => {
+    keycloak.tokenParsed = { sub: 'subject-1', preferred_username: 'ana@example.test', email: 'ana@example.test', ...claims };
+    expect(getKeycloakUserFromToken()).toMatchObject({ displayName: expected, subject: 'subject-1', username: 'ana@example.test', email: 'ana@example.test' });
+  });
+
   beforeEach(() => {
     // Resetear tokenParsed antes de cada test
     (keycloak as { tokenParsed: unknown }).tokenParsed = undefined;

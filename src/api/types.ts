@@ -59,6 +59,7 @@ export interface Usuario {
 }
 
 export interface UsuarioSesion {  // Exclusivo para sesion de auth; isomorfo al ActorContext del back
+  displayName?: string;      // Presentation metadata, never used for authorization.
   subject: string;           // token.sub
   username: string;          // token.preferred_username
   email: string;             // token.email

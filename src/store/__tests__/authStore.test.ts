@@ -23,6 +23,14 @@ vi.mock('@/lib/keycloak', () => ({
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 describe('authStore — setKeycloakSession con modelo nuevo', () => {
+  it('keeps the display name as session presentation metadata', () => {
+    useAuthStore.getState().setKeycloakSession({
+      subject: 'sub-name', username: 'ana@example.test', email: 'ana@example.test',
+      displayName: 'Ana Torres', usuario_id: 'user-name', super_usuario_id: null, roles: [],
+    });
+    expect(useAuthStore.getState().usuario?.displayName).toBe('Ana Torres');
+  });
+
   beforeEach(() => {
     useAuthStore.setState({ token: null, usuario: null });
   });

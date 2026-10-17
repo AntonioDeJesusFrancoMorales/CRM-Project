@@ -47,6 +47,8 @@ export function Topbar({
   sidebarControl?: ReactNode;
 }) {
   const usuario = useAuthStore((s) => s.usuario);
+  const displayName = usuario?.displayName?.trim() ||
+    (usuario?.username && !usuario.username.includes('@') ? usuario.username : 'Usuario');
   const logout = useLogout();
   const { pathname } = useLocation();
 
@@ -92,10 +94,10 @@ export function Topbar({
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 gap-2 px-1.5">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                {usuario ? getInitials(usuario.username) : '?'}
+                {getInitials(displayName)}
               </span>
               <span className="text-sm font-medium hidden sm:block">
-                {usuario?.username ?? 'Usuario'}
+                {displayName}
               </span>
               <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:inline" />
             </Button>
@@ -103,14 +105,9 @@ export function Topbar({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span className="text-sm font-medium">{usuario?.username}</span>
-                <span className="text-xs text-muted-foreground">{usuario?.email}</span>
+                <span className="text-sm font-medium">{displayName}</span>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Mi perfil</DropdownMenuItem>
-            <DropdownMenuItem>Preferencias</DropdownMenuItem>
-            <DropdownMenuItem>Equipo comercial</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => logout.mutate()}

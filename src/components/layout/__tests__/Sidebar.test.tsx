@@ -49,6 +49,12 @@ beforeEach(() => {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('Sidebar — "Usuarios" visible a cualquier autenticado', () => {
+  it('keeps bottom spacing below the administration links', () => {
+    renderSidebar();
+    const link = screen.getByRole('link', { name: /usuarios/i });
+    expect(link.closest('nav')).toHaveClass('pb-6');
+  });
+
   it('(a) super usuario ve el item "Usuarios"', () => {
     useAuthStore.setState({ token: 'tok', usuario: superUsuario });
     renderSidebar();
@@ -63,6 +69,13 @@ describe('Sidebar — "Usuarios" visible a cualquier autenticado', () => {
 });
 
 describe('Sidebar — link "Mis tareas" usa usuario_id', () => {
+  it('does not duplicate the profile in the sidebar', () => {
+    useAuthStore.setState({ usuario: usuarioNormal });
+    renderSidebar();
+    expect(screen.queryByText('normal_user')).not.toBeInTheDocument();
+    expect(screen.queryByText('Equipo comercial')).not.toBeInTheDocument();
+  });
+
   it('(c) el link "Mis tareas" contiene usuario_id en el href', () => {
     useAuthStore.setState({ token: 'tok', usuario: superUsuario });
     renderSidebar();

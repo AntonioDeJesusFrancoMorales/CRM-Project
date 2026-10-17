@@ -112,7 +112,6 @@ function NavItemLink({ item, onNavigate, collapsed }: { item: NavItem; onNavigat
 export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; collapsed?: boolean }) {
   const usuario = useAuthStore((s) => s.usuario);
   const permissions = usePermissions();
-  const initials = usuario ? usuario.username.slice(0, 2).toUpperCase() : 'PI';
   const visible = (item: NavItem) => {
     // Mientras no se puedan resolver capacidades se conserva la navegación y la API
     // queda como autoridad para cada operación.
@@ -130,7 +129,7 @@ export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; co
         </div>
         {!collapsed && <span className="text-[15px] font-semibold tracking-tight text-sidebar-foreground">Pipely</span>}
       </div>
-      <nav className={cn('flex flex-1 flex-col gap-6 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
+      <nav className={cn('flex flex-1 flex-col gap-6 overflow-y-auto pb-6', collapsed ? 'px-2' : 'px-3')}>
         <div className="flex flex-col gap-1.5">
           {!collapsed && (
             <p className="px-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
@@ -176,19 +175,6 @@ export function Sidebar({ onNavigate, collapsed }: { onNavigate?: () => void; co
           ))}
         </div>
       </nav>
-      <div className={cn('border-t border-sidebar-border p-3', collapsed && 'flex justify-center')}>
-        <div className={cn('flex items-center rounded-md', collapsed ? 'px-0 py-0' : 'gap-2.5 px-2 py-1.5')}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-            {initials}
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{usuario?.username ?? 'Pipely'}</p>
-              <p className="truncate text-xs text-muted-foreground">Equipo comercial</p>
-            </div>
-          )}
-        </div>
-      </div>
     </aside>
   );
 }

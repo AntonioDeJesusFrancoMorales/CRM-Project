@@ -37,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             token,
             usuario: {
+              displayName: user.displayName,
               subject: user.subject,
               username: user.username,
               email: user.email,
