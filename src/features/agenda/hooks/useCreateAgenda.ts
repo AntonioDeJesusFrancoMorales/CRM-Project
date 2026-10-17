@@ -21,8 +21,8 @@ export function useCreateAgenda(): UseMutationResult<Agenda, Error, AgendaCreate
       if (!canCreate) return Promise.reject(new Error('Agenda create permission denied'));
       return apiClient.post<Agenda>(endpoints.agendas.create(), input);
     },
-    onSuccess: (created) => {
-      void queryClient.invalidateQueries({ queryKey: agendasKeys.all });
+    onSuccess: async (created) => {
+      await queryClient.invalidateQueries({ queryKey: agendasKeys.all });
       toast.success(`Evento "${created.asunto}" creado`);
     },
     onError: (error) => {

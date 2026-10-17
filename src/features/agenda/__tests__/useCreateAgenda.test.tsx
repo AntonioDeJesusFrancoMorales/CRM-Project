@@ -9,6 +9,21 @@ import { server } from '@/test/server';
 import type { AgendaCreateInput } from '../schemas/agenda.schema';
 
 describe('useCreateAgenda', () => {
+  it('waits for agenda refresh before closing a successful creation', async () => {
+    const { Wrapper, queryClient } = setupTestWrapper();
+    let finishRefresh!: () => void;
+    vi.spyOn(queryClient, 'invalidateQueries').mockImplementationOnce(() => new Promise<void>((resolve) => { finishRefresh = resolve; }));
+    const { result } = renderHook(() => useCreateAgenda(), { wrapper: Wrapper });
+    result.current.mutate({
+      tipo: 'REUNION', asunto: 'Refresh before close', fecha: '2026-10-20', horaInicio: '09:00',
+      recordatorioHabilitado: false, minutosAntes: null,
+    });
+    await waitFor(() => expect(finishRefresh).toBeTypeOf('function'));
+    expect(result.current.isPending).toBe(true);
+    finishRefresh();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
   it('POST a /agendas/create con camelCase e invalida agendasKeys.all', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 

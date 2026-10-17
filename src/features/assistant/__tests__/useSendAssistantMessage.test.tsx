@@ -4,8 +4,32 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/server';
 import { setupTestWrapper } from '@/test/wrappers';
 import { useSendAssistantMessage } from '../hooks/useSendAssistantMessage';
+import { useAgendas } from '@/features/agenda/hooks/useAgendas';
 
 describe('useSendAssistantMessage', () => {
+  it('refreshes the active agenda after the assistant creates an event', async () => {
+    let created = false;
+    server.use(
+      http.get('/api/agendas/get-all-by-user', () => HttpResponse.json(created ? [{
+        id: 'event-1', tipo: 'REUNION', asunto: 'Created through Pipely IA',
+        descripcion: null, fecha: '2026-10-20', horaInicio: '09:00', horaFin: null,
+        tareaId: null, tratoId: null, ubicacion: null, linkVideollamada: null,
+        creadoPor: 'user-1', creadoEn: '2026-10-16', actualizadoEn: '2026-10-16',
+        recordatorioHabilitado: false, minutosAntes: null, recordatorioEstado: null,
+        recordatorioEnviadoEn: null, ultimoIntentoEn: null,
+      }] : [])),
+      http.post('/api/agent/messages', () => {
+        created = true;
+        return HttpResponse.json({ content: 'Evento creado' });
+      }),
+    );
+    const { Wrapper } = setupTestWrapper();
+    const { result } = renderHook(() => ({ agenda: useAgendas(), send: useSendAssistantMessage() }), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.agenda.data).toEqual([]));
+    await result.current.send.mutateAsync({ message: 'Crea un evento', idempotencyKey: 'create-event' });
+    await waitFor(() => expect(result.current.agenda.data?.[0]?.asunto).toBe('Created through Pipely IA'));
+  });
+
   it('sends the exact agent payload without identity fields', async () => {
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
