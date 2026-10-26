@@ -1,0 +1,26 @@
+flowchart TB
+  subgraph FE["NAVEGADOR · Frontend de Pipely · React"]
+    direction TB
+    N["Navegación y rutas · React Router<br/>/login y rutas privadas<br/>AppShell: menú lateral,<br/>barra superior y contenido"]
+    A["Sesión y autenticación<br/>AuthProvider · Zustand · keycloak-js<br/>Inicio, cierre y renovación"]
+    P["Permisos comerciales del CRM<br/>Contexto de permisos<br/>Acceso a rutas y visibilidad del menú"]
+    V["Pantallas y rutas principales<br/>Inicio / · Empresas /empresas<br/>Contactos /contactos · Tratos /tratos<br/>Mis tareas /tareas · Tableros /tableros<br/>Agenda /agenda · Usuarios /usuarios<br/>Configuración /configuracion"]
+    D["Hooks por funcionalidad<br/>React Query: consultas,<br/>mutaciones y caché"]
+    C["Cliente REST compartido<br/>apiClient · fetch · rutas de endpoints"]
+    N -->|"verifica la sesión"| A
+    N -->|"consulta permisos"| P
+    N -->|"renderiza"| V
+    V -->|"obtienen y actualizan datos"| D
+    D -->|"invocan"| C
+    P -->|"consulta usuario y rol CRM"| C
+    A -->|"token y renovación"| C
+  end
+  K["SISTEMA EXTERNO<br/>Keycloak<br/>Autenticación y sesión SSO"]
+  API["SISTEMA EXTERNO<br/>API REST del CRM · AR-CRM<br/>Recursos comerciales, usuarios y roles"]
+  A -->|"sesión SSO y tokens<br/>PKCE S256 al iniciar"| K
+  C -->|"HTTP / JSON · Bearer token<br/>Base configurable: /api"| API
+  classDef internal fill:#edf5ff,stroke:#245782,color:#142c40,stroke-width:1.5px;
+  classDef external fill:#fff2db,stroke:#946316,color:#392b16,stroke-width:2px,stroke-dasharray:6 4;
+  class N,A,P,V,D,C internal;
+  class K,API external;
+  style FE fill:#f7faff,stroke:#245782,stroke-width:2px
