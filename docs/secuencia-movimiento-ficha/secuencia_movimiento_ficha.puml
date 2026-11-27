@@ -1,0 +1,67 @@
+@startuml
+hide footbox
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 10
+skinparam BoxPadding 8
+skinparam maxMessageSize 180
+skinparam dpi 220
+
+actor "Persona usuaria" as U
+box "Aplicación Pipely · navegador" #EDF5FF
+participant "Tablero\nKanban" as B
+participant "Movimiento y\ndatos locales" as M
+participant "Conexión\ncon la API" as C
+end box
+participant "API REST\n«sistema externo»" as API #FFF2DB
+
+U -> B : Arrastra y suelta una ficha
+activate B
+B -> B : Identifica ficha y destino
+
+alt sin destino, misma columna\no ficha no encontrada
+  note over B : Movimiento descartado.\nSin solicitud HTTP.
+else ficha encontrada y columna diferente
+  B -> B : Revisa permisos y bloqueo
+  alt sin permisos o bloqueo ocupado
+    note over B : Movimiento descartado.\nNo inicia otra operación.
+  else permisos y bloqueo disponible
+    B -> B : Adquiere el bloqueo
+    B ->> M : Solicita mover la ficha
+    activate M
+    M -> M : Comprueba permisos y\ncancela consultas de fichas
+    M -> M : Guarda copia y actualiza\nla posición local
+    M ->> B : Nueva posición local
+    M -> C : Envía ficha y columna destino
+    activate C
+    C -> API : Solicita el cambio de columna
+    activate API
+    opt hay respuesta HTTP
+      API --> C : Datos de ficha o error HTTP
+    end
+    deactivate API
+    C --> M : Datos recibidos o error
+    deactivate C
+
+    alt respuesta correcta
+      M -> M : Solicita sincronizar las fichas
+      M ->> U : Ficha movida
+    else error de la operación
+      M -> M : Restaura los datos anteriores
+      M ->> B : Recupera la posición anterior
+      opt error distinto de HTTP 422
+        M ->> U : Mensaje del error
+      end
+    end
+
+    M -> B : Al terminar, libera el bloqueo
+    B --> M : Fin
+    deactivate M
+  end
+end
+deactivate B
+@enduml
