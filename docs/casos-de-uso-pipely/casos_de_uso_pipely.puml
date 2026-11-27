@@ -1,0 +1,79 @@
+@startuml
+top to bottom direction
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam dpi 220
+skinparam nodesep 20
+skinparam ranksep 32
+skinparam linetype ortho
+skinparam padding 12
+skinparam ArrowColor #506579
+skinparam ArrowThickness 1.2
+skinparam actorStyle stickman
+skinparam actorBorderColor #203B53
+skinparam actorFontColor #142C40
+skinparam usecaseBackgroundColor #EDF5FF
+skinparam usecaseBorderColor #245782
+skinparam usecaseFontColor #142C40
+skinparam rectangleBackgroundColor #F7FAFF
+skinparam rectangleBorderColor #245782
+skinparam rectangleFontColor #142C40
+skinparam legendBackgroundColor white
+skinparam legendBorderColor white
+
+actor "Persona usuaria" as U
+
+rectangle "Pipely" {
+  usecase "Iniciar y cerrar\nsesión" as UC01
+  usecase "Consultar el\nresumen comercial" as UC02
+  usecase "Gestionar\nempresas" as UC03
+  usecase "Gestionar\ncontactos" as UC04
+  usecase "Registrar\nun trato" as UC05
+  usecase "Dar seguimiento\na un trato" as UC06
+  usecase "Gestionar\ntareas" as UC07
+  usecase "Organizar\nla agenda" as UC08
+  usecase "Organizar tableros\ny columnas" as UC09
+  usecase "Mover fichas\nentre columnas" as UC10
+  usecase "Gestionar usuarios\ny asignar roles" as UC11
+  usecase "Configurar roles\ny permisos" as UC12
+  usecase "Administrar\netiquetas" as UC13
+  usecase "Solicitar cambio\nde contraseña" as UC14
+
+  ' Enlaces invisibles usados solo para ordenar la figura.
+  UC01 -[hidden]right- UC02
+  UC02 -[hidden]right- UC03
+  UC03 -[hidden]right- UC04
+  UC04 -[hidden]right- UC05
+  UC06 -[hidden]right- UC07
+  UC07 -[hidden]right- UC08
+  UC08 -[hidden]right- UC13
+  UC13 -[hidden]right- UC14
+  UC09 -[hidden]right- UC10
+  UC10 -[hidden]right- UC11
+  UC11 -[hidden]right- UC12
+  UC01 -[hidden]down- UC06
+  UC06 -[hidden]down- UC09
+}
+
+U -[hidden]right- UC06
+U -[norank]- UC01
+U -[norank]- UC02
+U -[norank]- UC03
+U -[norank]- UC04
+U -[norank]- UC05
+U -[norank]- UC06
+U -[norank]- UC07
+U -[norank]- UC08
+U -[norank]- UC09
+U -[norank]- UC10
+U -[norank]- UC11
+U -[norank]- UC12
+U -[norank]- UC13
+U -[norank]- UC14
+
+legend bottom
+  Acciones disponibles según los permisos asignados a cada cuenta.
+endlegend
+@enduml
