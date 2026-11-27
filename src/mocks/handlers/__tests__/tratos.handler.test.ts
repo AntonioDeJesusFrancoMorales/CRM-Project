@@ -2,7 +2,7 @@
 // Cubre: get-all, get-by-id?id=, create, edit?id= (PUT), delete?id=.
 // Sin /ganar, /perder, /:id/tareas, filtros de estado/cliente/prospecto.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { tratosFixture } from '@/mocks/fixtures/tratos';
 
 // IDs del fixture
@@ -167,15 +167,22 @@ describe('tratos MSW handler — DELETE /api/tratos/delete?id=', () => {
   });
 
   it('NO existe handler para /tratos/:id (endpoint obsoleto)', async () => {
-    // Verificar que el handler de DELETE ya no existe en path REST /:id
-    // MSW con onUnhandledRequest: 'error' debería fallar o dar un status != 204
-    let threw = false;
+    const before = await (await fetch('/api/tratos/get-all')).json();
+    const expectedMessage =
+      '[MSW] Error: intercepted a request without a matching request handler:\n\n' +
+      `  • DELETE /api/tratos/${TRATO_WITH_TAREAS}\n\n` +
+      'If you still wish to intercept this unhandled request, please create a request handler for it.\n' +
+      'Read more: https://mswjs.io/docs/http/intercepting-requests';
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      await fetch(`/api/tratos/${TRATO_WITH_TAREAS}`, { method: 'DELETE' });
-    } catch {
-      threw = true;
+      await expect(fetch(`/api/tratos/${TRATO_WITH_TAREAS}`, { method: 'DELETE' }))
+        .rejects.toThrow(
+          '[MSW] Cannot bypass a request when using the "error" strategy for the "onUnhandledRequest" option.',
+        );
+      expect(consoleError.mock.calls).toEqual([[expectedMessage]]);
+    } finally {
+      consoleError.mockRestore();
     }
-    // Si no throwea, simplemente verificamos que no es 204 (sin handler registrado)
-    expect(threw || true).toBe(true);
+    expect(await (await fetch('/api/tratos/get-all')).json()).toEqual(before);
   });
 });

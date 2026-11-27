@@ -601,7 +601,10 @@ describe('KanbanCard — dropdown Eliminar', () => {
     await userEvent.click(await findByRole('menuitem', { name: /eliminar/i }));
     await userEvent.click(await findByRole('button', { name: /cancelar/i }));
 
-    await new Promise((r) => setTimeout(r, 50));
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+    });
     expect(deleteCalled).toBe(false);
   });
 });

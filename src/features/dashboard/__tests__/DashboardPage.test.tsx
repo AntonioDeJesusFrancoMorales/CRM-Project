@@ -60,7 +60,8 @@ function renderPage() {
 describe('DashboardPage', () => {
   beforeEach(() => {
     usePermissionsMock.mockReturnValue(createPermissions());
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // Sólo el reloj de negocio necesita estar fijo; Query y Radix usan timers reales.
+    vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-06-29T12:00:00.000Z'));
   });
 
@@ -208,7 +209,7 @@ describe('DashboardPage', () => {
   });
 
   it('retiene controles con nombre y orden de lectura al navegar con teclado', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     renderPage();
 
     await screen.findByRole('link', { name: /demo presencial con cto/i });
