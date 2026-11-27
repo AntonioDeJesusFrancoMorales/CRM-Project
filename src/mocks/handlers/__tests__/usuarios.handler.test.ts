@@ -2,7 +2,10 @@
 // Rutas RPC, PUT en edit, id por query param, campos del back (rolId, creadoEn, keycloakId, activo).
 // Sin rutas legacy REST (/api/usuarios, /api/usuarios/:id, /api/usuarios/:id/desactivar).
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { apiClient } from '@/api/client';
+import { endpoints } from '@/api/endpoints';
+import type { Usuario } from '@/api/types';
 
 const USUARIO_ID = 'b2000000-0000-4000-8000-000000000001';
 const NONEXISTENT_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
@@ -115,6 +118,33 @@ describe('PUT /api/usuarios/edit?id= — actualiza usuario con PUT y query param
       body: JSON.stringify({ nombre: 'X', correo: 'x@x.com', rolId: 'rol-admin-uuid' }),
     });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/usuarios/request-password-change — simulación sin correo real', () => {
+  it('acepta la solicitud sin body, responde 202 vacío y no modifica usuarios', async () => {
+    const before = await apiClient.get<Usuario[]>(endpoints.usuarios.getAll());
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    try {
+      await expect(
+        apiClient.post<void>(endpoints.usuarios.requestPasswordChange()),
+      ).resolves.toBeUndefined();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/usuarios/request-password-change',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(fetchSpy.mock.calls[0]![1]?.body).toBeUndefined();
+      const response = await fetchSpy.mock.results[0]!.value;
+      expect(response.status).toBe(202);
+      expect(await response.text()).toBe('');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+
+    expect(await apiClient.get<Usuario[]>(endpoints.usuarios.getAll())).toEqual(before);
   });
 });
 

@@ -13,6 +13,12 @@ const API = '/api';
 // Los handlers operan sobre usuariosFixture (UsuarioMock[]).
 // Las respuestas pasan por toUsuarioDto para excluir password, rol_sistema, rol_empresa.
 export const usuariosHandlers = [
+  // POST /api/usuarios/request-password-change — simula aceptación sin enviar correo ni cambiar datos.
+  http.post(`${API}/usuarios/request-password-change`, async () => {
+    await withDelay();
+    return new HttpResponse(null, { status: 202 });
+  }),
+
   // GET /api/usuarios/get-all — retorna lista completa
   http.get(`${API}/usuarios/get-all`, async () => {
     await withDelay();
