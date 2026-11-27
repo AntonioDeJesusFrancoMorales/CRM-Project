@@ -9,7 +9,6 @@ import { agendaHandlers } from './agenda';
 import { etiquetasHandlers } from './etiquetas';
 import { comentariosHandlers } from './comentarios';
 import { agentHandlers } from './agent';
-import { waStreamHandlers } from './wa-stream';
 
 export const handlers = [
   ...empresasHandlers,
@@ -23,5 +22,4 @@ export const handlers = [
   ...etiquetasHandlers,
   ...comentariosHandlers,
   ...agentHandlers,
-  ...waStreamHandlers,
 ];

@@ -107,8 +107,8 @@ describe('endpoints.agent — contrato del asistente', () => {
   });
 });
 
-describe('endpoints.wa — stream runtime', () => {
-  it('stream() conserva la ruta SSE /wa/stream', () => {
-    expect(endpoints.wa.stream()).toBe('/wa/stream');
+describe('endpoints — integración de WhatsApp retirada', () => {
+  it('no expone endpoints de WhatsApp', () => {
+    expect(endpoints).not.toHaveProperty('wa');
   });
 });
