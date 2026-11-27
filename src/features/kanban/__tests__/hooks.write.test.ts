@@ -520,10 +520,10 @@ describe('useReordenarColumnas', () => {
       result.current.mutate({ tableroId: TABLERO_ID, nuevoOrden: [], idsActuales: IDS_ACTUALES });
     });
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(called).toBe(false);
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error?.message).toBe('nuevoOrden no puede estar vacío');
   });
 
   it('NO invoca HTTP si nuevoOrden es subconjunto incompleto (length < total)', async () => {
@@ -548,10 +548,12 @@ describe('useReordenarColumnas', () => {
       });
     });
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(called).toBe(false);
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error?.message).toBe(
+      'nuevoOrden debe contener exactamente 2 elemento(s), recibió 1',
+    );
   });
 
   it('NO invoca HTTP si nuevoOrden tiene duplicados', async () => {
@@ -579,10 +581,12 @@ describe('useReordenarColumnas', () => {
       });
     });
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(called).toBe(false);
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error?.message).toBe(
+      'nuevoOrden contiene ids duplicados; debe ser una permutación sin repeticiones',
+    );
   });
 
   it('NO invoca HTTP si nuevoOrden contiene ids ajenos al tablero', async () => {
@@ -610,10 +614,12 @@ describe('useReordenarColumnas', () => {
       });
     });
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(called).toBe(false);
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error?.message).toBe(
+      'nuevoOrden contiene ids que no pertenecen a las columnas del tablero',
+    );
   });
 
   it('retorna el tablero con las columnas en el nuevo orden', async () => {

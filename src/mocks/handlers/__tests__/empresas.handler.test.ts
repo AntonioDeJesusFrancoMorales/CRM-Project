@@ -1,7 +1,7 @@
 // Tests de los handlers MSW de empresas — contrato RPC del back.
 // F2.1: rutas RPC, PUT en edit, id por query param, campos camelCase, sin filtros server-side.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { empresasFixture } from '@/mocks/fixtures/empresas';
 
 // IDs del fixture
@@ -67,25 +67,27 @@ describe('empresas MSW handler — PUT /api/empresas/edit?id=', () => {
   });
 
   it('rechaza PATCH (método no registrado — 500 o sin handler)', async () => {
-    // El servidor tiene onUnhandledRequest: 'error', así que PATCH lanzará error en MSW
-    // En tests de handler directo, simplemente verificamos que PUT sí funciona y PATCH no.
-    // Este test verifica que el handler de PUT NO responde a PATCH.
-    // (MSW rechaza peticiones sin handler con error, así que el test comprueba que PATCH
-    // da un status diferente de 200 o que throwea)
-    let threw = false;
+    const before = await (await fetch('/api/empresas/get-all')).json();
+    const expectedMessage =
+      '[MSW] Error: intercepted a request without a matching request handler:\n\n' +
+      `  • PATCH /api/empresas/edit?id=${EMPRESA_ID}\n\n` +
+      '  • Request body: {"nombre":"X"}\n\n' +
+      'If you still wish to intercept this unhandled request, please create a request handler for it.\n' +
+      'Read more: https://mswjs.io/docs/http/intercepting-requests';
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      const res = await fetch(`/api/empresas/edit?id=${EMPRESA_ID}`, {
+      await expect(fetch(`/api/empresas/edit?id=${EMPRESA_ID}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: 'X' }),
-      });
-      // Si no throwea, el status no debe ser 200 (sin handler = error MSW)
-      expect(res.status).not.toBe(200);
-    } catch {
-      threw = true;
+      })).rejects.toThrow(
+        '[MSW] Cannot bypass a request when using the "error" strategy for the "onUnhandledRequest" option.',
+      );
+      expect(consoleError.mock.calls).toEqual([[expectedMessage]]);
+    } finally {
+      consoleError.mockRestore();
     }
-    // Cualquiera de los dos es aceptable: error de red (threw) o status != 200
-    expect(threw || true).toBe(true);
+    expect(await (await fetch('/api/empresas/get-all')).json()).toEqual(before);
   });
 });
 

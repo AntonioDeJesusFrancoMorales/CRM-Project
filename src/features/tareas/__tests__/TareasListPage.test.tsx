@@ -32,18 +32,21 @@ function renderPage(initialPath = '/tareas') {
     },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
-          <Route path="/tareas" element={<TareasListPage />} />
-          <Route path="/tareas/:id" element={<div>Detalle de la tarea</div>} />
-          <Route path="/tableros" element={<div>Tableros</div>} />
-          <Route path="/tableros/:id" element={<div>Tablero detalle</div>} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
+            <Route path="/tareas" element={<TareasListPage />} />
+            <Route path="/tareas/:id" element={<div>Detalle de la tarea</div>} />
+            <Route path="/tableros" element={<div>Tableros</div>} />
+            <Route path="/tableros/:id" element={<div>Tablero detalle</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 // Componente auxiliar que expone la URL actual en el DOM para inspección.
@@ -183,10 +186,11 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
       }),
     );
 
-    renderPage('/tareas?tab=lista');
+    const { queryClient } = renderPage('/tareas?tab=lista');
 
-    // Esperar la carga inicial
-    await waitFor(() => expect(capturedUrl).toContain('/api/tareas/get-all'));
+    // Esperar también las consultas de usuarios, tratos y workflow antes de abrir Radix.
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(capturedUrl).toContain('/api/tareas/get-all');
 
     // Guardar la URL inicial (sin params)
     const urlInicial = capturedUrl;
@@ -197,6 +201,11 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
     await user.click(selectPrioridad);
     const opcionAlta = await screen.findByRole('option', { name: /alta/i });
     await user.click(opcionAlta);
+
+    await waitFor(() => {
+      expect(selectPrioridad).toHaveTextContent('Alta');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
 
     // La URL NO debe haber cambiado — el filtrado es client-side
     expect(capturedUrl).toBe(urlInicial);
@@ -218,10 +227,10 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
       }),
     );
 
-    renderPage('/tareas?tab=lista');
+    const { queryClient } = renderPage('/tareas?tab=lista');
 
-    // Esperar la carga inicial (1 request)
-    await waitFor(() => expect(requestCount).toBeGreaterThan(0));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(requestCount).toBeGreaterThan(0);
     const initialCount = requestCount;
 
     // Cambiar filtro responsable
@@ -231,8 +240,13 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
     const opcionAdmin = await screen.findByRole('option', { name: /ana torres/i });
     await user.click(opcionAdmin);
 
-    // Dar tiempo para refetches potenciales
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => {
+      expect(selectResponsable).toHaveTextContent('Ana Torres');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(screen.getByRole('status', { name: /mostrando tareas de ana torres, 0 tareas/i }))
+        .toBeInTheDocument();
+      expect(queryClient.isFetching()).toBe(0);
+    });
 
     // El número de requests NO debe aumentar (no hace nueva llamada al back)
     expect(requestCount).toBe(initialCount);
@@ -252,9 +266,10 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
       }),
     );
 
-    renderPage('/tareas?tab=lista');
+    const { queryClient } = renderPage('/tareas?tab=lista');
 
-    await waitFor(() => expect(capturedUrls.length).toBeGreaterThan(0));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(capturedUrls.length).toBeGreaterThan(0);
 
     await openFilters(user);
     const selectEstado = screen.getByRole('combobox', { name: /estado/i });
@@ -262,7 +277,12 @@ describe('TareasListPage — filtros client-side (NO query params al back)', () 
     const opcionCompletada = await screen.findByRole('option', { name: /finalizada/i });
     await user.click(opcionCompletada);
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => {
+      expect(selectEstado).toHaveTextContent('Finalizada');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Demo presencial con CTO')).not.toBeInTheDocument();
+      expect(queryClient.isFetching()).toBe(0);
+    });
 
     // Las URLs pueden incluir paginación/ordenamiento, pero no filtros client-side.
     for (const capturedUrl of capturedUrls) {

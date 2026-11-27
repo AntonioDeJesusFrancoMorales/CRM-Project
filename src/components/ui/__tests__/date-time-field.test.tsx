@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DatePicker, DateTimePicker } from '../date-time-field';
-import { Dialog, DialogContent } from '../dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../dialog';
 
 describe('DateTimePicker (inline)', () => {
   it('despliega el calendario y al elegir un día emite "YYYY-MM-DDTHH:mm" con hora default', async () => {
@@ -23,10 +23,15 @@ describe('DateTimePicker (inline)', () => {
     render(
       <Dialog open>
         <DialogContent>
+          <DialogTitle>Fecha de la tarea</DialogTitle>
+          <DialogDescription>Elegí la fecha y hora límite.</DialogDescription>
           <DateTimePicker value={null} onChange={onChange} />
         </DialogContent>
       </Dialog>,
     );
+
+    expect(screen.getByRole('dialog', { name: 'Fecha de la tarea' }))
+      .toHaveAccessibleDescription('Elegí la fecha y hora límite.');
 
     await user.click(screen.getByRole('button', { name: /elegí fecha/i }));
     const dias = await screen.findAllByLabelText(/^\d{4}-\d{2}-\d{2}$/);

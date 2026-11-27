@@ -3,7 +3,7 @@
 // Cubre: tableros/{get-all,get-by-id,asignar-columna,reordenar-columnas,eliminar-columna}
 //        columnas/get-all, fichas/{get-all,create,edit,delete}.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { tableroTratosFixture, columnasFixture, fichasFixture } from '@/mocks/fixtures/tableros';
 
 // IDs del fixture
@@ -422,18 +422,28 @@ describe('fichas MSW handler — PUT /api/fichas/edit?id=', () => {
   });
 
   it('NO existe handler en ruta REST /fichas/:id (solo contrato RPC ?id=)', async () => {
-    // El handler RPC usa query param, no path param. Este request queda sin handler.
-    let threw = false;
+    const before = await (await fetch('/api/fichas/get-all')).json();
+    const expectedMessage =
+      '[MSW] Error: intercepted a request without a matching request handler:\n\n' +
+      `  • PUT /api/fichas/${FICHA_1.id}\n\n` +
+      `  • Request body: ${JSON.stringify({ columnaId: COLUMNA_ID_2 })}\n\n` +
+      'If you still wish to intercept this unhandled request, please create a request handler for it.\n' +
+      'Read more: https://mswjs.io/docs/http/intercepting-requests';
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      await fetch(`/api/fichas/${FICHA_1.id}`, {
+      await expect(fetch(`/api/fichas/${FICHA_1.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ columnaId: COLUMNA_ID_2 }),
-      });
-    } catch {
-      threw = true;
+      })).rejects.toThrow(
+        '[MSW] Cannot bypass a request when using the "error" strategy for the "onUnhandledRequest" option.',
+      );
+      // Aserción exhaustiva: cualquier error adicional o distinto hace fallar el test.
+      expect(consoleError.mock.calls).toEqual([[expectedMessage]]);
+    } finally {
+      consoleError.mockRestore();
     }
-    expect(threw || true).toBe(true); // MSW no tiene este handler; puede lanzar o no
+    expect(await (await fetch('/api/fichas/get-all')).json()).toEqual(before);
   });
 });
 
