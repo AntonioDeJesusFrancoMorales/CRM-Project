@@ -108,17 +108,16 @@ El clon no contiene una migración ni un seed reproducible para las cinco cuenta
 
 ### API simulada con MSW
 
-Úsala para trabajar la interfaz sin consumir los endpoints Spring:
+Úsala para trabajar la interfaz sin levantar Spring ni Keycloak. En desarrollo (`pnpm dev`), MSW activa automáticamente una sesión local de administrador; no hace falta configurar `VITE_BYPASS_AUTH`:
 
 ```env
 VITE_ENABLE_MSW=true
 VITE_API_BASE_URL=/api
-VITE_KEYCLOAK_URL=http://localhost:8180
-VITE_KEYCLOAK_REALM=crm2-local
-VITE_KEYCLOAK_CLIENT_ID=crm2-frontend
 ```
 
-Los fixtures de MSW contienen perfiles realistas, pero MSW no simula Keycloak: el flujo actual del navegador sigue usando Keycloak salvo que se habilite explícitamente el bypass de autenticación de desarrollo.
+La sesión automática usa el perfil **Ana Torres / Administrador** de los fixtures de MSW. No inicializa Keycloak ni redirige al inicio de sesión; puedes abrir directamente las rutas de la aplicación. Para trabajar sólo con mocks, omite los pasos 4 y 5.
+
+Este bypass automático sólo se aplica en desarrollo con `VITE_ENABLE_MSW=true`: no se activa en una compilación de producción, aunque MSW esté habilitado. La opción explícita preexistente `VITE_BYPASS_AUTH` conserva su comportamiento; déjala deshabilitada con el backend real y en producción.
 
 ### Backend Spring real
 
@@ -130,6 +129,8 @@ VITE_KEYCLOAK_REALM=crm2-local
 VITE_KEYCLOAK_CLIENT_ID=crm2-frontend
 ```
 
+Con `VITE_ENABLE_MSW=false`, el frontend mantiene la autenticación con Keycloak (sin `VITE_BYPASS_AUTH=true`). Levanta la infraestructura y el backend de los pasos 4 y 5.
+
 No uses `/api/v1`: el contrato actual del backend comienza en `/api`.
 
 ## 7. Iniciar el frontend y entrar
@@ -140,7 +141,7 @@ Desde `CRM-Project/`:
 pnpm dev
 ```
 
-Abre <http://localhost:5173> y utiliza una cuenta de [`docs/credenciales-demo.md`](docs/credenciales-demo.md). El backend real necesita que la cuenta exista simultáneamente en Keycloak y en PostgreSQL.
+Abre <http://localhost:5173>. Con MSW en desarrollo entrarás automáticamente como administrador mock. Con el backend real, utiliza una cuenta de [`docs/credenciales-demo.md`](docs/credenciales-demo.md): necesita existir simultáneamente en Keycloak y en PostgreSQL.
 
 ## 8. Verificación y pruebas
 

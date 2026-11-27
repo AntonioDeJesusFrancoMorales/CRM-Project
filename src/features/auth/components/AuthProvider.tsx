@@ -4,8 +4,6 @@ import { useAuthStore } from '@/store/authStore';
 import { useTokenRefresh } from '@/features/auth/hooks/useTokenRefresh';
 import { useNavigate, useLocation } from 'react-router';
 
-const BYPASS_AUTH = import.meta.env.VITE_BYPASS_AUTH === 'true';
-
 interface AuthProviderProps {
   children: React.ReactNode;
 }
@@ -26,15 +24,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const init = async () => {
-      if (BYPASS_AUTH) {
-        setSession('mock-dev-token', {
-          subject: 'dev-user-id',
-          username: 'dev',
-          email: 'dev@local.test',
-          usuario_id: 'dev-user-id',
-          super_usuario_id: null,
-          roles: ['admin'],
-        });
+      const mockDevelopment = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MSW === 'true';
+      if (mockDevelopment || import.meta.env.VITE_BYPASS_AUTH === 'true') {
+        setSession(
+          'mock-dev-token',
+          mockDevelopment
+            ? {
+                // Coincide con el usuario y rol Administrador de los fixtures de MSW.
+                displayName: 'Ana Torres',
+                subject: '8b43ac67-3c03-4804-ab09-40e3b7476940',
+                username: 'admin',
+                email: 'admin@pipely.local',
+                usuario_id: 'b2000000-0000-4000-8000-000000000001',
+                super_usuario_id: null,
+                roles: ['admin'],
+              }
+            : {
+                subject: 'dev-user-id',
+                username: 'dev',
+                email: 'dev@local.test',
+                usuario_id: 'dev-user-id',
+                super_usuario_id: null,
+                roles: ['admin'],
+              },
+        );
         setKeycloakReady(true);
         const path = initialPath.current;
         if (path === '/login') {
@@ -68,7 +81,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     init();
-  }, [navigate, setKeycloakSession, setKeycloakReady]);
+  }, [navigate, setKeycloakSession, setKeycloakReady, setSession]);
 
   if (isLoading) {
     return (
