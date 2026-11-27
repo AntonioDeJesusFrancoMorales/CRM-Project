@@ -123,7 +123,4 @@ export const endpoints = {
   agent: {
     messages: () => '/agent/messages',
   },
-  wa: {
-    stream: () => '/wa/stream',
-  },
 } as const;
