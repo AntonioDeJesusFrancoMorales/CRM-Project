@@ -4,6 +4,33 @@ Guía breve para levantar el frontend React y el backend Spring del CRM desde ce
 
 > **Solo desarrollo local:** las cuentas de demo y sus contraseñas están documentadas en [`docs/credenciales-demo.md`](docs/credenciales-demo.md). Son ficticias, no son secretos de producción y nunca deben reutilizarse fuera de un entorno local.
 
+## Inicio rápido: ejecutar sin backend
+
+Para usar el programa con datos simulados, sólo necesitas **Node.js 20 o superior** y **pnpm 10.33.2**. No hace falta levantar Spring, Keycloak, PostgreSQL ni Docker.
+
+1. Instala las dependencias desde la carpeta del frontend:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Crea o edita el archivo `.env.development` en la raíz del proyecto y configura:
+
+   ```env
+   VITE_ENABLE_MSW=true
+   VITE_API_BASE_URL=/api
+   ```
+
+3. Inicia el programa:
+
+   ```bash
+   pnpm dev
+   ```
+
+Abre <http://localhost:5173>. En este modo de desarrollo entrarás automáticamente como **Ana Torres / Administrador**, con la API simulada de MSW y sin iniciar sesión en Keycloak. Si cambias las variables mientras Vite está ejecutándose, detén el servidor y vuelve a ejecutar `pnpm dev`.
+
+Este modo automático es sólo para desarrollo, no para producción. Para conectar el backend real, consulta [Elegir mock o backend real](#6-elegir-mock-o-backend-real-en-el-frontend).
+
 ## 1. Requisitos
 
 - Node.js **20 o superior**.
