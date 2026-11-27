@@ -1,0 +1,63 @@
+@startuml
+hide footbox
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+skinparam maxMessageSize 240
+skinparam dpi 200
+
+actor "Persona usuaria" as U
+box "Aplicación Pipely · navegador" #EDF5FF
+participant "Formulario de\noportunidad" as F
+participant "Validación\nde datos" as V
+participant "Conexión\ncon la API" as C
+end box
+participant "API REST\n«sistema externo»" as API #FFF2DB
+
+U -> F : Pulsa «Nuevo trato»
+activate F
+F --> U : Muestra el formulario\n«Nuevo trato»
+deactivate F
+U -> F : Completa campos;\npulsa «Crear trato»
+activate F
+F -> V : Comprueba los datos\nform.handleSubmit(...)\nzodResolver(tratoSchema)
+activate V
+V --> F : Resultado de validación
+deactivate V
+
+alt datos incompletos o incorrectos
+  F --> U : Señala los campos\nque deben corregirse
+else datos completos y válidos
+  F -> F : Prepara los datos para guardar\nhandleValidSubmit; handleSubmit
+  F -> C : Solicita guardar la oportunidad\nmutateAsync(payload)\napiClient.post(..., payload)
+  activate C
+  C -> API : POST /api/tratos/create\nEnvía datos con la sesión del usuario
+  activate API
+  API --> C : Registro creado y sus datos (201),\no respuesta de error
+  deactivate API
+  C -> C : Interpreta la respuesta\nrequest(); res.json()\no comunica el error
+  C --> F : Registro recibido o error
+  deactivate C
+
+  alt registro creado y datos recibidos (201)
+    F -> F : Solicita actualizar los listados y avisa\nonSuccess; invalidateQueries(...)\ntoast.success(...)
+    F -> F : Cierra el formulario\nonOpenChange(false)
+    F --> U : Trato "<nombre>" creado\ny formulario cerrado
+  else la API indica errores en campos (400/422)
+    F -> F : Permite corregir los campos\nonError; release(); form.setError(...)
+    F --> U : Muestra los errores de la API\njunto a los campos; formulario abierto
+  else error 422 sin indicar campos
+    F -> F : Permite volver a intentar\nonError; release()
+    F --> U : El formulario permanece abierto,\nsin nuevo mensaje de error
+  else otra respuesta de error de la API
+    F -> F : Muestra el mensaje de error\nonError; toast.error(error.message)\nrelease()
+    F --> U : Mensaje del error; formulario abierto
+  end
+end
+deactivate F
+@enduml
